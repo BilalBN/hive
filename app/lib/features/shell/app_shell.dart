@@ -1,5 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
+import '../../library/library_providers.dart';
+import '../../player/player_controller.dart';
+import '../player/mini_player.dart';
+import '../player/side_panel.dart';
+import '../search/search_screen.dart';
 
 import '../../design/icons.g.dart';
 import '../../design/theme.dart';
@@ -23,7 +31,7 @@ const desktopBreakpoint = 840.0;
 
 /// The frame around every tab: bottom tabs and mini player on phones,
 /// sidebar and player bar on computers (as in the Hive designs).
-class AppShell extends StatelessWidget {
+class AppShell extends ConsumerWidget {
   const AppShell({super.key, required this.shell});
 
   final StatefulNavigationShell shell;
@@ -32,9 +40,60 @@ class AppShell extends StatelessWidget {
       shell.goBranch(index, initialLocation: index == shell.currentIndex);
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final wide = MediaQuery.sizeOf(context).width >= desktopBreakpoint;
-    return wide ? _desktop(context) : _mobile(context);
+    return CallbackShortcuts(
+      bindings: _shortcuts(ref),
+      child: Focus(
+        autofocus: true,
+        child: wide ? _desktop(context, ref) : _mobile(context),
+      ),
+    );
+  }
+
+  /// Keyboard: Space play/pause, ⌘/Ctrl ← → previous/next, Shift ← → seek 10
+  /// seconds, ⌘/Ctrl F search, ⌘/Ctrl L like. Typing in a text field wins.
+  Map<ShortcutActivator, VoidCallback> _shortcuts(WidgetRef ref) {
+    final player = ref.read(playerProvider.notifier);
+    void seekBy(int seconds) {
+      final s = ref.read(playerProvider);
+      if (s.isEmpty) return;
+      final to = s.position + Duration(seconds: seconds);
+      player.seek(
+        to < Duration.zero ? Duration.zero : (to > s.total ? s.total : to),
+      );
+    }
+
+    void like() {
+      final t = ref.read(playerProvider).track;
+      if (t != null) ref.read(likesProvider.notifier).toggle(t).ignore();
+    }
+
+    void search() {
+      _select(1);
+      ref.read(searchFocusProvider).requestFocus();
+    }
+
+    return {
+      const SingleActivator(LogicalKeyboardKey.space): player.toggle,
+      const SingleActivator(LogicalKeyboardKey.mediaPlayPause): player.toggle,
+      const SingleActivator(LogicalKeyboardKey.arrowRight, meta: true):
+          player.next,
+      const SingleActivator(LogicalKeyboardKey.arrowRight, control: true):
+          player.next,
+      const SingleActivator(LogicalKeyboardKey.arrowLeft, meta: true):
+          player.previous,
+      const SingleActivator(LogicalKeyboardKey.arrowLeft, control: true):
+          player.previous,
+      const SingleActivator(LogicalKeyboardKey.arrowRight, shift: true): () =>
+          seekBy(10),
+      const SingleActivator(LogicalKeyboardKey.arrowLeft, shift: true): () =>
+          seekBy(-10),
+      const SingleActivator(LogicalKeyboardKey.keyF, meta: true): search,
+      const SingleActivator(LogicalKeyboardKey.keyF, control: true): search,
+      const SingleActivator(LogicalKeyboardKey.keyL, meta: true): like,
+      const SingleActivator(LogicalKeyboardKey.keyL, control: true): like,
+    };
   }
 
   Widget _mobile(BuildContext context) {
@@ -43,15 +102,7 @@ class AppShell extends StatelessWidget {
       body: Column(
         children: [
           Expanded(child: shell),
-          const Padding(
-            padding: EdgeInsets.fromLTRB(
-              HiveSpace.xs,
-              0,
-              HiveSpace.xs,
-              HiveSpace.xs,
-            ),
-            child: _NowPlayingBar(compact: true),
-          ),
+          const MiniPlayer(),
         ],
       ),
       bottomNavigationBar: DecoratedBox(
@@ -81,8 +132,9 @@ class AppShell extends StatelessWidget {
     );
   }
 
-  Widget _desktop(BuildContext context) {
+  Widget _desktop(BuildContext context, WidgetRef ref) {
     final p = HiveTheme.of(context);
+    final panel = ref.watch(sidePanelProvider);
     return Scaffold(
       body: Column(
         children: [
@@ -130,10 +182,14 @@ class AppShell extends StatelessWidget {
                 ),
                 VerticalDivider(width: 1, color: p.border),
                 Expanded(child: shell),
+                if (panel != SidePanel.none) ...[
+                  VerticalDivider(width: 1, color: p.border),
+                  const SidePanelView(),
+                ],
               ],
             ),
           ),
-          const _NowPlayingBar(compact: false),
+          const PlayerBar(),
         ],
       ),
     );
@@ -228,80 +284,6 @@ class _SidebarItem extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-/// Mini player (phones) or player bar (computers). Playback arrives in M1, so
-/// for now it says so.
-class _NowPlayingBar extends StatelessWidget {
-  const _NowPlayingBar({required this.compact});
-
-  final bool compact;
-
-  @override
-  Widget build(BuildContext context) {
-    final p = HiveTheme.of(context);
-    final content = Row(
-      children: [
-        Container(
-          width: compact ? 44 : 52,
-          height: compact ? 44 : 52,
-          decoration: BoxDecoration(
-            color: p.raised,
-            borderRadius: BorderRadius.circular(HiveRadius.art),
-          ),
-          child: Icon(HiveIcons.music, size: 20, color: p.textTertiary),
-        ),
-        const SizedBox(width: HiveSpace.sm),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'Nothing playing',
-                style: HiveType.callout.copyWith(
-                  color: p.textPrimary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              Text(
-                'Playback arrives in M1',
-                style: HiveType.caption.copyWith(color: p.textSecondary),
-              ),
-            ],
-          ),
-        ),
-        Icon(
-          HiveIcons.play,
-          size: 24,
-          color: p.textTertiary,
-          semanticLabel: 'Play (not available yet)',
-        ),
-        const SizedBox(width: HiveSpace.xs),
-      ],
-    );
-    if (compact) {
-      return Container(
-        padding: const EdgeInsets.all(HiveSpace.xs),
-        decoration: BoxDecoration(
-          color: p.raised,
-          borderRadius: BorderRadius.circular(HiveRadius.card),
-        ),
-        child: content,
-      );
-    }
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: HiveSpace.md,
-        vertical: HiveSpace.sm,
-      ),
-      decoration: BoxDecoration(
-        color: p.surface,
-        border: Border(top: BorderSide(color: p.border)),
-      ),
-      child: SafeArea(top: false, child: content),
     );
   }
 }

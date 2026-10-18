@@ -1,0 +1,155 @@
+import 'package:flutter/material.dart' hide RepeatMode;
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hive/app.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:hive/player/player_controller.dart';
+
+import 'app_test.dart' show health, pumpHive;
+import 'support/fake_home.dart';
+
+Future<void> openLibraryAlbum(WidgetTester tester, String title) async {
+  await tester.tap(find.bySemanticsLabel('Library'));
+  await tester.pumpAndSettle();
+  await tester.tap(find.text('Albums'));
+  await tester.pumpAndSettle();
+  await tester.tap(
+    find.bySemanticsLabel(RegExp('^Album: ${RegExp.escape(title)}')),
+  );
+  await tester.pumpAndSettle();
+}
+
+Future<void> pumpConnected(
+  WidgetTester tester, {
+  Size size = const Size(390, 844),
+  FakeHomeAdapter? adapter,
+}) => pumpHive(
+  tester,
+  savedAddress: 'http://100.84.12.7:8443',
+  check: (_) async => health("Arun's home"),
+  size: size,
+  adapter: adapter,
+);
+
+ProviderContainer containerOf(WidgetTester tester) =>
+    ProviderScope.containerOf(tester.element(find.byType(HiveApp)));
+
+void main() {
+  testWidgets('Home shows what you played, new albums and playlists', (
+    tester,
+  ) async {
+    await pumpConnected(tester);
+    expect(find.text('Premam'), findsWidgets);
+    expect(find.text('Road trip'), findsWidgets);
+  });
+
+  testWidgets('search finds a Malayalam song and plays it', (tester) async {
+    await pumpConnected(tester);
+    await tester.tap(find.bySemanticsLabel('Search'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'മലരേ');
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pumpAndSettle();
+    expect(find.text('Songs'), findsOneWidget);
+    await tester.tap(find.bySemanticsLabel(RegExp('^മലരേ, Rajesh Murugesan')));
+    await tester.pumpAndSettle();
+    // The mini player appears with the song.
+    expect(find.bySemanticsLabel(RegExp('^Now playing: മലരേ')), findsOneWidget);
+  });
+
+  testWidgets('search says plainly when nothing matches', (tester) async {
+    await pumpConnected(tester);
+    await tester.tap(find.bySemanticsLabel('Search'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'zzzz');
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pumpAndSettle();
+    expect(find.text('Nothing found for "zzzz"'), findsOneWidget);
+  });
+
+  testWidgets('album → play → Now playing shows the badge, queue and lyrics', (
+    tester,
+  ) async {
+    await pumpConnected(tester);
+    await openLibraryAlbum(tester, 'Premam');
+    expect(find.text('Rajesh Murugesan'), findsWidgets);
+    await tester.tap(find.text('Play'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.bySemanticsLabel(RegExp('^Now playing: മലരേ')));
+    await tester.pumpAndSettle();
+    expect(find.text('PLAYING FROM'), findsOneWidget);
+    expect(find.text('LOSSLESS 16/44.1'), findsOneWidget);
+
+    // The badge explains how the song reaches you.
+    await tester.tap(find.bySemanticsLabel(RegExp('^Quality: Lossless')));
+    await tester.pumpAndSettle();
+    expect(find.text('How this song reaches you'), findsOneWidget);
+    expect(find.text("You're hearing the original file."), findsOneWidget);
+    await tester.tapAt(const Offset(10, 10));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Queue'));
+    await tester.pumpAndSettle();
+    expect(find.text('NEXT FROM PREMAM'), findsOneWidget);
+    expect(find.text('ആലുവ പുഴ'), findsOneWidget);
+    await tester.tap(find.byTooltip('Close'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Lyrics'));
+    await tester.pumpAndSettle();
+    expect(find.text('മലരേ നിന്നെ കാണാതിരുന്നാൽ'), findsOneWidget);
+  });
+
+  testWidgets('Play next puts a song right after the current one', (
+    tester,
+  ) async {
+    await pumpConnected(tester);
+    await openLibraryAlbum(tester, 'Premam');
+    await tester.tap(find.text('Play'));
+    await tester.pumpAndSettle();
+    // ⋯ on the last song → Play next.
+    await tester.tap(find.byTooltip('More').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Play next'));
+    await tester.pumpAndSettle();
+    final container = containerOf(tester);
+    final s = container.read(playerProvider);
+    expect(s.upNext.first.track.title, 'Kalippu');
+    expect(s.upNext.first.fromYou, isTrue);
+  });
+
+  testWidgets('computers: player bar, queue panel and keyboard', (
+    tester,
+  ) async {
+    await pumpConnected(tester, size: const Size(1280, 800));
+    await openLibraryAlbum(tester, 'लगान');
+    await tester.tap(find.text('Play'));
+    await tester.pumpAndSettle();
+    expect(find.text('घनन घनन'), findsWidgets);
+
+    await tester.tap(find.byTooltip('Queue'));
+    await tester.pumpAndSettle();
+    expect(find.text('NEXT FROM लगान'), findsOneWidget);
+
+    final container = containerOf(tester);
+    expect(container.read(playerProvider).playing, isTrue);
+    await tester.sendKeyEvent(LogicalKeyboardKey.space);
+    await tester.pumpAndSettle();
+    expect(container.read(playerProvider).playing, isFalse);
+    expect(container.read(playerProvider).repeat, RepeatMode.off);
+  });
+
+  testWidgets('Settings lets you choose quality per network', (tester) async {
+    await pumpConnected(tester);
+    await tester.tap(find.byKey(const Key('open-settings')));
+    await tester.pumpAndSettle();
+    expect(find.text('On Wi-Fi'), findsOneWidget);
+    expect(find.text('Lossless'), findsOneWidget);
+    await tester.tap(find.text('On mobile data'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Data saver'));
+    await tester.pumpAndSettle();
+    expect(find.text('Data saver'), findsOneWidget);
+  });
+}

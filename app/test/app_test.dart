@@ -9,6 +9,8 @@ import 'package:hive/core/home_connection.dart';
 import 'package:hive/core/startup.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'support/fake_home.dart';
+
 Health health(String name) => Health(
   status: 'ok',
   homeName: name,
@@ -18,29 +20,24 @@ Health health(String name) => Health(
   serverTime: DateTime.utc(2026, 10, 18),
 );
 
-/// Starts the app with an optional saved address and a fake health check.
+/// Starts the app against a fake home (see support/fake_home.dart).
 Future<void> pumpHive(
   WidgetTester tester, {
   String? savedAddress,
   required HealthCheck check,
   Size size = const Size(390, 844),
+  FakeHomeAdapter? adapter,
 }) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
-  SharedPreferences.setMockInitialValues(
-    savedAddress == null ? {} : {'home.address': savedAddress},
+  final overrides = await fakeHomeOverrides(
+    check: check,
+    adapter: adapter,
+    connected: savedAddress != null,
   );
-  final prefs = await SharedPreferences.getInstance();
   await tester.pumpWidget(
-    ProviderScope(
-      overrides: [
-        sharedPreferencesProvider.overrideWithValue(prefs),
-        healthCheckProvider.overrideWithValue(check),
-        keyCheckProvider.overrideWithValue((_, _) async {}),
-      ],
-      child: const HiveApp(),
-    ),
+    ProviderScope(overrides: overrides, child: const HiveApp()),
   );
   await tester.pumpAndSettle();
 }
@@ -143,7 +140,11 @@ void main() {
     );
     await tester.tap(find.bySemanticsLabel('Search'));
     await tester.pumpAndSettle();
-    expect(find.text('Arrives in M1'), findsOneWidget);
+    expect(find.text('Songs, albums, artists, playlists'), findsOneWidget);
+    await tester.tap(find.bySemanticsLabel('Library'));
+    await tester.pumpAndSettle();
+    expect(find.text('Liked songs'), findsOneWidget);
+    expect(find.text('Road trip'), findsOneWidget);
     await tester.tap(find.bySemanticsLabel('Listen'));
     await tester.pumpAndSettle();
     expect(find.text('Arrives in M3'), findsOneWidget);

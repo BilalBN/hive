@@ -4,12 +4,13 @@ import 'package:go_router/go_router.dart';
 
 import '../../api/hive_api.g.dart' show hiveApiVersion;
 import '../../core/home_connection.dart';
+import '../../player/quality.dart';
 import '../../design/icons.g.dart';
 import '../../design/theme.dart';
 import '../../design/tokens.g.dart';
 
-/// Settings. M0 shows the home connection; the full set (quality, devices,
-/// Listen, continuity, appearance, Simple mode) is built in M1–M4.
+/// Settings: home connection and playback quality. Devices, Listen,
+/// continuity, appearance and Simple mode arrive in M2–M4.
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
@@ -18,6 +19,8 @@ class SettingsScreen extends ConsumerWidget {
     final p = HiveTheme.of(context);
     final address = ref.watch(homeAddressStoreProvider).address;
     final status = ref.watch(homeStatusProvider);
+    final playback = ref.watch(playbackSettingsProvider);
+    final settings = ref.read(playbackSettingsProvider.notifier);
     final homeLine = switch (status) {
       HomeConnected(:final health) => '${health.homeName} · connected',
       HomeChecking() => 'Checking…',
@@ -66,6 +69,73 @@ class SettingsScreen extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: HiveSpace.lg),
+            _Heading('Playback'),
+            _Group(
+              children: [
+                _Row(
+                  icon: HiveIcons.wifi,
+                  title: 'On Wi-Fi',
+                  value: playback.onWifi.label,
+                  onTap: () async {
+                    final m = await _pickQuality(
+                      context,
+                      'Quality on Wi-Fi',
+                      playback.onWifi,
+                    );
+                    if (m != null) {
+                      await settings.update(playback.copyWith(onWifi: m));
+                    }
+                  },
+                ),
+                _Row(
+                  icon: HiveIcons.signal,
+                  title: 'On mobile data',
+                  value: playback.onMobile.label,
+                  onTap: () async {
+                    final m = await _pickQuality(
+                      context,
+                      'Quality on mobile data',
+                      playback.onMobile,
+                    );
+                    if (m != null) {
+                      await settings.update(playback.copyWith(onMobile: m));
+                    }
+                  },
+                ),
+                SwitchListTile(
+                  secondary: Icon(
+                    HiveIcons.slidersHorizontal,
+                    size: 20,
+                    color: p.textSecondary,
+                  ),
+                  title: Text(
+                    'Volume levelling',
+                    style: HiveType.body.copyWith(color: p.textPrimary),
+                  ),
+                  subtitle: Text(
+                    'Songs play at a similar loudness. Turn off for bit-perfect output.',
+                    style: HiveType.caption.copyWith(color: p.textSecondary),
+                  ),
+                  value: playback.levelling,
+                  activeThumbColor: p.accent,
+                  onChanged: (v) =>
+                      settings.update(playback.copyWith(levelling: v)),
+                ),
+              ],
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                HiveSpace.xs,
+                HiveSpace.xs,
+                HiveSpace.xs,
+                0,
+              ),
+              child: Text(
+                'Changes apply from the next song. Bluetooth headphones always receive High quality: Bluetooth can\'t carry lossless.',
+                style: HiveType.caption.copyWith(color: p.textSecondary),
+              ),
+            ),
+            const SizedBox(height: HiveSpace.lg),
             _Group(
               children: [
                 _Row(
@@ -77,7 +147,7 @@ class SettingsScreen extends ConsumerWidget {
             ),
             const SizedBox(height: HiveSpace.md),
             Text(
-              'Playback quality, your devices, Listen and appearance arrive with the milestones that build them.',
+              'Your devices, Listen and appearance arrive with the milestones that build them.',
               style: HiveType.caption.copyWith(color: p.textSecondary),
             ),
           ],
@@ -94,11 +164,10 @@ class _Group extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = HiveTheme.of(context);
-    return Container(
-      decoration: BoxDecoration(
-        color: p.surface,
-        borderRadius: BorderRadius.circular(HiveRadius.card),
-      ),
+    return Material(
+      color: p.surface,
+      borderRadius: BorderRadius.circular(HiveRadius.card),
+      clipBehavior: Clip.antiAlias,
       child: Column(
         children: [
           for (var i = 0; i < children.length; i++) ...[
@@ -140,17 +209,23 @@ class _Row extends StatelessWidget {
             Icon(icon, size: 20, color: p.textSecondary),
             const SizedBox(width: HiveSpace.md),
             Expanded(
-              child: Text(
-                title,
-                style: HiveType.body.copyWith(color: p.textPrimary),
-              ),
-            ),
-            Flexible(
-              child: Text(
-                value,
-                textAlign: TextAlign.end,
-                overflow: TextOverflow.ellipsis,
-                style: HiveType.callout.copyWith(color: p.textSecondary),
+              child: Row(
+                children: [
+                  Text(
+                    title,
+                    style: HiveType.body.copyWith(color: p.textPrimary),
+                  ),
+                  const SizedBox(width: HiveSpace.sm),
+                  Expanded(
+                    child: Text(
+                      value,
+                      textAlign: TextAlign.end,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: HiveType.callout.copyWith(color: p.textSecondary),
+                    ),
+                  ),
+                ],
               ),
             ),
             if (onTap != null) ...[
@@ -162,4 +237,77 @@ class _Row extends StatelessWidget {
       ),
     );
   }
+}
+
+class _Heading extends StatelessWidget {
+  const _Heading(this.text);
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = HiveTheme.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(HiveSpace.xs, 0, 0, HiveSpace.xs),
+      child: Text(
+        text.toUpperCase(),
+        style: HiveType.overline.copyWith(color: p.textSecondary),
+      ),
+    );
+  }
+}
+
+Future<QualityMode?> _pickQuality(
+  BuildContext context,
+  String title,
+  QualityMode current,
+) {
+  final p = HiveTheme.of(context);
+  return showModalBottomSheet<QualityMode>(
+    context: context,
+    backgroundColor: p.surface,
+    constraints: const BoxConstraints(maxWidth: 560),
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(
+        top: Radius.circular(HiveRadius.sheet),
+      ),
+    ),
+    builder: (context) => SafeArea(
+      child: RadioGroup<QualityMode>(
+        groupValue: current,
+        onChanged: (m) => Navigator.of(context).pop(m),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                HiveSpace.lg,
+                HiveSpace.lg,
+                HiveSpace.lg,
+                HiveSpace.xs,
+              ),
+              child: Text(
+                title,
+                style: HiveType.headline.copyWith(color: p.textPrimary),
+              ),
+            ),
+            for (final m in QualityMode.values)
+              RadioListTile<QualityMode>(
+                value: m,
+                activeColor: p.accent,
+                title: Text(
+                  m.label,
+                  style: HiveType.body.copyWith(color: p.textPrimary),
+                ),
+                subtitle: Text(
+                  '${m.detail} · ${m.perHour}',
+                  style: HiveType.caption.copyWith(color: p.textSecondary),
+                ),
+              ),
+            const SizedBox(height: HiveSpace.sm),
+          ],
+        ),
+      ),
+    ),
+  );
 }

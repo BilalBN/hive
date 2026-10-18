@@ -10,15 +10,27 @@ import '../core/home_connection.dart';
 /// The three ways a song can be sent (build plan: Lossless, High, Data saver).
 enum QualityMode {
   lossless('lossless', 'Lossless', 'The original file, untouched'),
-  high('high', 'High', 'Opus 256 kbps'),
-  dataSaver('dataSaver', 'Data saver', 'Opus 96 kbps');
+  high('high', 'High', '256 kbps'),
+  dataSaver('dataSaver', 'Data saver', '96 kbps');
 
-  const QualityMode(this.wire, this.label, this.detail);
+  const QualityMode(this.wire, this.label, this._detail);
 
   /// The value in api/openapi.yaml's StreamRequest.quality.
   final String wire;
   final String label;
-  final String detail;
+  final String _detail;
+
+  /// Apple's player gets AAC for the lossy modes (it can't stream Opus).
+  String get detail => this == QualityMode.lossless
+      ? _detail
+      : '${isApplePlayer ? 'AAC' : 'Opus'} $_detail';
+
+  /// Roughly how much data an hour of music uses.
+  String get perHour => switch (this) {
+    QualityMode.lossless => 'about 300–1,500 MB an hour',
+    QualityMode.high => 'about 115 MB an hour',
+    QualityMode.dataSaver => 'about 45 MB an hour',
+  };
 
   static QualityMode fromWire(String? v) => QualityMode.values.firstWhere(
     (m) => m.wire == v,

@@ -3,14 +3,15 @@ library;
 
 import 'dart:io';
 
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/app.dart';
-import 'package:hive/core/home_connection.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app_test.dart' show health;
+import 'screens_test.dart' show openLibraryAlbum;
+import 'support/fake_home.dart';
 
 /// Renders key screens with the real fonts into test/goldens/ for visual review.
 /// Run with: flutter test --tags screenshots --update-goldens
@@ -42,15 +43,115 @@ Future<void> loadFonts() async {
   }
 }
 
+/// Where to go after start-up, before the screenshot.
+typedef Steps = Future<void> Function(WidgetTester tester);
+
+Future<void> _play(WidgetTester tester, String album) async {
+  await openLibraryAlbum(tester, album);
+  await tester.tap(find.text('Play'));
+  await tester.pumpAndSettle();
+}
+
+final Map<String, (Size, bool, Steps?)> _shots = {
+  'phone-connect': (const Size(390, 844), false, null),
+  'phone-home': (const Size(390, 844), true, null),
+  'phone-search': (
+    const Size(390, 844),
+    true,
+    (t) async {
+      await t.tap(find.bySemanticsLabel('Search'));
+      await t.pumpAndSettle();
+      await t.enterText(find.byType(TextField), 'a');
+      await t.pump(const Duration(milliseconds: 300));
+      await t.pumpAndSettle();
+    },
+  ),
+  'phone-library': (
+    const Size(390, 844),
+    true,
+    (t) async {
+      await t.tap(find.bySemanticsLabel('Library'));
+      await t.pumpAndSettle();
+    },
+  ),
+  'phone-album': (const Size(390, 844), true, (t) => _play(t, 'Premam')),
+  'phone-now-playing': (
+    const Size(390, 844),
+    true,
+    (t) async {
+      await _play(t, 'Premam');
+      await t.tap(find.bySemanticsLabel(RegExp('^Now playing: ')));
+      await t.pumpAndSettle();
+    },
+  ),
+  'phone-signal-path': (
+    const Size(390, 844),
+    true,
+    (t) async {
+      await _play(t, 'लगान');
+      await t.tap(find.bySemanticsLabel(RegExp('^Now playing: ')));
+      await t.pumpAndSettle();
+      await t.tap(find.bySemanticsLabel(RegExp('^Quality: ')));
+      await t.pumpAndSettle();
+    },
+  ),
+  'phone-queue': (
+    const Size(390, 844),
+    true,
+    (t) async {
+      await _play(t, 'Premam');
+      await t.tap(find.bySemanticsLabel(RegExp('^Now playing: ')));
+      await t.pumpAndSettle();
+      await t.tap(find.text('Queue'));
+      await t.pumpAndSettle();
+    },
+  ),
+  'phone-lyrics': (
+    const Size(390, 844),
+    true,
+    (t) async {
+      await _play(t, 'Premam');
+      await t.tap(find.bySemanticsLabel(RegExp('^Now playing: ')));
+      await t.pumpAndSettle();
+      await t.tap(find.text('Lyrics'));
+      await t.pumpAndSettle();
+    },
+  ),
+  'phone-settings': (
+    const Size(390, 844),
+    true,
+    (t) async {
+      await t.tap(find.byKey(const Key('open-settings')));
+      await t.pumpAndSettle();
+    },
+  ),
+  'desktop-home': (const Size(1280, 800), true, null),
+  'desktop-album-queue': (
+    const Size(1280, 800),
+    true,
+    (t) async {
+      await _play(t, 'लगान');
+      await t.tap(find.byTooltip('Queue'));
+      await t.pumpAndSettle();
+    },
+  ),
+  'desktop-now-playing': (
+    const Size(1280, 800),
+    true,
+    (t) async {
+      await _play(t, 'Premam');
+      await t.tap(find.byTooltip('Lyrics'));
+      await t.pumpAndSettle();
+    },
+  ),
+};
+
 void main() {
   setUpAll(loadFonts);
 
   for (final dark in [true, false]) {
-    for (final (name, size, saved) in [
-      ('phone-home', const Size(390, 844), true),
-      ('phone-connect', const Size(390, 844), false),
-      ('desktop-home', const Size(1280, 800), true),
-    ]) {
+    for (final MapEntry(key: name, value: (size, saved, steps))
+        in _shots.entries) {
       final label = '$name-${dark ? 'dark' : 'light'}';
       testWidgets(label, (tester) async {
         tester.view.physicalSize = size;
@@ -60,22 +161,15 @@ void main() {
             : Brightness.light;
         addTearDown(tester.view.reset);
         addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
-        SharedPreferences.setMockInitialValues(
-          saved ? {'home.address': 'http://100.84.12.7:8443'} : {},
+        final overrides = await fakeHomeOverrides(
+          check: (_) async => health("Arun's home"),
+          connected: saved,
         );
-        final prefs = await SharedPreferences.getInstance();
         await tester.pumpWidget(
-          ProviderScope(
-            overrides: [
-              sharedPreferencesProvider.overrideWithValue(prefs),
-              healthCheckProvider.overrideWithValue(
-                (_) async => health("Arun's home"),
-              ),
-            ],
-            child: const HiveApp(),
-          ),
+          ProviderScope(overrides: overrides, child: const HiveApp()),
         );
         await tester.pumpAndSettle();
+        if (steps != null) await steps(tester);
         await expectLater(
           find.byType(HiveApp),
           matchesGoldenFile('goldens/$label.png'),
