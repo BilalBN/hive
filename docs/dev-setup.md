@@ -101,6 +101,46 @@ Make sure Tailscale is on, on the phone.
 Type the same address and press **Connect**. **Connected to home** on both
 devices passes the M0 gate.
 
+## M1: play your music
+
+**The M1 gate:** on mobile data away from home, someone searches, plays a
+Malayalam album gaplessly with the screen locked, and the badge reads
+**High · Bluetooth** on AirPods.
+
+1. **Update the server.** Stop it (Ctrl+C), then:
+
+   ```sh
+   git pull
+   brew install ffmpeg                  # makes High and Data saver; reads loudness
+   cd server && .venv/bin/pip install -e ".[dev]"
+   .venv/bin/python -m hive serve
+   ```
+
+   It now prints a **development key** (`hive-dev-…`). The apps need it until
+   invites arrive in M2. `hive info` prints it again any time.
+
+2. **Point it at your music.** By default it watches `~/Music/Hive`. To use
+   other folders, set them in `data/hive.toml` and restart:
+
+   ```toml
+   music_folders = ["~/Music/Hive", "/Volumes/Music"]
+   ```
+
+   Or drop album folders onto **Hive Admin → Upload**. New files are read
+   within a few seconds; **Hive Admin → Library** shows progress and anything
+   that needs attention.
+
+3. **Update the admin panel** from the latest run's `hive-admin-dist` (same as
+   step 4 above).
+
+4. **Update the apps** from the latest run (`hive-macos`, `hive-android-apk`).
+   On first open, type the address **and** the development key from Hive
+   Admin → Overview.
+
+5. **Try it:** Search, an album, Now playing (tap the quality badge to see how
+   the song reaches you), the queue, lyrics, the lock screen. Then switch Wi-Fi
+   off on the phone and keep listening on mobile data.
+
 ## Useful commands
 
 | What | Command |

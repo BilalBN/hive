@@ -3,3 +3,7 @@
 tags:
   screenshots:
     skip: "Run with --tags screenshots"
+  # Talks to a running Hive server (HIVE_LIVE_URL, HIVE_LIVE_KEY):
+  #   flutter test --tags live
+  live:
+    skip: "Run with --tags live against a running server"
