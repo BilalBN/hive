@@ -773,27 +773,53 @@ class PlaylistItemsUpdate {
 class StreamRequest {
   const StreamRequest({
     required this.quality,
-    this.container,
+    this.player,
+    this.context,
     this.purpose,
   });
 
   /// lossless = the original file; high = Opus 256 kbps; dataSaver = Opus 96 kbps. A lossy original is always sent as it is.
   final String quality;
-  /// Wrapper for Opus. Apple's player needs caf; everything else takes ogg.
-  final String? container;
+  /// Which audio engine will play it. Apple's player gets Opus in CAF and ALAC as it is; others get Opus in Ogg, and ALAC or AIFF originals as FLAC (bit-identical, so still lossless).
+  final String? player;
+  /// Where the song was started from; feeds "Jump back in" on Home.
+  final PlayContext? context;
   /// play counts towards this person's recently played; prefetch doesn't.
   final String? purpose;
 
   factory StreamRequest.fromJson(Map<String, dynamic> json) => StreamRequest(
         quality: json['quality'] as String,
-        container: json['container'] == null ? null : json['container'] as String,
+        player: json['player'] == null ? null : json['player'] as String,
+        context: json['context'] == null ? null : PlayContext.fromJson((json['context'] as Map).cast<String, dynamic>()),
         purpose: json['purpose'] == null ? null : json['purpose'] as String,
       );
 
   Map<String, dynamic> toJson() => {
         'quality': quality,
-        'container': ?container,
+        'player': ?player,
+        'context': ?context?.toJson(),
         'purpose': ?purpose,
+      };
+}
+
+/// Where the song was started from; feeds "Jump back in" on Home.
+class PlayContext {
+  const PlayContext({
+    required this.kind,
+    required this.id,
+  });
+
+  final String kind;
+  final String id;
+
+  factory PlayContext.fromJson(Map<String, dynamic> json) => PlayContext(
+        kind: json['kind'] as String,
+        id: json['id'] as String,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'kind': kind,
+        'id': id,
       };
 }
 

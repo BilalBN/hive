@@ -1300,17 +1300,26 @@ export interface components {
              */
             quality: "lossless" | "high" | "dataSaver";
             /**
-             * @description Wrapper for Opus. Apple's player needs caf; everything else takes ogg.
-             * @default ogg
+             * @description Which audio engine will play it. Apple's player gets Opus in CAF
+             *     and ALAC as it is; others get Opus in Ogg, and ALAC or AIFF
+             *     originals as FLAC (bit-identical, so still lossless).
+             * @default other
              * @enum {string}
              */
-            container: "ogg" | "caf";
+            player: "apple" | "other";
+            context?: components["schemas"]["PlayContext"];
             /**
              * @description play counts towards this person's recently played; prefetch doesn't.
              * @default play
              * @enum {string}
              */
             purpose: "play" | "prefetch";
+        };
+        /** @description Where the song was started from; feeds "Jump back in" on Home. */
+        PlayContext: {
+            /** @enum {string} */
+            kind: "album" | "playlist" | "artist" | "liked";
+            id: string;
         };
         /** @description EBU R128 measurement of the original, for volume levelling. */
         Loudness: {

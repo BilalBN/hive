@@ -13,6 +13,9 @@ dependencies = [
   "pydantic>=2.7",
   "pydantic-settings>=2.4",
   "pyyaml>=6.0",
+  "mutagen>=1.47",
+  "pillow>=10.4",
+  "watchdog>=5.0",
 ]
 
 [project.optional-dependencies]

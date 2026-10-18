@@ -14,6 +14,13 @@ port = 8443
 # tls_cert = "/Users/you/hive/data/certs/hive-pc.tailnet.ts.net.crt"
 # tls_key  = "/Users/you/hive/data/certs/hive-pc.tailnet.ts.net.key"
 
+# Folders Hive reads music from. Copy albums in and they appear in the apps.
 music_folders = ["~/Music/Hive"]
+# Browser uploads from Hive Admin land here (default: "Uploads" in the first music folder).
+# upload_folder = "~/Music/Hive/Uploads"
+
+# FFmpeg makes the High and Data saver streams and measures loudness for
+# volume levelling. Found automatically on PATH or in Homebrew's folder.
+# ffmpeg = "/opt/homebrew/bin/ffmpeg"
 log_level = "INFO"
 min_app_version = "0.1.0"

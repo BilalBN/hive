@@ -125,9 +125,18 @@ def main(argv: list[str] | None = None) -> None:
         settings.data_dir.mkdir(parents=True, exist_ok=True)
         migrate(settings.database_url)
     elif args.command == "info":
+        from hive.auth import development_key
+        from hive.db import Database, migrate
+        from hive.library.audio import find_ffmpeg
+
         for key, value in settings.model_dump().items():
             print(f"{key:20} {value}")
         print(f"{'database':20} {settings.database_path}")
+        print(f"{'upload folder':20} {settings.uploads_path}")
+        print(f"{'ffmpeg':20} {find_ffmpeg(settings.ffmpeg) or 'not found (brew install ffmpeg)'}")
+        settings.data_dir.mkdir(parents=True, exist_ok=True)
+        migrate(settings.database_url)
+        print(f"{'development key':20} {development_key(Database(settings.database_url))}")
 
 
 if __name__ == "__main__":

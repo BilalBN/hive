@@ -1078,16 +1078,28 @@ components:
           type: string
           enum: [lossless, high, dataSaver]
           description: lossless = the original file; high = Opus 256 kbps; dataSaver = Opus 96 kbps. A lossy original is always sent as it is.
-        container:
+        player:
           type: string
-          enum: [ogg, caf]
-          default: ogg
-          description: Wrapper for Opus. Apple's player needs caf; everything else takes ogg.
+          enum: [apple, other]
+          default: other
+          description: |
+            Which audio engine will play it. Apple's player gets Opus in CAF
+            and ALAC as it is; others get Opus in Ogg, and ALAC or AIFF
+            originals as FLAC (bit-identical, so still lossless).
+        context:
+          $ref: "#/components/schemas/PlayContext"
         purpose:
           type: string
           enum: [play, prefetch]
           default: play
           description: play counts towards this person's recently played; prefetch doesn't.
+    PlayContext:
+      type: object
+      description: Where the song was started from; feeds "Jump back in" on Home.
+      required: [kind, id]
+      properties:
+        kind: { type: string, enum: [album, playlist, artist, liked] }
+        id: { type: string }
     Loudness:
       type: object
       description: EBU R128 measurement of the original, for volume levelling.

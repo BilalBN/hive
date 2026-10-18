@@ -13,9 +13,15 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from hive import __version__
 from hive.admin_site import mount_admin
+from hive.auth import development_key, ticket_secret
 from hive.config import Settings, get_settings
 from hive.contract import contract_path, load_contract, problem, register_unbuilt_operations
 from hive.db import Database, migrate
+from hive.library.admin_api import router as admin_library_router
+from hive.library.api import router as library_router
+from hive.library.media_api import router as media_router
+from hive.library.scanner import Library
+from hive.library.uploads import router as uploads_router
 from hive.system import router as system_router
 
 log = logging.getLogger("hive.server")
@@ -29,8 +35,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         settings.data_dir.mkdir(parents=True, exist_ok=True)
         migrate(settings.database_url)
         app.state.db = Database(settings.database_url, settings.database_path)
+        app.state.dev_key = development_key(app.state.db)
+        app.state.ticket_secret = ticket_secret(app.state.db)
+        app.state.library = Library(settings, app.state.db)
+        app.state.library.start()
         log.info("Hive %s started for %s", __version__, settings.home_name)
+        log.info("development key for the apps (until M2): %s", app.state.dev_key)
         yield
+        app.state.library.stop()
         app.state.db.engine.dispose()
         log.info("Hive stopped")
 
@@ -46,6 +58,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.settings = settings
 
     app.include_router(system_router)
+    app.include_router(library_router)
+    app.include_router(media_router)
+    app.include_router(admin_library_router)
+    app.include_router(uploads_router)
     register_unbuilt_operations(app, load_contract())
 
     @app.get("/api/openapi.yaml", include_in_schema=False)
@@ -55,8 +71,19 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @app.exception_handler(StarletteHTTPException)
     async def http_error(request: Request, exc: StarletteHTTPException):
         if request.url.path.startswith("/api/"):
-            title = "Not found" if exc.status_code == 404 else str(exc.detail)
-            return problem(exc.status_code, title)
+            titles = {
+                400: "Bad request", 401: "Sign-in needed", 403: "Not allowed", 404: "Not found",
+                409: "Conflict", 412: "Precondition failed", 413: "Too large",
+                415: "Not supported", 416: "Range not satisfiable", 422: "Invalid request",
+                503: "Not available right now",
+            }  # fmt: skip
+            title = titles.get(exc.status_code, str(exc.detail))
+            detail = str(exc.detail) if exc.detail and str(exc.detail) != title else None
+            headers = getattr(exc, "headers", None)
+            response = problem(exc.status_code, title, detail)
+            if headers:
+                response.headers.update(headers)
+            return response
         from fastapi.exception_handlers import http_exception_handler
 
         return await http_exception_handler(request, exc)

@@ -69,6 +69,16 @@ jobs:
           python-version: ${{ matrix.python }}
           cache: pip
           cache-dependency-path: server/pyproject.toml
+      # FFmpeg makes the test library and the Opus streams.
+      - name: Install FFmpeg
+        shell: bash
+        run: |
+          case "$RUNNER_OS" in
+            Linux) sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg ;;
+            macOS) brew install ffmpeg ;;
+            Windows) choco install ffmpeg -y --no-progress ;;
+          esac
+          ffmpeg -version | head -1
       - run: pip install -e ".[dev]"
       - run: ruff check .
       - run: ruff format --check .

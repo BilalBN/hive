@@ -44,7 +44,7 @@ def test_health_matches_contract_schema(client) -> None:
 @pytest.mark.parametrize(
     ("method", "path", "milestone"),
     [
-        ("get", "/api/v1/library/home", "M1"),
+        ("get", "/api/v1/admin/backups", "M4"),
         ("post", "/api/v1/auth/email/start", "M2"),
         ("post", "/api/v1/listen/match", "M3"),
         ("delete", "/api/v1/me/devices/abc", "M2"),
