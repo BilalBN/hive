@@ -2,26 +2,12 @@ import { screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { allSections } from "./nav";
+import { mockApi } from "./test/mockApi";
 import { renderAt } from "./test/render";
 
-const health = {
-  status: "ok",
-  homeName: "Arun's home",
-  serverVersion: "0.1.0",
-  apiVersion: "0.1.0",
-  minAppVersion: "0.1.0",
-  serverTime: "2026-10-18T06:00:00Z",
-};
-
 function mockFetch(ok: boolean) {
-  vi.stubGlobal(
-    "fetch",
-    vi.fn(async () =>
-      ok
-        ? new Response(JSON.stringify(health), { status: 200, headers: { "Content-Type": "application/json" } })
-        : Promise.reject(new TypeError("Failed to fetch")),
-    ),
-  );
+  if (ok) mockApi();
+  else vi.stubGlobal("fetch", vi.fn(async () => Promise.reject(new TypeError("Failed to fetch"))));
 }
 
 describe("Hive Admin shell", () => {
@@ -41,6 +27,12 @@ describe("Hive Admin shell", () => {
     expect(await screen.findByText("Home is running.")).toBeInTheDocument();
     expect(await screen.findByText("Online")).toBeInTheDocument();
     expect(screen.getAllByText(/Arun's home/).length).toBeGreaterThan(0);
+  });
+
+  it("shows the key for the apps on the Overview", async () => {
+    renderAt("/");
+    expect(await screen.findByText("hive-dev-7k2q-9mxp-4c8a-tr3z")).toBeInTheDocument();
+    expect(await screen.findByText("1,240")).toBeInTheDocument();
   });
 
   it("says which milestone builds an unbuilt page", async () => {

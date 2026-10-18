@@ -76,12 +76,12 @@ class Settings(BaseSettings):
     @field_validator("music_folders", mode="after")
     @classmethod
     def _expand_folders(cls, v: list[Path]) -> list[Path]:
-        return [p.expanduser() for p in v]
+        return [p.expanduser().absolute() for p in v]
 
     @field_validator("upload_folder", "ffmpeg", "data_dir", mode="after")
     @classmethod
     def _expand(cls, v: Path | None) -> Path | None:
-        return v.expanduser() if v is not None else None
+        return v.expanduser().absolute() if v is not None else None
 
     @property
     def uploads_path(self) -> Path:

@@ -3,6 +3,7 @@ import { defineConfig, devices } from "@playwright/test";
 // End-to-end: the real Python server hosting the built panel (run `npm run build` first).
 const port = Number(process.env.HIVE_E2E_PORT ?? 18780);
 const python = process.env.HIVE_PYTHON ?? "python3";
+const data = process.env.HIVE_E2E_DATA ?? "../.e2e-data";
 
 export default defineConfig({
   testDir: "e2e",
@@ -19,7 +20,8 @@ export default defineConfig({
     url: `http://127.0.0.1:${port}/api/v1/health`,
     reuseExistingServer: false,
     env: {
-      HIVE_DATA_DIR: process.env.HIVE_E2E_DATA ?? "../.e2e-data",
+      HIVE_DATA_DIR: data,
+      HIVE_MUSIC_FOLDERS: JSON.stringify([`${data}/music`]),
       HIVE_HOME_NAME: "E2E home",
       HIVE_ADMIN_DIST: "../admin/dist",
     },

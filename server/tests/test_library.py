@@ -91,8 +91,12 @@ def test_problems_are_listed_not_hidden(home: Home) -> None:
     assert "damaged or not audio" in problems[os.path.join("Incoming", "broken.mp3")] or (
         "recognise" in problems[os.path.join("Incoming", "broken.mp3")]
     )
-    dupes = [p for p in problems.values() if p.startswith("Same file as")]
-    assert len(dupes) == 1
+    dupes = {path: p for path, p in problems.items() if p.startswith("Same file as")}
+    # The copy is the one set aside, whichever was read first.
+    copy = os.path.join("Incoming", "Copy of Dreams.flac")
+    original = os.path.join("Fleetwood Mac", "Rumours", "02 Dreams.flac")
+    assert list(dupes) == [copy]
+    assert dupes[copy] == f"Same file as {original}, so it was skipped"
     assert body["tracks"] == 8
     assert body["queued"] == 0
     assert body["folders"][0]["trackCount"] == 8

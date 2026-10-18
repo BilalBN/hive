@@ -82,7 +82,11 @@ jobs:
       - run: pip install -e ".[dev]"
       - run: ruff check .
       - run: ruff format --check .
-      - run: pytest
+      - run: pytest --junitxml=pytest-report.xml
+      - name: Report failed tests
+        if: failure()
+        shell: bash
+        run: python ../tools/junit_annotations.py pytest-report.xml
 
   admin:
     name: Admin panel

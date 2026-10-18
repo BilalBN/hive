@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import shutil
 import time
 from collections.abc import Iterator
@@ -86,13 +87,13 @@ def home(settings: Settings, built_library) -> Iterator[Home]:
     src, paths = built_library
     music = settings.music_folders[0]
     shutil.copytree(src, music)
-    # Pretend the files were copied a while ago, so they're read at once.
-    old = time.time() - 60
-    for p in music.rglob("*"):
+    # Pretend the files were copied a while ago, so they're read at once; the
+    # duplicate is the newer copy.
+    old = time.time() - 600
+    for p in sorted(music.rglob("*")):
         if p.is_file():
-            import os
-
-            os.utime(p, (old, old))
+            stamp = old + 60 if p.name.startswith("Copy of") else old
+            os.utime(p, (stamp, stamp))
     mapped = {k: music / v.relative_to(src) for k, v in paths.items()}
     with TestClient(create_app(settings)) as c:
         h = Home(c, mapped, music)

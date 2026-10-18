@@ -54,3 +54,4 @@ app/windows/flutter/generated_*
 
 # IDE project files
 *.iml
+pytest-report.xml
