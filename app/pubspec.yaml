@@ -27,6 +27,9 @@ dependencies:
 # Android emulator check.
 dependency_overrides:
   shared_preferences_android: 2.4.28
+  # Patched copy that builds with current Visual Studio; see third_party/README.md.
+  audio_service_win:
+    path: third_party/audio_service_win
 
 dev_dependencies:
   flutter_test:
