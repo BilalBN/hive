@@ -28,16 +28,20 @@ from sqlalchemy.orm import Session
 
 from hive.config import Settings
 from hive.db import Database
+from hive.library import catalog as C
+from hive.library import languages as L
 from hive.library import text as T
 from hive.library.artwork import ArtworkStore
 from hive.library.audio import Transcoder, find_ffmpeg, measure_loudness
 from hive.library.tags import FileInfo, UnreadableFile, is_audio, read_file
-from hive.models import Album, Artist, ImportItem, PlaylistItem, Track
+from hive.models import Album, Artist, ImportItem, ServerMeta, Track
 
 log = logging.getLogger("hive.scanner")
 
+# Bump when files should be read again after an upgrade.
+LIBRARY_VERSION = 2
 SETTLE_SECONDS = 2.0  # a file must be unchanged this long before it's read
-VARIOUS = "Various Artists"
+VARIOUS = C.VARIOUS
 
 
 @dataclass(frozen=True)
@@ -104,6 +108,7 @@ class Library:
                 "FFmpeg not found: High and Data saver streams and volume levelling are off "
                 "until it is installed (macOS: brew install ffmpeg)"
             )
+        self._upgrade_library()
         # Items left "working" by a crash go back in the queue.
         with Session(self.db.engine) as s:
             s.execute(
@@ -117,6 +122,19 @@ class Library:
         self.scan_in_background()
         if self.settings.watch_folders:
             self._start_watcher()
+
+    def _upgrade_library(self) -> None:
+        """When this version reads more from files than the last one did (M1.5:
+        composers, lyricists, language, folder grouping), read every file again."""
+        with Session(self.db.engine) as s:
+            meta = s.get(ServerMeta, "library_version")
+            if meta is not None and meta.value.isdigit() and int(meta.value) >= LIBRARY_VERSION:
+                return
+            n = s.execute(update(Track).values(mtime=-1.0)).rowcount
+            s.merge(ServerMeta(key="library_version", value=str(LIBRARY_VERSION)))
+            s.commit()
+        if n:
+            log.info("reading %d songs again for this version of Hive", n)
 
     def stop(self) -> None:
         self._stop.set()
@@ -451,34 +469,36 @@ def _relative(path: Path, folders: list[Path]) -> str:
 
 
 def _artist(s: Session, name: str) -> Artist:
-    key = T.name_key(name)
-    a = s.scalar(select(Artist).where(Artist.name_key == key))
-    if a is None:
-        a = Artist(id=new_id(), name=name, name_key=key, search_text=T.search_text(name))
-        s.add(a)
-        s.flush()
-    return a
+    return C.artist_row(s, name)
 
 
 def _upsert(s, path, root, st, digest, info: FileInfo, loudness, artwork_id) -> str:
     credit = info.artist or "Unknown artist"
+    album_title = info.album or "Unknown album"
+    title_key = T.name_key(album_title)
+    folder = str(path.parent)
+
+    album: Album | None = None
     if info.album_artist:
         album_artist = info.album_artist
     elif info.compilation:
         album_artist = VARIOUS
     else:
         album_artist = T.primary_artist(credit)
-    album_title = info.album or "Unknown album"
+        # Songs of one album in one folder, each with its own singer and no
+        # album-artist tag (most film soundtracks): keep them together.
+        album = C.find_folder_album(s, title_key, folder)
+        if album is not None and album.artist_key != T.name_key(album_artist):
+            album_artist = album.artist_name
     artist_key = T.name_key(album_artist)
-    title_key = T.name_key(album_title)
-
-    album_artist_row = _artist(s, album_artist)
     track_artist_row = _artist(s, T.primary_artist(credit))
 
-    album = s.scalar(
-        select(Album).where(Album.artist_key == artist_key, Album.title_key == title_key)
-    )
     if album is None:
+        album = s.scalar(
+            select(Album).where(Album.artist_key == artist_key, Album.title_key == title_key)
+        )
+    if album is None:
+        album_artist_row = _artist(s, album_artist)
         album = Album(
             id=new_id(),
             title=album_title,
@@ -489,14 +509,22 @@ def _upsert(s, path, root, st, digest, info: FileInfo, loudness, artwork_id) -> 
             year=info.year,
             genre=info.genre,
             artwork_id=artwork_id,
-            search_text=T.search_text(album_title, album_artist),
+            folder_path=folder,
+            sources="{}",
+            overrides="{}",
+            lookup_state="waiting",
         )
         s.add(album)
         s.flush()
+        if artwork_id:
+            C.set_source(album, "artwork", "folder" if info.picture_from_folder else "tags")
     else:
         album.year = album.year or info.year
         album.genre = album.genre or info.genre
-        album.artwork_id = album.artwork_id or artwork_id
+        album.folder_path = album.folder_path or folder
+        if artwork_id and not album.artwork_id:
+            album.artwork_id = artwork_id
+            C.set_source(album, "artwork", "folder" if info.picture_from_folder else "tags")
 
     track = s.scalar(select(Track).where(Track.path == str(path)))
     if track is None:
@@ -515,7 +543,10 @@ def _upsert(s, path, root, st, digest, info: FileInfo, loudness, artwork_id) -> 
     track.has_lyrics = bool(info.lyrics and info.lyrics.strip())
     track.lufs = loudness.integrated_lufs if loudness else None
     track.true_peak = loudness.true_peak_dbtp if loudness else None
-    track.search_text = T.search_text(track.title, credit, album_title)
+    track.language = L.from_tag(info.language)
+    track.composer = info.composer
+    track.lyricist = info.lyricist
+    track.mbid_recording = info.mb_recording_id
     track.folder = str(root)
     track.size = st.st_size
     track.mtime = st.st_mtime
@@ -526,6 +557,28 @@ def _upsert(s, path, root, st, digest, info: FileInfo, loudness, artwork_id) -> 
     track.bit_depth = info.bit_depth
     track.bitrate_kbps = info.bitrate_kbps
     track.channels = info.channels
+    s.flush()
+    C.set_track_credits(s, track, credit)
+    if info.mb_album_id and not album.mbid_release:
+        album.mbid_release = info.mb_album_id
+        album.mbid_release_group = info.mb_release_group_id
+    # One soundtrack, several singers, one composer: the composer is the album
+    # artist (the music director), as film albums are usually credited.
+    siblings = s.scalars(select(Track).where(Track.album_id == album.id)).all()
+    if info.album_artist or info.compilation:
+        C.set_source(album, "artistName", "albumArtistTag")
+    elif len(siblings) > 1 and C.sources(album).get("artistName") != "albumArtistTag":
+        singers = {T.name_key(T.primary_artist(t.artist_name)) for t in siblings}
+        if len(singers) > 1 and "artistName" not in C.overrides(album):
+            composer = C.common_value([t.composer for t in siblings])
+            new_artist = composer or VARIOUS
+            if album.artist_name != new_artist:
+                album.artist_name = new_artist
+                album.artist_id = _artist(s, new_artist).id
+                C.set_source(album, "artistName", "tags" if composer else "folder")
+    C.refresh_language(s, album)
+    C.apply_overrides(album)
+    C.refresh_search(s, album)
     s.flush()
     album.album_lufs = _album_lufs(s, album.id)
     _prune(s)
@@ -549,12 +602,4 @@ def _album_lufs(s: Session, album_id: str) -> float | None:
 
 
 def _prune(s: Session) -> None:
-    """Drop albums with no songs and artists with nothing left."""
-    s.execute(delete(Album).where(~Album.id.in_(select(Track.album_id).distinct())))
-    s.execute(delete(PlaylistItem).where(~PlaylistItem.track_id.in_(select(Track.id))))
-    s.execute(
-        delete(Artist).where(
-            ~Artist.id.in_(select(Album.artist_id).where(Album.artist_id.isnot(None))),
-            ~Artist.id.in_(select(Track.artist_id).where(Track.artist_id.isnot(None))),
-        )
-    )
+    C.prune(s)

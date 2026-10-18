@@ -111,6 +111,8 @@ def track_summaries(s: Session, caller: Caller, tracks: Sequence[Track]) -> list
                 "format": track_format(t),
                 "liked": t.id in liked,
                 "hasLyrics": t.has_lyrics,
+                "composer": t.composer,
+                "lyricist": t.lyricist,
             }
         )
         for t in tracks
@@ -165,6 +167,9 @@ def album_summaries(s: Session, albums: Sequence[Album]) -> list[dict[str, Any]]
                     "trackCount": st["trackCount"],
                     "tier": st["tier"],
                     "addedAt": iso(a.added_at),
+                    "language": a.language,
+                    "kind": a.kind,
+                    "filmTitle": a.film_title,
                 }
             )
         )

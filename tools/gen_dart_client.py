@@ -30,6 +30,11 @@ def ref_name(ref: str) -> str:
     return ref.rsplit("/", 1)[-1]
 
 
+def is_model_schema(schema: dict) -> bool:
+    """Objects become classes; named enums (type: string) stay plain values."""
+    return schema.get("type", "object") == "object"
+
+
 def is_map_schema(schema: dict) -> bool:
     return schema.get("type") == "object" and not schema.get("properties")
 
@@ -52,8 +57,16 @@ class Gen:
     def dart_type(self, schema: dict) -> str:
         if "$ref" in schema:
             name = ref_name(schema["$ref"])
-            return "Map<String, dynamic>" if is_map_schema(self.schemas[name]) else name
+            target = self.schemas[name]
+            if not is_model_schema(target):
+                return self.dart_type(target)  # named enums and plain values
+            return "Map<String, dynamic>" if is_map_schema(target) else name
         t = schema.get("type")
+        if isinstance(t, list):  # e.g. [string, "null"]: nullable anyway
+            rest = [x for x in t if x != "null"]
+            t = rest[0] if rest else "null"
+        if t == "null":
+            return "Object"
         if t == "string":
             return "DateTime" if schema.get("format") == "date-time" else "String"
         if t == "integer":
@@ -79,6 +92,8 @@ class Gen:
             return f"({expr} as Map).cast<String, dynamic>()"
         if t in ("String", "int", "bool"):
             return f"{expr} as {t}"
+        if t == "Object":
+            return f"{expr} as Object"
         return f"{t}.fromJson(({expr} as Map).cast<String, dynamic>())"
 
     def to_json(self, schema: dict, expr: str) -> str:
@@ -87,7 +102,7 @@ class Gen:
             return f"{expr}.toUtc().toIso8601String()"
         if t.startswith("List<"):
             return f"{expr}.map((e) => {self.to_json(schema['items'], 'e')}).toList()"
-        if t in ("String", "int", "bool", "double", "Map<String, dynamic>"):
+        if t in ("String", "int", "bool", "double", "Object", "Map<String, dynamic>"):
             return expr
         return f"{expr}.toJson()"
 
@@ -255,7 +270,7 @@ class Gen:
             "",
         ]
         for name, schema in self.schemas.items():
-            if is_map_schema(schema):
+            if is_map_schema(schema) or not is_model_schema(schema):
                 continue
             parts += [self.model(name, schema), ""]
         parts += [

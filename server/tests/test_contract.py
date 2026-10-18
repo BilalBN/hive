@@ -21,7 +21,7 @@ def test_every_operation_has_unique_id_and_milestone() -> None:
     ids = [op["operationId"] for op in ops.values()]
     assert len(ids) == len(set(ids))
     for (path, method), op in ops.items():
-        assert re.fullmatch(r"M[0-6]", op.get("x-milestone", "")), f"{method} {path}"
+        assert re.fullmatch(r"M[0-6](\.5)?", op.get("x-milestone", "")), f"{method} {path}"
 
 
 def test_server_routes_match_contract_exactly(settings) -> None:

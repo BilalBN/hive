@@ -59,16 +59,53 @@ def name_key(text: str) -> str:
     return " ".join(w) or "unknown"
 
 
+_VOICED = str.maketrans({"d": "t", "g": "k", "b": "p", "v": "w", "q": "k", "f": "p"})
+_CONSONANTS = set("bcdfgjklmnpqrstvwxyz")
+
+
+def phonetic(word: str) -> str:
+    """A loose sound key for Latin spellings, so "kadhal", "kathal" and
+    "kaadhal" meet, and "neeyum" meets "niyum". Only used for matching."""
+    w = word.casefold()
+    if not w.isascii() or not w.isalpha():
+        return w
+    w = w.replace("ee", "i").replace("oo", "u")
+    out: list[str] = []
+    for ch in w:
+        if ch == "h" and out and out[-1] in _CONSONANTS:
+            continue  # th → t, dh → d, kh → k, sh → s, zh → z
+        out.append(ch)
+    w = "".join(out).translate(_VOICED)
+    collapsed: list[str] = []
+    for ch in w:
+        if not collapsed or collapsed[-1] != ch:
+            collapsed.append(ch)
+    return "".join(collapsed)
+
+
 def search_text(*parts: str | None) -> str:
-    """Space-separated words of every part, for word-start matching."""
+    """Space-separated words of every part, for word-start matching.
+
+    Words in Indian scripts are also indexed by their English spelling, and
+    Latin words by their sound key (see phonetic), so a search typed in
+    English finds Malayalam, Hindi or Tamil titles.
+    """
+    from hive.library.translit import romanise
+
     seen: list[str] = []
+    extra: list[str] = []
     for part in parts:
         if not part:
             continue
         for w in words(part):
-            # Also index the pieces of initials so "a r rahman" finds "ar rahman".
             seen.append(w)
-    return " " + " ".join(seen) + " "
+        for r in romanise(_fold(part)):
+            extra += words(r)
+    for w in [*seen, *extra]:
+        if w.isascii():
+            extra.append(phonetic(w))
+    unique = list(dict.fromkeys([*seen, *extra]))
+    return " " + " ".join(unique) + " "
 
 
 def query_words(q: str) -> list[str]:

@@ -301,6 +301,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/library/languages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Languages that have music at home, for the language chips. */
+        get: operations["listLanguages"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/library/playlists": {
         parameters: {
             query?: never;
@@ -868,6 +885,116 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/library/lookup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Online lookup of album details, art, language and film; its progress and matches to review. */
+        get: operations["adminGetLookup"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Turn online lookup on or off, or set an AcoustID key. */
+        patch: operations["adminUpdateLookup"];
+        trace?: never;
+    };
+    "/api/v1/admin/library/lookup/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Look albums up again (the ones named, or every one that found nothing or failed). */
+        post: operations["adminRetryLookup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/library/albums": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Albums for checking and editing, with filters. */
+        get: operations["adminListAlbums"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/library/albums/{albumId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                albumId: components["parameters"]["AlbumId"];
+            };
+            cookie?: never;
+        };
+        /** One album's details, where each came from, and any match waiting for review. */
+        get: operations["adminGetAlbum"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Correct an album. What you set is kept through rescans and lookups. */
+        patch: operations["adminUpdateAlbum"];
+        trace?: never;
+    };
+    "/api/v1/admin/library/albums/{albumId}/artwork": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                albumId: components["parameters"]["AlbumId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /** Replace the album's cover with an image (JPEG, PNG or WebP, up to 20 MB). */
+        put: operations["adminSetAlbumArtwork"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/library/albums/{albumId}/match": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                albumId: components["parameters"]["AlbumId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Accept or reject the match found for an album. */
+        post: operations["adminDecideMatch"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/development-key": {
         parameters: {
             query?: never;
@@ -1143,6 +1270,10 @@ export interface components {
             format: components["schemas"]["AudioFormat"];
             liked: boolean;
             hasLyrics?: boolean;
+            /** @description Who wrote the music */
+            composer?: string;
+            /** @description Who wrote the words */
+            lyricist?: string;
         };
         AlbumSummary: {
             id: string;
@@ -1159,7 +1290,14 @@ export interface components {
             tier: "hires" | "lossless" | "lossy";
             /** Format: date-time */
             addedAt: string;
+            /** @description Language code (e.g. "ml"); missing when not known. */
+            language?: string;
+            kind?: components["schemas"]["AlbumKind"];
+            /** @description The film */
+            filmTitle?: string;
         };
+        /** @enum {string} */
+        AlbumKind: "album" | "soundtrack" | "compilation" | "single" | "ep" | "live" | "other";
         Album: {
             id: string;
             title: string;
@@ -1174,6 +1312,11 @@ export interface components {
             addedAt: string;
             durationMs: number;
             genre?: string;
+            language?: string;
+            kind?: components["schemas"]["AlbumKind"];
+            film?: components["schemas"]["Film"];
+            /** @description Music directors, composers and lyricists of the album; cast and director of its film. */
+            credits?: components["schemas"]["Credit"][];
             tracks: components["schemas"]["TrackSummary"][];
         };
         ArtistSummary: {
@@ -1193,6 +1336,40 @@ export interface components {
             albums: components["schemas"]["AlbumSummary"][];
             /** @description This person's most-played songs by the artist, then the rest by album order. */
             topTracks: components["schemas"]["TrackSummary"][];
+            /** @description What they do at home, most first (singer, musicDirector, actor…). */
+            roles?: components["schemas"]["CreditRole"][];
+            /** @description Albums they composed or were music director for. */
+            musicFor?: components["schemas"]["AlbumSummary"][];
+            /** @description Soundtracks of films they acted in or directed. */
+            films?: components["schemas"]["AlbumSummary"][];
+            /** @description Songs they wrote the words for. */
+            lyricsFor?: components["schemas"]["TrackSummary"][];
+        };
+        /** @enum {string} */
+        CreditRole: "singer" | "composer" | "lyricist" | "musicDirector" | "actor" | "director";
+        Credit: {
+            role: components["schemas"]["CreditRole"];
+            name: string;
+            /** @description Their page at home. */
+            artistId?: string;
+        };
+        Film: {
+            title: string;
+            year?: number;
+            /** @example Q19893435 */
+            wikidataId?: string;
+        };
+        Language: {
+            /** @example ml */
+            code: string;
+            /** @example Malayalam */
+            name: string;
+            /** @example മലയാളം */
+            nativeName: string;
+            albumCount: number;
+        };
+        LanguageList: {
+            items: components["schemas"]["Language"][];
         };
         AlbumPage: {
             items: components["schemas"]["AlbumSummary"][];
@@ -1401,6 +1578,94 @@ export interface components {
             /** @description Up to 10 albums added most recently. */
             recentlyAdded?: components["schemas"]["AlbumSummary"][];
         };
+        LookupSettings: {
+            /** @description Look up details of new and changed albums online. */
+            enabled?: boolean;
+            /** @description Optional AcoustID application key; lets Hive recognise songs with no useful tags by their sound. Empty removes it. */
+            acoustidKey?: string;
+        };
+        LookupRetry: {
+            albumIds?: string[];
+            /** @description Every album that found nothing or failed. */
+            all?: boolean;
+        };
+        LookupStatus: {
+            enabled: boolean;
+            /** @description A key is set (it's never sent back). */
+            acoustidKey: boolean;
+            /** @description fpcalc (Chromaprint) was found */
+            fingerprinting?: boolean;
+            working: boolean;
+            waiting: number;
+            found: number;
+            notFound: number;
+            review: number;
+            failed: number;
+            /** @description Albums you corrected by hand. */
+            edited: number;
+            /** @description Why the last lookup failed */
+            lastError?: string;
+            /** @description What leaves home, in plain words, for the admin panel to show. */
+            sends?: string;
+        };
+        /** @enum {string} */
+        LookupState: "off" | "waiting" | "working" | "found" | "review" | "notFound" | "failed" | "edited";
+        FoundAlbum: {
+            title: string;
+            artistName: string;
+            year?: number;
+            language?: string;
+            kind?: components["schemas"]["AlbumKind"];
+            film?: components["schemas"]["Film"];
+            credits?: components["schemas"]["Credit"][];
+            /** @description The cover it found */
+            artworkId?: string;
+            trackCount?: number;
+            /** @description How sure the match is. */
+            score: number;
+            /** @description Where it came from */
+            source: string;
+            /** @description The page on MusicBrainz or Wikidata */
+            link?: string;
+        };
+        AdminAlbum: {
+            album: components["schemas"]["Album"];
+            lookup: components["schemas"]["LookupState"];
+            /** @description What the lookup did or why it found nothing. */
+            lookupNote?: string;
+            found?: components["schemas"]["FoundAlbum"];
+            /** @description Fields you set by hand; rescans and lookups leave them alone. */
+            edited: ("title" | "artistName" | "year" | "language" | "filmTitle" | "filmYear" | "artwork")[];
+            /** @description Where each detail came from (tags, folder, script, lookup, you). */
+            sources: {
+                [key: string]: string;
+            };
+            /** @description Where its files are */
+            folder?: string;
+        };
+        AdminAlbumPage: {
+            items: {
+                album: components["schemas"]["AlbumSummary"];
+                lookup: components["schemas"]["LookupState"];
+                lookupNote?: string;
+            }[];
+            total: number;
+            offset: number;
+        };
+        /** @description Set a field to change it; set it to null to go back to what the files and lookup say. */
+        AlbumEdit: {
+            title?: string | null;
+            artistName?: string | null;
+            year?: number | null;
+            language?: string | null;
+            filmTitle?: string | null;
+            filmYear?: number | null;
+            /** @description null puts back the cover from the files or lookup. */
+            artwork?: null;
+        };
+        MatchDecision: {
+            accept: boolean;
+        };
         DevelopmentKey: {
             /** @example hive-dev-7k2q-9mxp-4c8a */
             key: string;
@@ -1476,6 +1741,8 @@ export interface components {
         };
     };
     parameters: {
+        /** @description Only music in this language (a code from listLanguages, e.g. "ml"). */
+        Language: string;
         RequestId: string;
         DeviceId: string;
         AlbumId: string;
@@ -1647,7 +1914,10 @@ export interface operations {
     };
     getHome: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Only music in this language (a code from listLanguages, e.g. "ml"). */
+                language?: components["parameters"]["Language"];
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -1674,6 +1944,8 @@ export interface operations {
                 /** @description recent = newest additions first. */
                 sort?: "recent" | "title" | "artist" | "year";
                 artistId?: string;
+                /** @description Only music in this language (a code from listLanguages, e.g. "ml"). */
+                language?: components["parameters"]["Language"];
             };
             header?: never;
             path?: never;
@@ -1773,6 +2045,8 @@ export interface operations {
                 sort?: "recent" | "title" | "artist";
                 /** @description Only the songs this person liked, most recently liked first. */
                 liked?: boolean;
+                /** @description Only music in this language (a code from listLanguages, e.g. "ml"). */
+                language?: components["parameters"]["Language"];
             };
             header?: never;
             path?: never;
@@ -1795,10 +2069,18 @@ export interface operations {
     search: {
         parameters: {
             query: {
-                /** @description Words in any script; each word matches the start of a word (so "mal" finds "Malare"). */
+                /**
+                 * @description Words in any script; each word matches the start of a word (so "mal"
+                 *     finds "Malare"). Malayalam, Devanagari, Tamil, Telugu, Kannada and
+                 *     Bengali titles are also found by their English spelling ("malare"
+                 *     finds "മലരേ"). Matches film titles, cast, directors, music
+                 *     directors, singers, composers, lyricists and language names too.
+                 */
                 q: string;
                 /** @description At most this many of each kind. */
                 limit?: number;
+                /** @description Only music in this language (a code from listLanguages, e.g. "ml"). */
+                language?: components["parameters"]["Language"];
             };
             header?: never;
             path?: never;
@@ -1813,6 +2095,27 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SearchResults"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    listLanguages: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Languages in use, most albums first. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LanguageList"];
                 };
             };
             401: components["responses"]["Unauthorized"];
@@ -2524,6 +2827,225 @@ export interface operations {
                 };
             };
             401: components["responses"]["Unauthorized"];
+        };
+    };
+    adminGetLookup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Lookup status. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LookupStatus"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    adminUpdateLookup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LookupSettings"];
+            };
+        };
+        responses: {
+            /** @description Lookup status. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LookupStatus"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            422: components["responses"]["Invalid"];
+        };
+    };
+    adminRetryLookup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LookupRetry"];
+            };
+        };
+        responses: {
+            /** @description Lookup status. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LookupStatus"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    adminListAlbums: {
+        parameters: {
+            query?: {
+                offset?: components["parameters"]["Offset"];
+                limit?: components["parameters"]["Limit"];
+                filter?: "all" | "review" | "noArt" | "noLanguage" | "notFound";
+                q?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of albums. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminAlbumPage"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    adminGetAlbum: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                albumId: components["parameters"]["AlbumId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The album. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminAlbum"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    adminUpdateAlbum: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                albumId: components["parameters"]["AlbumId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AlbumEdit"];
+            };
+        };
+        responses: {
+            /** @description The album. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminAlbum"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Invalid"];
+        };
+    };
+    adminSetAlbumArtwork: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                albumId: components["parameters"]["AlbumId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "image/jpeg": string;
+                "image/png": string;
+                "image/webp": string;
+            };
+        };
+        responses: {
+            /** @description The album. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminAlbum"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Invalid"];
+        };
+    };
+    adminDecideMatch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                albumId: components["parameters"]["AlbumId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MatchDecision"];
+            };
+        };
+        responses: {
+            /** @description The album. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminAlbum"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            /** @description Nothing is waiting for review on this album. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
         };
     };
     adminGetDevelopmentKey: {

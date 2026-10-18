@@ -54,7 +54,14 @@ class FileInfo:
     year: int | None = None
     genre: str | None = None
     compilation: bool = False
+    composer: str | None = None
+    lyricist: str | None = None
+    language: str | None = None
+    mb_album_id: str | None = None
+    mb_release_group_id: str | None = None
+    mb_recording_id: str | None = None
     picture: bytes | None = None
+    picture_from_folder: bool = False
     lyrics: str | None = None
     extra: dict[str, str] = field(default_factory=dict)
 
@@ -134,6 +141,21 @@ def _tags_generic(audio: mutagen.FileType, info: FileInfo) -> None:
         if disk:
             info.disc_no = disk[0][0] or None
         info.compilation = bool(tags.get("cpil"))
+        info.composer = g("\xa9wrt")
+
+        def free(name: str) -> str | None:
+            v = tags.get(f"----:com.apple.iTunes:{name}")
+            if not v:
+                return None
+            raw = v[0]
+            text = raw if isinstance(raw, str) else bytes(raw).decode("utf-8", "replace")
+            return _first(text)
+
+        info.lyricist = free("LYRICIST")
+        info.language = free("LANGUAGE")
+        info.mb_album_id = free("MusicBrainz Album Id")
+        info.mb_release_group_id = free("MusicBrainz Release Group Id")
+        info.mb_recording_id = free("MusicBrainz Track Id")
         covr = tags.get("covr")
         if covr:
             info.picture = bytes(covr[0])
@@ -149,6 +171,12 @@ def _tags_generic(audio: mutagen.FileType, info: FileInfo) -> None:
     info.disc_no = _number(g("discnumber"))
     info.compilation = g("compilation") in ("1", "true", "True")
     info.lyrics = g("lyrics") or g("unsyncedlyrics")
+    info.composer = g("composer")
+    info.lyricist = g("lyricist") or g("writer")
+    info.language = g("language")
+    info.mb_album_id = g("musicbrainz_albumid")
+    info.mb_release_group_id = g("musicbrainz_releasegroupid")
+    info.mb_recording_id = g("musicbrainz_trackid")
     if isinstance(audio, FLAC) and audio.pictures:
         front = [p for p in audio.pictures if p.type == 3]
         info.picture = (front or audio.pictures)[0].data
@@ -174,6 +202,22 @@ def _tags_id3(tags: ID3, info: FileInfo) -> None:
     info.track_no = _number(text("TRCK"))
     info.disc_no = _number(text("TPOS"))
     info.compilation = text("TCMP") == "1"
+    info.composer = text("TCOM")
+    info.lyricist = text("TEXT")
+    info.language = text("TLAN")
+
+    def txxx(desc: str) -> str | None:
+        for f in tags.getall("TXXX"):
+            if getattr(f, "desc", "").lower() == desc.lower():
+                return _first(f.text)
+        return None
+
+    info.mb_album_id = txxx("MusicBrainz Album Id")
+    info.mb_release_group_id = txxx("MusicBrainz Release Group Id")
+    for f in tags.getall("UFID"):
+        if getattr(f, "owner", "") == "http://musicbrainz.org":
+            with contextlib.suppress(Exception):
+                info.mb_recording_id = f.data.decode("ascii")
     pictures = tags.getall("APIC")
     if pictures:
         front = [p for p in pictures if p.type == 3]
@@ -224,6 +268,7 @@ def read_file(path: Path, root: Path | None = None) -> FileInfo:
     _fill_from_names(path, info, root)
     if info.picture is None:
         info.picture = folder_picture(path.parent)
+        info.picture_from_folder = info.picture is not None
     lrc = path.with_suffix(".lrc")
     if lrc.is_file():
         with contextlib.suppress(OSError):

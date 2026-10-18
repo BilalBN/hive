@@ -160,6 +160,8 @@ class TrackSummary {
     required this.format,
     required this.liked,
     this.hasLyrics,
+    this.composer,
+    this.lyricist,
   });
 
   final String id;
@@ -177,6 +179,10 @@ class TrackSummary {
   final AudioFormat format;
   final bool liked;
   final bool? hasLyrics;
+  /// Who wrote the music
+  final String? composer;
+  /// Who wrote the words
+  final String? lyricist;
 
   factory TrackSummary.fromJson(Map<String, dynamic> json) => TrackSummary(
         id: json['id'] as String,
@@ -192,6 +198,8 @@ class TrackSummary {
         format: AudioFormat.fromJson((json['format'] as Map).cast<String, dynamic>()),
         liked: json['liked'] as bool,
         hasLyrics: json['hasLyrics'] == null ? null : json['hasLyrics'] as bool,
+        composer: json['composer'] == null ? null : json['composer'] as String,
+        lyricist: json['lyricist'] == null ? null : json['lyricist'] as String,
       );
 
   Map<String, dynamic> toJson() => {
@@ -208,6 +216,8 @@ class TrackSummary {
         'format': format.toJson(),
         'liked': liked,
         'hasLyrics': ?hasLyrics,
+        'composer': ?composer,
+        'lyricist': ?lyricist,
       };
 }
 
@@ -222,6 +232,9 @@ class AlbumSummary {
     required this.trackCount,
     required this.tier,
     required this.addedAt,
+    this.language,
+    this.kind,
+    this.filmTitle,
   });
 
   final String id;
@@ -234,6 +247,11 @@ class AlbumSummary {
   /// The best quality on the album.
   final String tier;
   final DateTime addedAt;
+  /// Language code (e.g. "ml"); missing when not known.
+  final String? language;
+  final String? kind;
+  /// The film
+  final String? filmTitle;
 
   factory AlbumSummary.fromJson(Map<String, dynamic> json) => AlbumSummary(
         id: json['id'] as String,
@@ -245,6 +263,9 @@ class AlbumSummary {
         trackCount: json['trackCount'] as int,
         tier: json['tier'] as String,
         addedAt: DateTime.parse(json['addedAt'] as String),
+        language: json['language'] == null ? null : json['language'] as String,
+        kind: json['kind'] == null ? null : json['kind'] as String,
+        filmTitle: json['filmTitle'] == null ? null : json['filmTitle'] as String,
       );
 
   Map<String, dynamic> toJson() => {
@@ -257,6 +278,9 @@ class AlbumSummary {
         'trackCount': trackCount,
         'tier': tier,
         'addedAt': addedAt.toUtc().toIso8601String(),
+        'language': ?language,
+        'kind': ?kind,
+        'filmTitle': ?filmTitle,
       };
 }
 
@@ -273,6 +297,10 @@ class Album {
     required this.addedAt,
     required this.durationMs,
     this.genre,
+    this.language,
+    this.kind,
+    this.film,
+    this.credits,
     required this.tracks,
   });
 
@@ -287,6 +315,11 @@ class Album {
   final DateTime addedAt;
   final int durationMs;
   final String? genre;
+  final String? language;
+  final String? kind;
+  final Film? film;
+  /// Music directors, composers and lyricists of the album; cast and director of its film.
+  final List<Credit>? credits;
   final List<TrackSummary> tracks;
 
   factory Album.fromJson(Map<String, dynamic> json) => Album(
@@ -301,6 +334,10 @@ class Album {
         addedAt: DateTime.parse(json['addedAt'] as String),
         durationMs: json['durationMs'] as int,
         genre: json['genre'] == null ? null : json['genre'] as String,
+        language: json['language'] == null ? null : json['language'] as String,
+        kind: json['kind'] == null ? null : json['kind'] as String,
+        film: json['film'] == null ? null : Film.fromJson((json['film'] as Map).cast<String, dynamic>()),
+        credits: json['credits'] == null ? null : (json['credits'] as List<dynamic>).map((e) => Credit.fromJson((e as Map).cast<String, dynamic>())).toList(),
         tracks: (json['tracks'] as List<dynamic>).map((e) => TrackSummary.fromJson((e as Map).cast<String, dynamic>())).toList(),
       );
 
@@ -316,6 +353,10 @@ class Album {
         'addedAt': addedAt.toUtc().toIso8601String(),
         'durationMs': durationMs,
         'genre': ?genre,
+        'language': ?language,
+        'kind': ?kind,
+        'film': ?film?.toJson(),
+        'credits': ?credits?.map((e) => e.toJson()).toList(),
         'tracks': tracks.map((e) => e.toJson()).toList(),
       };
 }
@@ -362,6 +403,10 @@ class Artist {
     required this.trackCount,
     required this.albums,
     required this.topTracks,
+    this.roles,
+    this.musicFor,
+    this.films,
+    this.lyricsFor,
   });
 
   final String id;
@@ -372,6 +417,14 @@ class Artist {
   final List<AlbumSummary> albums;
   /// This person's most-played songs by the artist, then the rest by album order.
   final List<TrackSummary> topTracks;
+  /// What they do at home, most first (singer, musicDirector, actor…).
+  final List<String>? roles;
+  /// Albums they composed or were music director for.
+  final List<AlbumSummary>? musicFor;
+  /// Soundtracks of films they acted in or directed.
+  final List<AlbumSummary>? films;
+  /// Songs they wrote the words for.
+  final List<TrackSummary>? lyricsFor;
 
   factory Artist.fromJson(Map<String, dynamic> json) => Artist(
         id: json['id'] as String,
@@ -381,6 +434,10 @@ class Artist {
         trackCount: json['trackCount'] as int,
         albums: (json['albums'] as List<dynamic>).map((e) => AlbumSummary.fromJson((e as Map).cast<String, dynamic>())).toList(),
         topTracks: (json['topTracks'] as List<dynamic>).map((e) => TrackSummary.fromJson((e as Map).cast<String, dynamic>())).toList(),
+        roles: json['roles'] == null ? null : (json['roles'] as List<dynamic>).map((e) => e as String).toList(),
+        musicFor: json['musicFor'] == null ? null : (json['musicFor'] as List<dynamic>).map((e) => AlbumSummary.fromJson((e as Map).cast<String, dynamic>())).toList(),
+        films: json['films'] == null ? null : (json['films'] as List<dynamic>).map((e) => AlbumSummary.fromJson((e as Map).cast<String, dynamic>())).toList(),
+        lyricsFor: json['lyricsFor'] == null ? null : (json['lyricsFor'] as List<dynamic>).map((e) => TrackSummary.fromJson((e as Map).cast<String, dynamic>())).toList(),
       );
 
   Map<String, dynamic> toJson() => {
@@ -391,6 +448,103 @@ class Artist {
         'trackCount': trackCount,
         'albums': albums.map((e) => e.toJson()).toList(),
         'topTracks': topTracks.map((e) => e.toJson()).toList(),
+        'roles': ?roles?.map((e) => e).toList(),
+        'musicFor': ?musicFor?.map((e) => e.toJson()).toList(),
+        'films': ?films?.map((e) => e.toJson()).toList(),
+        'lyricsFor': ?lyricsFor?.map((e) => e.toJson()).toList(),
+      };
+}
+
+class Credit {
+  const Credit({
+    required this.role,
+    required this.name,
+    this.artistId,
+  });
+
+  final String role;
+  final String name;
+  /// Their page at home.
+  final String? artistId;
+
+  factory Credit.fromJson(Map<String, dynamic> json) => Credit(
+        role: json['role'] as String,
+        name: json['name'] as String,
+        artistId: json['artistId'] == null ? null : json['artistId'] as String,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'role': role,
+        'name': name,
+        'artistId': ?artistId,
+      };
+}
+
+class Film {
+  const Film({
+    required this.title,
+    this.year,
+    this.wikidataId,
+  });
+
+  final String title;
+  final int? year;
+  final String? wikidataId;
+
+  factory Film.fromJson(Map<String, dynamic> json) => Film(
+        title: json['title'] as String,
+        year: json['year'] == null ? null : json['year'] as int,
+        wikidataId: json['wikidataId'] == null ? null : json['wikidataId'] as String,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'title': title,
+        'year': ?year,
+        'wikidataId': ?wikidataId,
+      };
+}
+
+class Language {
+  const Language({
+    required this.code,
+    required this.name,
+    required this.nativeName,
+    required this.albumCount,
+  });
+
+  final String code;
+  final String name;
+  final String nativeName;
+  final int albumCount;
+
+  factory Language.fromJson(Map<String, dynamic> json) => Language(
+        code: json['code'] as String,
+        name: json['name'] as String,
+        nativeName: json['nativeName'] as String,
+        albumCount: json['albumCount'] as int,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'code': code,
+        'name': name,
+        'nativeName': nativeName,
+        'albumCount': albumCount,
+      };
+}
+
+class LanguageList {
+  const LanguageList({
+    required this.items,
+  });
+
+  final List<Language> items;
+
+  factory LanguageList.fromJson(Map<String, dynamic> json) => LanguageList(
+        items: (json['items'] as List<dynamic>).map((e) => Language.fromJson((e as Map).cast<String, dynamic>())).toList(),
+      );
+
+  Map<String, dynamic> toJson() => {
+        'items': items.map((e) => e.toJson()).toList(),
       };
 }
 
@@ -1074,6 +1228,304 @@ class LibraryStatus {
       };
 }
 
+class LookupSettings {
+  const LookupSettings({
+    this.enabled,
+    this.acoustidKey,
+  });
+
+  /// Look up details of new and changed albums online.
+  final bool? enabled;
+  /// Optional AcoustID application key; lets Hive recognise songs with no useful tags by their sound. Empty removes it.
+  final String? acoustidKey;
+
+  factory LookupSettings.fromJson(Map<String, dynamic> json) => LookupSettings(
+        enabled: json['enabled'] == null ? null : json['enabled'] as bool,
+        acoustidKey: json['acoustidKey'] == null ? null : json['acoustidKey'] as String,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'enabled': ?enabled,
+        'acoustidKey': ?acoustidKey,
+      };
+}
+
+class LookupRetry {
+  const LookupRetry({
+    this.albumIds,
+    this.all,
+  });
+
+  final List<String>? albumIds;
+  /// Every album that found nothing or failed.
+  final bool? all;
+
+  factory LookupRetry.fromJson(Map<String, dynamic> json) => LookupRetry(
+        albumIds: json['albumIds'] == null ? null : (json['albumIds'] as List<dynamic>).map((e) => e as String).toList(),
+        all: json['all'] == null ? null : json['all'] as bool,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'albumIds': ?albumIds?.map((e) => e).toList(),
+        'all': ?all,
+      };
+}
+
+class LookupStatus {
+  const LookupStatus({
+    required this.enabled,
+    required this.acoustidKey,
+    this.fingerprinting,
+    required this.working,
+    required this.waiting,
+    required this.found,
+    required this.notFound,
+    required this.review,
+    required this.failed,
+    required this.edited,
+    this.lastError,
+    this.sends,
+  });
+
+  final bool enabled;
+  /// A key is set (it's never sent back).
+  final bool acoustidKey;
+  /// fpcalc (Chromaprint) was found
+  final bool? fingerprinting;
+  final bool working;
+  final int waiting;
+  final int found;
+  final int notFound;
+  final int review;
+  final int failed;
+  /// Albums you corrected by hand.
+  final int edited;
+  /// Why the last lookup failed
+  final String? lastError;
+  /// What leaves home, in plain words, for the admin panel to show.
+  final String? sends;
+
+  factory LookupStatus.fromJson(Map<String, dynamic> json) => LookupStatus(
+        enabled: json['enabled'] as bool,
+        acoustidKey: json['acoustidKey'] as bool,
+        fingerprinting: json['fingerprinting'] == null ? null : json['fingerprinting'] as bool,
+        working: json['working'] as bool,
+        waiting: json['waiting'] as int,
+        found: json['found'] as int,
+        notFound: json['notFound'] as int,
+        review: json['review'] as int,
+        failed: json['failed'] as int,
+        edited: json['edited'] as int,
+        lastError: json['lastError'] == null ? null : json['lastError'] as String,
+        sends: json['sends'] == null ? null : json['sends'] as String,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'enabled': enabled,
+        'acoustidKey': acoustidKey,
+        'fingerprinting': ?fingerprinting,
+        'working': working,
+        'waiting': waiting,
+        'found': found,
+        'notFound': notFound,
+        'review': review,
+        'failed': failed,
+        'edited': edited,
+        'lastError': ?lastError,
+        'sends': ?sends,
+      };
+}
+
+class FoundAlbum {
+  const FoundAlbum({
+    required this.title,
+    required this.artistName,
+    this.year,
+    this.language,
+    this.kind,
+    this.film,
+    this.credits,
+    this.artworkId,
+    this.trackCount,
+    required this.score,
+    required this.source,
+    this.link,
+  });
+
+  final String title;
+  final String artistName;
+  final int? year;
+  final String? language;
+  final String? kind;
+  final Film? film;
+  final List<Credit>? credits;
+  /// The cover it found
+  final String? artworkId;
+  final int? trackCount;
+  /// How sure the match is.
+  final double score;
+  /// Where it came from
+  final String source;
+  /// The page on MusicBrainz or Wikidata
+  final String? link;
+
+  factory FoundAlbum.fromJson(Map<String, dynamic> json) => FoundAlbum(
+        title: json['title'] as String,
+        artistName: json['artistName'] as String,
+        year: json['year'] == null ? null : json['year'] as int,
+        language: json['language'] == null ? null : json['language'] as String,
+        kind: json['kind'] == null ? null : json['kind'] as String,
+        film: json['film'] == null ? null : Film.fromJson((json['film'] as Map).cast<String, dynamic>()),
+        credits: json['credits'] == null ? null : (json['credits'] as List<dynamic>).map((e) => Credit.fromJson((e as Map).cast<String, dynamic>())).toList(),
+        artworkId: json['artworkId'] == null ? null : json['artworkId'] as String,
+        trackCount: json['trackCount'] == null ? null : json['trackCount'] as int,
+        score: (json['score'] as num).toDouble(),
+        source: json['source'] as String,
+        link: json['link'] == null ? null : json['link'] as String,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'title': title,
+        'artistName': artistName,
+        'year': ?year,
+        'language': ?language,
+        'kind': ?kind,
+        'film': ?film?.toJson(),
+        'credits': ?credits?.map((e) => e.toJson()).toList(),
+        'artworkId': ?artworkId,
+        'trackCount': ?trackCount,
+        'score': score,
+        'source': source,
+        'link': ?link,
+      };
+}
+
+class AdminAlbum {
+  const AdminAlbum({
+    required this.album,
+    required this.lookup,
+    this.lookupNote,
+    this.found,
+    required this.edited,
+    required this.sources,
+    this.folder,
+  });
+
+  final Album album;
+  final String lookup;
+  /// What the lookup did or why it found nothing.
+  final String? lookupNote;
+  final FoundAlbum? found;
+  /// Fields you set by hand; rescans and lookups leave them alone.
+  final List<String> edited;
+  /// Where each detail came from (tags, folder, script, lookup, you).
+  final Map<String, dynamic> sources;
+  /// Where its files are
+  final String? folder;
+
+  factory AdminAlbum.fromJson(Map<String, dynamic> json) => AdminAlbum(
+        album: Album.fromJson((json['album'] as Map).cast<String, dynamic>()),
+        lookup: json['lookup'] as String,
+        lookupNote: json['lookupNote'] == null ? null : json['lookupNote'] as String,
+        found: json['found'] == null ? null : FoundAlbum.fromJson((json['found'] as Map).cast<String, dynamic>()),
+        edited: (json['edited'] as List<dynamic>).map((e) => e as String).toList(),
+        sources: (json['sources'] as Map).cast<String, dynamic>(),
+        folder: json['folder'] == null ? null : json['folder'] as String,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'album': album.toJson(),
+        'lookup': lookup,
+        'lookupNote': ?lookupNote,
+        'found': ?found?.toJson(),
+        'edited': edited.map((e) => e).toList(),
+        'sources': sources,
+        'folder': ?folder,
+      };
+}
+
+class AdminAlbumPage {
+  const AdminAlbumPage({
+    required this.items,
+    required this.total,
+    required this.offset,
+  });
+
+  final List<Map<String, dynamic>> items;
+  final int total;
+  final int offset;
+
+  factory AdminAlbumPage.fromJson(Map<String, dynamic> json) => AdminAlbumPage(
+        items: (json['items'] as List<dynamic>).map((e) => (e as Map).cast<String, dynamic>()).toList(),
+        total: json['total'] as int,
+        offset: json['offset'] as int,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'items': items.map((e) => e).toList(),
+        'total': total,
+        'offset': offset,
+      };
+}
+
+/// Set a field to change it; set it to null to go back to what the files and lookup say.
+class AlbumEdit {
+  const AlbumEdit({
+    this.title,
+    this.artistName,
+    this.year,
+    this.language,
+    this.filmTitle,
+    this.filmYear,
+    this.artwork,
+  });
+
+  final String? title;
+  final String? artistName;
+  final int? year;
+  final String? language;
+  final String? filmTitle;
+  final int? filmYear;
+  /// null puts back the cover from the files or lookup.
+  final Object? artwork;
+
+  factory AlbumEdit.fromJson(Map<String, dynamic> json) => AlbumEdit(
+        title: json['title'] == null ? null : json['title'] as String,
+        artistName: json['artistName'] == null ? null : json['artistName'] as String,
+        year: json['year'] == null ? null : json['year'] as int,
+        language: json['language'] == null ? null : json['language'] as String,
+        filmTitle: json['filmTitle'] == null ? null : json['filmTitle'] as String,
+        filmYear: json['filmYear'] == null ? null : json['filmYear'] as int,
+        artwork: json['artwork'] == null ? null : json['artwork'] as Object,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'title': ?title,
+        'artistName': ?artistName,
+        'year': ?year,
+        'language': ?language,
+        'filmTitle': ?filmTitle,
+        'filmYear': ?filmYear,
+        'artwork': ?artwork,
+      };
+}
+
+class MatchDecision {
+  const MatchDecision({
+    required this.accept,
+  });
+
+  final bool accept;
+
+  factory MatchDecision.fromJson(Map<String, dynamic> json) => MatchDecision(
+        accept: json['accept'] as bool,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'accept': accept,
+      };
+}
+
 class DevelopmentKey {
   const DevelopmentKey({
     required this.key,
@@ -1199,16 +1651,16 @@ class HiveApi {
   /// Shelves for the Home screen.
   ///
   /// `GET /api/v1/library/home` · built in M1.
-  Future<Home> getHome() async {
-    final data = await _send('GET', '/api/v1/library/home');
+  Future<Home> getHome({String? language}) async {
+    final data = await _send('GET', '/api/v1/library/home', query: {'language': ?language});
     return Home.fromJson((data as Map).cast<String, dynamic>());
   }
 
   /// Albums, paged, with sort and filters.
   ///
   /// `GET /api/v1/library/albums` · built in M1.
-  Future<AlbumPage> listAlbums({int? offset, int? limit, String? sort, String? artistId}) async {
-    final data = await _send('GET', '/api/v1/library/albums', query: {'offset': ?offset, 'limit': ?limit, 'sort': ?sort, 'artistId': ?artistId});
+  Future<AlbumPage> listAlbums({int? offset, int? limit, String? sort, String? artistId, String? language}) async {
+    final data = await _send('GET', '/api/v1/library/albums', query: {'offset': ?offset, 'limit': ?limit, 'sort': ?sort, 'artistId': ?artistId, 'language': ?language});
     return AlbumPage.fromJson((data as Map).cast<String, dynamic>());
   }
 
@@ -1239,17 +1691,25 @@ class HiveApi {
   /// Songs, paged; also liked songs with a filter.
   ///
   /// `GET /api/v1/library/tracks` · built in M1.
-  Future<TrackPage> listTracks({int? offset, int? limit, String? sort, bool? liked}) async {
-    final data = await _send('GET', '/api/v1/library/tracks', query: {'offset': ?offset, 'limit': ?limit, 'sort': ?sort, 'liked': ?liked});
+  Future<TrackPage> listTracks({int? offset, int? limit, String? sort, bool? liked, String? language}) async {
+    final data = await _send('GET', '/api/v1/library/tracks', query: {'offset': ?offset, 'limit': ?limit, 'sort': ?sort, 'liked': ?liked, 'language': ?language});
     return TrackPage.fromJson((data as Map).cast<String, dynamic>());
   }
 
   /// Instant search across songs, albums, artists and playlists.
   ///
   /// `GET /api/v1/library/search` · built in M1.
-  Future<SearchResults> search({required String q, int? limit}) async {
-    final data = await _send('GET', '/api/v1/library/search', query: {'q': q, 'limit': ?limit});
+  Future<SearchResults> search({required String q, int? limit, String? language}) async {
+    final data = await _send('GET', '/api/v1/library/search', query: {'q': q, 'limit': ?limit, 'language': ?language});
     return SearchResults.fromJson((data as Map).cast<String, dynamic>());
+  }
+
+  /// Languages that have music at home, for the language chips.
+  ///
+  /// `GET /api/v1/library/languages` · built in M1.5.
+  Future<LanguageList> listLanguages() async {
+    final data = await _send('GET', '/api/v1/library/languages');
+    return LanguageList.fromJson((data as Map).cast<String, dynamic>());
   }
 
   /// The person's playlists and the family's shared ones.

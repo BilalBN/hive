@@ -141,6 +141,8 @@ paths:
       operationId: getHome
       summary: Shelves for the Home screen.
       x-milestone: M1
+      parameters:
+        - $ref: "#/components/parameters/Language"
       responses:
         "200": { description: The Home screen., content: { application/json: { schema: { $ref: "#/components/schemas/Home" } } } }
         "401": { $ref: "#/components/responses/Unauthorized" }
@@ -160,6 +162,7 @@ paths:
         - name: artistId
           in: query
           schema: { type: string }
+        - $ref: "#/components/parameters/Language"
       responses:
         "200": { description: A page of albums., content: { application/json: { schema: { $ref: "#/components/schemas/AlbumPage" } } } }
         "401": { $ref: "#/components/responses/Unauthorized" }
@@ -213,6 +216,7 @@ paths:
           in: query
           schema: { type: boolean }
           description: Only the songs this person liked, most recently liked first.
+        - $ref: "#/components/parameters/Language"
       responses:
         "200": { description: A page of songs., content: { application/json: { schema: { $ref: "#/components/schemas/TrackPage" } } } }
         "401": { $ref: "#/components/responses/Unauthorized" }
@@ -227,13 +231,28 @@ paths:
           in: query
           required: true
           schema: { type: string, minLength: 1, maxLength: 200 }
-          description: Words in any script; each word matches the start of a word (so "mal" finds "Malare").
+          description: |
+            Words in any script; each word matches the start of a word (so "mal"
+            finds "Malare"). Malayalam, Devanagari, Tamil, Telugu, Kannada and
+            Bengali titles are also found by their English spelling ("malare"
+            finds "മലരേ"). Matches film titles, cast, directors, music
+            directors, singers, composers, lyricists and language names too.
         - name: limit
           in: query
           schema: { type: integer, minimum: 1, maximum: 50, default: 10 }
           description: At most this many of each kind.
+        - $ref: "#/components/parameters/Language"
       responses:
         "200": { description: Matches by kind., content: { application/json: { schema: { $ref: "#/components/schemas/SearchResults" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /api/v1/library/languages:
+    get:
+      tags: [library]
+      operationId: listLanguages
+      summary: Languages that have music at home, for the language chips.
+      x-milestone: M1.5
+      responses:
+        "200": { description: "Languages in use, most albums first.", content: { application/json: { schema: { $ref: "#/components/schemas/LanguageList" } } } }
         "401": { $ref: "#/components/responses/Unauthorized" }
   /api/v1/library/playlists:
     get:
@@ -607,6 +626,114 @@ paths:
       responses:
         "200": { description: Scan started (or already running)., content: { application/json: { schema: { $ref: "#/components/schemas/LibraryStatus" } } } }
         "401": { $ref: "#/components/responses/Unauthorized" }
+  /api/v1/admin/library/lookup:
+    get:
+      tags: [admin]
+      operationId: adminGetLookup
+      summary: Online lookup of album details, art, language and film; its progress and matches to review.
+      x-milestone: M1.5
+      responses:
+        "200": { description: Lookup status., content: { application/json: { schema: { $ref: "#/components/schemas/LookupStatus" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    patch:
+      tags: [admin]
+      operationId: adminUpdateLookup
+      summary: Turn online lookup on or off, or set an AcoustID key.
+      x-milestone: M1.5
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/LookupSettings" } } }
+      responses:
+        "200": { description: Lookup status., content: { application/json: { schema: { $ref: "#/components/schemas/LookupStatus" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "422": { $ref: "#/components/responses/Invalid" }
+  /api/v1/admin/library/lookup/retry:
+    post:
+      tags: [admin]
+      operationId: adminRetryLookup
+      summary: Look albums up again (the ones named, or every one that found nothing or failed).
+      x-milestone: M1.5
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/LookupRetry" } } }
+      responses:
+        "200": { description: Lookup status., content: { application/json: { schema: { $ref: "#/components/schemas/LookupStatus" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /api/v1/admin/library/albums:
+    get:
+      tags: [admin]
+      operationId: adminListAlbums
+      summary: Albums for checking and editing, with filters.
+      x-milestone: M1.5
+      parameters:
+        - $ref: "#/components/parameters/Offset"
+        - $ref: "#/components/parameters/Limit"
+        - name: filter
+          in: query
+          schema: { type: string, enum: [all, review, noArt, noLanguage, notFound], default: all }
+        - name: q
+          in: query
+          schema: { type: string, maxLength: 200 }
+      responses:
+        "200": { description: A page of albums., content: { application/json: { schema: { $ref: "#/components/schemas/AdminAlbumPage" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /api/v1/admin/library/albums/{albumId}:
+    parameters: [{ $ref: "#/components/parameters/AlbumId" }]
+    get:
+      tags: [admin]
+      operationId: adminGetAlbum
+      summary: One album's details, where each came from, and any match waiting for review.
+      x-milestone: M1.5
+      responses:
+        "200": { description: The album., content: { application/json: { schema: { $ref: "#/components/schemas/AdminAlbum" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    patch:
+      tags: [admin]
+      operationId: adminUpdateAlbum
+      summary: Correct an album. What you set is kept through rescans and lookups.
+      x-milestone: M1.5
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/AlbumEdit" } } }
+      responses:
+        "200": { description: The album., content: { application/json: { schema: { $ref: "#/components/schemas/AdminAlbum" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/Invalid" }
+  /api/v1/admin/library/albums/{albumId}/artwork:
+    parameters: [{ $ref: "#/components/parameters/AlbumId" }]
+    put:
+      tags: [admin]
+      operationId: adminSetAlbumArtwork
+      summary: Replace the album's cover with an image (JPEG, PNG or WebP, up to 20 MB).
+      x-milestone: M1.5
+      requestBody:
+        required: true
+        content:
+          image/jpeg: { schema: { type: string, format: binary } }
+          image/png: { schema: { type: string, format: binary } }
+          image/webp: { schema: { type: string, format: binary } }
+      responses:
+        "200": { description: The album., content: { application/json: { schema: { $ref: "#/components/schemas/AdminAlbum" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/Invalid" }
+  /api/v1/admin/library/albums/{albumId}/match:
+    parameters: [{ $ref: "#/components/parameters/AlbumId" }]
+    post:
+      tags: [admin]
+      operationId: adminDecideMatch
+      summary: Accept or reject the match found for an album.
+      x-milestone: M1.5
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/MatchDecision" } } }
+      responses:
+        "200": { description: The album., content: { application/json: { schema: { $ref: "#/components/schemas/AdminAlbum" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { description: Nothing is waiting for review on this album., content: { application/problem+json: { schema: { $ref: "#/components/schemas/Problem" } } } }
   /api/v1/admin/development-key:
     get:
       tags: [admin]
@@ -751,6 +878,11 @@ components:
       description: Admin browser session (from M2).
 
   parameters:
+    Language:
+      name: language
+      in: query
+      schema: { type: string, pattern: "^[a-z]{2,3}$" }
+      description: Only music in this language (a code from listLanguages, e.g. "ml").
     RequestId: { name: requestId, in: path, required: true, schema: { type: string } }
     DeviceId: { name: deviceId, in: path, required: true, schema: { type: string } }
     AlbumId: { name: albumId, in: path, required: true, schema: { type: string } }
@@ -876,6 +1008,8 @@ components:
         format: { $ref: "#/components/schemas/AudioFormat" }
         liked: { type: boolean }
         hasLyrics: { type: boolean }
+        composer: { type: string, description: Who wrote the music, as credited. }
+        lyricist: { type: string, description: Who wrote the words, as credited. }
     AlbumSummary:
       type: object
       required: [id, title, artistName, trackCount, tier, addedAt]
@@ -892,6 +1026,12 @@ components:
           enum: [hires, lossless, lossy]
           description: The best quality on the album.
         addedAt: { type: string, format: date-time }
+        language: { type: string, description: Language code (e.g. "ml"); missing when not known. }
+        kind: { $ref: "#/components/schemas/AlbumKind" }
+        filmTitle: { type: string, description: The film, for soundtracks (often the album title). }
+    AlbumKind:
+      type: string
+      enum: [album, soundtrack, compilation, single, ep, live, other]
     Album:
       type: object
       required: [id, title, artistName, trackCount, tier, addedAt, durationMs, tracks]
@@ -907,6 +1047,13 @@ components:
         addedAt: { type: string, format: date-time }
         durationMs: { type: integer }
         genre: { type: string }
+        language: { type: string }
+        kind: { $ref: "#/components/schemas/AlbumKind" }
+        film: { $ref: "#/components/schemas/Film" }
+        credits:
+          type: array
+          description: Music directors, composers and lyricists of the album; cast and director of its film.
+          items: { $ref: "#/components/schemas/Credit" }
         tracks:
           type: array
           items: { $ref: "#/components/schemas/TrackSummary" }
@@ -935,6 +1082,52 @@ components:
           type: array
           description: This person's most-played songs by the artist, then the rest by album order.
           items: { $ref: "#/components/schemas/TrackSummary" }
+        roles:
+          type: array
+          description: What they do at home, most first (singer, musicDirector, actor…).
+          items: { $ref: "#/components/schemas/CreditRole" }
+        musicFor:
+          type: array
+          description: Albums they composed or were music director for.
+          items: { $ref: "#/components/schemas/AlbumSummary" }
+        films:
+          type: array
+          description: Soundtracks of films they acted in or directed.
+          items: { $ref: "#/components/schemas/AlbumSummary" }
+        lyricsFor:
+          type: array
+          description: Songs they wrote the words for.
+          items: { $ref: "#/components/schemas/TrackSummary" }
+    CreditRole:
+      type: string
+      enum: [singer, composer, lyricist, musicDirector, actor, director]
+    Credit:
+      type: object
+      required: [role, name]
+      properties:
+        role: { $ref: "#/components/schemas/CreditRole" }
+        name: { type: string }
+        artistId: { type: string, description: Their page at home. }
+    Film:
+      type: object
+      required: [title]
+      properties:
+        title: { type: string }
+        year: { type: integer }
+        wikidataId: { type: string, examples: ["Q19893435"] }
+    Language:
+      type: object
+      required: [code, name, nativeName, albumCount]
+      properties:
+        code: { type: string, examples: ["ml"] }
+        name: { type: string, examples: ["Malayalam"] }
+        nativeName: { type: string, examples: ["മലയാളം"] }
+        albumCount: { type: integer }
+    LanguageList:
+      type: object
+      required: [items]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/Language" } }
     AlbumPage:
       type: object
       required: [items, total, offset]
@@ -1182,6 +1375,104 @@ components:
           type: array
           description: Up to 10 albums added most recently.
           items: { $ref: "#/components/schemas/AlbumSummary" }
+    LookupSettings:
+      type: object
+      properties:
+        enabled: { type: boolean, description: Look up details of new and changed albums online. }
+        acoustidKey:
+          type: string
+          maxLength: 64
+          description: Optional AcoustID application key; lets Hive recognise songs with no useful tags by their sound. Empty removes it.
+    LookupRetry:
+      type: object
+      properties:
+        albumIds: { type: array, items: { type: string }, maxItems: 500 }
+        all: { type: boolean, description: Every album that found nothing or failed. }
+    LookupStatus:
+      type: object
+      required: [enabled, acoustidKey, working, waiting, found, notFound, review, failed, edited]
+      properties:
+        enabled: { type: boolean }
+        acoustidKey: { type: boolean, description: A key is set (it's never sent back). }
+        fingerprinting: { type: boolean, description: fpcalc (Chromaprint) was found, so fingerprints can be made. }
+        working: { type: boolean }
+        waiting: { type: integer }
+        found: { type: integer }
+        notFound: { type: integer }
+        review: { type: integer }
+        failed: { type: integer }
+        edited: { type: integer, description: Albums you corrected by hand. }
+        lastError: { type: string, description: Why the last lookup failed, in plain words. }
+        sends:
+          type: string
+          description: What leaves home, in plain words, for the admin panel to show.
+    LookupState:
+      type: string
+      enum: [off, waiting, working, found, review, notFound, failed, edited]
+    FoundAlbum:
+      type: object
+      required: [title, artistName, score, source]
+      properties:
+        title: { type: string }
+        artistName: { type: string }
+        year: { type: integer }
+        language: { type: string }
+        kind: { $ref: "#/components/schemas/AlbumKind" }
+        film: { $ref: "#/components/schemas/Film" }
+        credits: { type: array, items: { $ref: "#/components/schemas/Credit" } }
+        artworkId: { type: string, description: The cover it found, already saved at home. }
+        trackCount: { type: integer }
+        score: { type: number, minimum: 0, maximum: 1, description: How sure the match is. }
+        source: { type: string, description: Where it came from, e.g. "MusicBrainz · Wikidata". }
+        link: { type: string, description: The page on MusicBrainz or Wikidata, to check by eye. }
+    AdminAlbum:
+      type: object
+      required: [album, lookup, edited, sources]
+      properties:
+        album: { $ref: "#/components/schemas/Album" }
+        lookup: { $ref: "#/components/schemas/LookupState" }
+        lookupNote: { type: string, description: What the lookup did or why it found nothing. }
+        found: { $ref: "#/components/schemas/FoundAlbum" }
+        edited:
+          type: array
+          description: Fields you set by hand; rescans and lookups leave them alone.
+          items: { type: string, enum: [title, artistName, year, language, filmTitle, filmYear, artwork] }
+        sources:
+          type: object
+          description: Where each detail came from (tags, folder, script, lookup, you).
+          additionalProperties: { type: string }
+        folder: { type: string, description: Where its files are, relative to the music folder. }
+    AdminAlbumPage:
+      type: object
+      required: [items, total, offset]
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+            required: [album, lookup]
+            properties:
+              album: { $ref: "#/components/schemas/AlbumSummary" }
+              lookup: { $ref: "#/components/schemas/LookupState" }
+              lookupNote: { type: string }
+        total: { type: integer }
+        offset: { type: integer }
+    AlbumEdit:
+      type: object
+      description: Set a field to change it; set it to null to go back to what the files and lookup say.
+      properties:
+        title: { type: [string, "null"], minLength: 1, maxLength: 512 }
+        artistName: { type: [string, "null"], minLength: 1, maxLength: 512 }
+        year: { type: [integer, "null"], minimum: 1000, maximum: 2100 }
+        language: { type: [string, "null"], pattern: "^[a-z]{2,3}$" }
+        filmTitle: { type: [string, "null"], maxLength: 512 }
+        filmYear: { type: [integer, "null"], minimum: 1890, maximum: 2100 }
+        artwork: { type: "null", description: null puts back the cover from the files or lookup. }
+    MatchDecision:
+      type: object
+      required: [accept]
+      properties:
+        accept: { type: boolean }
     DevelopmentKey:
       type: object
       required: [key]

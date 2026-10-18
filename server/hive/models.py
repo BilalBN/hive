@@ -70,6 +70,27 @@ class Album(Base):
     search_text: Mapped[str] = mapped_column(Text, default="")
     added_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
+    # M1.5: what Hive knows about the album beyond the tags.
+    language: Mapped[str | None] = mapped_column(String(8), index=True)
+    # Where each detail came from: {"language": "script", "artwork": "lookup", …}
+    sources: Mapped[str] = mapped_column(Text, default="{}")
+    # Fields set in Hive Admin, kept through rescans and lookups: {"year": 2015, …}
+    overrides: Mapped[str] = mapped_column(Text, default="{}")
+    kind: Mapped[str | None] = mapped_column(String(16))
+    film_title: Mapped[str | None] = mapped_column(String(512))
+    film_year: Mapped[int | None] = mapped_column(Integer)
+    film_wikidata: Mapped[str | None] = mapped_column(String(32))
+    mbid_release: Mapped[str | None] = mapped_column(String(36), index=True)
+    mbid_release_group: Mapped[str | None] = mapped_column(String(36))
+    # off | waiting | working | found | review | notFound | failed | edited
+    lookup_state: Mapped[str] = mapped_column(String(16), default="waiting", index=True)
+    lookup_note: Mapped[str | None] = mapped_column(Text)
+    lookup_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # A match waiting for review, as the FoundAlbum JSON plus what to apply.
+    lookup_candidate: Mapped[str | None] = mapped_column(Text)
+    # The folder its songs are in (absolute), for grouping songs without tags.
+    folder_path: Mapped[str | None] = mapped_column(String(2048), index=True)
+
 
 class Track(Base):
     """One song and its original file. Transcodes are cached files, not rows."""
@@ -92,6 +113,10 @@ class Track(Base):
     year: Mapped[int | None] = mapped_column(Integer)
     artwork_id: Mapped[str | None] = mapped_column(String(64))
     has_lyrics: Mapped[bool] = mapped_column(Boolean, default=False)
+    language: Mapped[str | None] = mapped_column(String(8))
+    composer: Mapped[str | None] = mapped_column(String(512))
+    lyricist: Mapped[str | None] = mapped_column(String(512))
+    mbid_recording: Mapped[str | None] = mapped_column(String(36))
     lufs: Mapped[float | None] = mapped_column(Float)
     true_peak: Mapped[float | None] = mapped_column(Float)
     search_text: Mapped[str] = mapped_column(Text, default="")
@@ -109,6 +134,28 @@ class Track(Base):
     bit_depth: Mapped[int | None] = mapped_column(Integer)
     bitrate_kbps: Mapped[int | None] = mapped_column(Integer)
     channels: Mapped[int] = mapped_column(Integer, default=2)
+
+
+class Credit(Base):
+    """Who did what: a singer or lyricist of a song; a music director, actor or
+    director of an album's film. People are Artist rows, so each has a page."""
+
+    __tablename__ = "credits"
+    __table_args__ = (
+        Index("ix_credits_artist", "artist_id", "role"),
+        Index("ix_credits_album", "album_id"),
+        Index("ix_credits_track", "track_id"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    album_id: Mapped[str | None] = mapped_column(ForeignKey("albums.id", ondelete="CASCADE"))
+    track_id: Mapped[str | None] = mapped_column(ForeignKey("tracks.id", ondelete="CASCADE"))
+    artist_id: Mapped[str] = mapped_column(ForeignKey("artists.id", ondelete="CASCADE"))
+    # singer | composer | lyricist | musicDirector | actor | director
+    role: Mapped[str] = mapped_column(String(16))
+    position: Mapped[int] = mapped_column(Integer, default=0)
+    # tags | lookup | admin
+    source: Mapped[str] = mapped_column(String(8), default="tags")
 
 
 class ImportItem(Base):
