@@ -216,12 +216,21 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
           cache: true
-      # Unsigned until the Apple Developer account exists (M5): right-click → Open the first time.
+      # Not notarized until the Apple Developer account exists (M5); see docs/dev-setup.md
+      # for opening it the first time.
       - run: flutter build macos --release
-      - name: Zip the app
-        run: ditto -c -k --keepParent build/macos/Build/Products/Release/Hive.app Hive-macOS.zip
+      # A disk image keeps the app bundle exactly as built (framework symlinks,
+      # signature); zips passed through browsers and unzip tools can break it.
+      - name: Package as a disk image
+        run: |
+          mkdir -p dmg
+          ditto build/macos/Build/Products/Release/Hive.app dmg/Hive.app
+          ln -s /Applications dmg/Applications
+          hdiutil create -volname Hive -srcfolder dmg -ov -format UDZO Hive-macOS.dmg
+      - name: App in the disk image is intact and starts
+        run: bash ../tools/macos_smoke.sh Hive-macOS.dmg
       - uses: actions/upload-artifact@v4
         with:
           name: hive-macos
-          path: app/Hive-macOS.zip
+          path: app/Hive-macOS.dmg
           retention-days: 30

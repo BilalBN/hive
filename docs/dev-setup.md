@@ -66,6 +66,18 @@ home name.
 
 ## 5. Run the app on the MacBook
 
+Without Flutter installed: download `hive-macos` from the latest GitHub Actions
+run, open `Hive-macOS.dmg` and drag **Hive** to **Applications**. It isn't
+notarized yet (that needs the Apple Developer account, M5), so clear the
+download flag once before opening it:
+
+```sh
+xattr -dr com.apple.quarantine /Applications/Hive.app
+open /Applications/Hive.app
+```
+
+Or, with Flutter installed:
+
 ```sh
 cd app
 flutter run -d macos
@@ -79,7 +91,8 @@ to home**.
 Make sure Tailscale is on, on the phone.
 
 - **Android:** download `hive-android-apk` from the latest GitHub Actions run,
-  copy it to the phone and open it (allow installing from this source once). Or
+  copy it to the phone and open it (allow installing from this source once;
+  uninstall the previous Hive first if Android refuses to update it). Or
   plug the phone in and run `flutter run`.
 - **iPhone:** plug it in, open `app/ios/Runner.xcworkspace` in Xcode once to pick
   your Apple ID under *Signing & Capabilities* (a free Apple ID works; the app
