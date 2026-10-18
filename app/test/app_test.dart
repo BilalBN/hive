@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/api/hive_api.g.dart';
 import 'package:hive/app.dart';
 import 'package:hive/core/home_connection.dart';
+import 'package:hive/core/startup.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 Health health(String name) => Health(
@@ -163,5 +166,15 @@ void main() {
     expect(find.bySemanticsLabel('Settings'), findsWidgets);
     expect(find.text('Nothing playing'), findsOneWidget);
     expect(find.text('Connected to home'), findsOneWidget);
+  });
+
+  testWidgets('a startup failure is shown instead of a frozen launch screen', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      StartupFailedApp(error: TimeoutException('settings took too long')),
+    );
+    expect(find.text("Hive couldn't start"), findsOneWidget);
+    expect(find.textContaining('settings took too long'), findsOneWidget);
   });
 }
