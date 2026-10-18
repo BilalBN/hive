@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Home is reached over Tailscale, which already encrypts every packet (WireGuard),
+  usually by its private 100.x address. Android can't scope plain-HTTP permission
+  to an IP range, so it is allowed here; once the home PC serves HTTPS with its
+  Tailscale certificate (*.ts.net) the app uses that instead.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

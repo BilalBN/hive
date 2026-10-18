@@ -1,0 +1,19 @@
+# Copy to data/hive.toml (next to the database) and edit.
+# Every setting can also be set with an environment variable: HIVE_<NAME>.
+
+home_name = "Our home"               # what the family sees
+admin_display_name = "Admin"        # used in family-facing copy
+
+# "tailscale" listens on this computer only plus its Tailscale address:
+# reachable from family devices on the private network, nowhere else.
+host = "tailscale"
+port = 8443
+
+# HTTPS with a certificate from Tailscale (run `tailscale cert <machine>.<tailnet>.ts.net`):
+# Use full paths:
+# tls_cert = "/Users/you/hive/data/certs/hive-pc.tailnet.ts.net.crt"
+# tls_key  = "/Users/you/hive/data/certs/hive-pc.tailnet.ts.net.key"
+
+music_folders = ["~/Music/Hive"]
+log_level = "INFO"
+min_app_version = "0.1.0"

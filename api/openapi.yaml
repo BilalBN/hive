@@ -1,0 +1,662 @@
+openapi: 3.1.0
+info:
+  title: Hive API
+  version: 0.1.0
+  summary: The private family music server's API.
+  description: |
+    This file is the single source of truth for every endpoint. The server is
+    checked against it in tests, and the Dart (app) and TypeScript (admin)
+    clients are generated from it.
+
+    Every operation carries `x-milestone`: the build milestone that implements
+    it. Until then the server answers `501 Not Implemented` with a Problem body.
+    Response schemas marked `Pending` are filled in by their milestone.
+
+    Live events (approval granted, device revoked, play-session changes) arrive
+    over a WebSocket at `/api/v1/events` from M2; it is not described here
+    because OpenAPI does not model WebSockets.
+  license:
+    name: AGPL-3.0-only
+    identifier: AGPL-3.0-only
+servers:
+  - url: /
+tags:
+  - name: system
+    description: Health and server identity.
+  - name: auth
+    description: Invites, email codes, approval and device sessions.
+  - name: library
+    description: Albums, artists, tracks, search, playlists and likes.
+  - name: media
+    description: Streaming, artwork, lyrics and downloads.
+  - name: listen
+    description: Song recognition and song requests.
+  - name: sync
+    description: Play sessions for continuity across devices.
+  - name: admin
+    description: Hive Admin. Admin session required.
+
+paths:
+  /api/v1/health:
+    get:
+      tags: [system]
+      operationId: getHealth
+      summary: Server identity and health; used by apps to check "Connected to home".
+      x-milestone: M0
+      security: []
+      responses:
+        "200":
+          description: The server is running.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Health" }
+
+  # ---------------------------------------------------------------- auth (M2)
+  /api/v1/auth/invites/resolve:
+    post:
+      tags: [auth]
+      operationId: resolveInvite
+      summary: Check an invite code from a QR or typed code, and show which home it belongs to.
+      x-milestone: M2
+      security: []
+      requestBody: { $ref: "#/components/requestBodies/Pending" }
+      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+  /api/v1/auth/email/start:
+    post:
+      tags: [auth]
+      operationId: startEmailVerification
+      summary: Send a 6-digit code to an email address.
+      x-milestone: M2
+      security: []
+      requestBody: { $ref: "#/components/requestBodies/Pending" }
+      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+  /api/v1/auth/email/verify:
+    post:
+      tags: [auth]
+      operationId: verifyEmailCode
+      summary: Check the code; creates an access request (approved at once when invited).
+      x-milestone: M2
+      security: []
+      requestBody: { $ref: "#/components/requestBodies/Pending" }
+      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+  /api/v1/auth/requests/{requestId}:
+    parameters: [{ $ref: "#/components/parameters/RequestId" }]
+    get:
+      tags: [auth]
+      operationId: getAccessRequest
+      summary: Poll an access request while waiting for approval.
+      x-milestone: M2
+      security: []
+      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+  /api/v1/auth/devices:
+    post:
+      tags: [auth]
+      operationId: registerDevice
+      summary: Register this device's public key once approved; enforces the device limit.
+      x-milestone: M2
+      security: []
+      requestBody: { $ref: "#/components/requestBodies/Pending" }
+      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+  /api/v1/auth/challenge:
+    post:
+      tags: [auth]
+      operationId: createChallenge
+      summary: Get a one-time challenge for the device to sign before refreshing.
+      x-milestone: M2
+      security: []
+      requestBody: { $ref: "#/components/requestBodies/Pending" }
+      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+  /api/v1/auth/token:
+    post:
+      tags: [auth]
+      operationId: refreshToken
+      summary: Swap a refresh token plus a signed challenge for new tokens.
+      x-milestone: M2
+      security: []
+      requestBody: { $ref: "#/components/requestBodies/Pending" }
+      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+  /api/v1/me/devices:
+    get:
+      tags: [auth]
+      operationId: listMyDevices
+      summary: The signed-in person's devices (up to 4) and swaps left this month.
+      x-milestone: M2
+      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+  /api/v1/me/devices/{deviceId}:
+    parameters: [{ $ref: "#/components/parameters/DeviceId" }]
+    delete:
+      tags: [auth]
+      operationId: removeMyDevice
+      summary: Remove one of your own devices (counts towards the monthly swap limit).
+      x-milestone: M2
+      responses: { "204": { description: Removed. }, "501": { $ref: "#/components/responses/NotImplemented" } }
+
+  # ------------------------------------------------------------- library (M1)
+  /api/v1/library/home:
+    get:
+      tags: [library]
+      operationId: getHome
+      summary: Shelves for the Home screen.
+      x-milestone: M1
+      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+  /api/v1/library/albums:
+    get:
+      tags: [library]
+      operationId: listAlbums
+      summary: Albums, paged, with sort and filters.
+      x-milestone: M1
+      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+  /api/v1/library/albums/{albumId}:
+    parameters: [{ $ref: "#/components/parameters/AlbumId" }]
+    get:
+      tags: [library]
+      operationId: getAlbum
+      summary: One album with its tracks.
+      x-milestone: M1
+      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+  /api/v1/library/artists:
+    get:
+      tags: [library]
+      operationId: listArtists
+      summary: Artists, paged.
+      x-milestone: M1
+      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+  /api/v1/library/artists/{artistId}:
+    parameters: [{ $ref: "#/components/parameters/ArtistId" }]
+    get:
+      tags: [library]
+      operationId: getArtist
+      summary: One artist with albums and the person's most-played songs.
+      x-milestone: M1
+      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+  /api/v1/library/tracks:
+    get:
+      tags: [library]
+      operationId: listTracks
+      summary: Songs, paged; also liked songs with a filter.
+      x-milestone: M1
+      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+  /api/v1/library/search:
+    get:
+      tags: [library]
+      operationId: search
+      summary: Instant search across songs, albums, artists and playlists.
+      x-milestone: M1
+      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+  /api/v1/library/playlists:
+    get:
+      tags: [library]
+      operationId: listPlaylists
+      summary: The person's playlists and the family's shared ones.
+      x-milestone: M1
+      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+    post:
+      tags: [library]
+      operationId: createPlaylist
+      summary: Create a playlist, private or shared with the family.
+      x-milestone: M1
+      requestBody: { $ref: "#/components/requestBodies/Pending" }
+      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+  /api/v1/library/playlists/{playlistId}:
+    parameters: [{ $ref: "#/components/parameters/PlaylistId" }]
+    get:
+      tags: [library]
+      operationId: getPlaylist
+      summary: One playlist with its songs.
+      x-milestone: M1
+      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+    patch:
+      tags: [library]
+      operationId: updatePlaylist
+      summary: Rename, change cover or sharing.
+      x-milestone: M1
+      requestBody: { $ref: "#/components/requestBodies/Pending" }
+      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+    delete:
+      tags: [library]
+      operationId: deletePlaylist
+      summary: Delete a playlist you own.
+      x-milestone: M1
+      responses: { "204": { description: Deleted. }, "501": { $ref: "#/components/responses/NotImplemented" } }
+  /api/v1/library/playlists/{playlistId}/items:
+    parameters: [{ $ref: "#/components/parameters/PlaylistId" }]
+    put:
+      tags: [library]
+      operationId: setPlaylistItems
+      summary: Replace the playlist's song order (add, remove, reorder).
+      x-milestone: M1
+      requestBody: { $ref: "#/components/requestBodies/Pending" }
+      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+  /api/v1/library/likes/{trackId}:
+    parameters: [{ $ref: "#/components/parameters/TrackId" }]
+    put:
+      tags: [library]
+      operationId: likeTrack
+      summary: Like a song.
+      x-milestone: M1
+      responses: { "204": { description: Liked. }, "501": { $ref: "#/components/responses/NotImplemented" } }
+    delete:
+      tags: [library]
+      operationId: unlikeTrack
+      summary: Remove a like.
+      x-milestone: M1
+      responses: { "204": { description: Unliked. }, "501": { $ref: "#/components/responses/NotImplemented" } }
+
+  # --------------------------------------------------------------- media (M1)
+  /api/v1/media/tracks/{trackId}/stream:
+    parameters: [{ $ref: "#/components/parameters/TrackId" }]
+    post:
+      tags: [media]
+      operationId: createStreamTicket
+      summary: Get a short-lived signed URL for one song at a chosen quality.
+      x-milestone: M1
+      requestBody: { $ref: "#/components/requestBodies/Pending" }
+      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+  /api/v1/media/stream/{ticket}:
+    parameters:
+      - { name: ticket, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [media]
+      operationId: streamAudio
+      summary: The audio itself; supports HTTP range requests. Authorised by the ticket.
+      x-milestone: M1
+      security: []
+      responses:
+        "200": { description: Audio bytes., content: { audio/*: { schema: { type: string, format: binary } } } }
+        "206": { description: Partial audio bytes., content: { audio/*: { schema: { type: string, format: binary } } } }
+        "501": { $ref: "#/components/responses/NotImplemented" }
+  /api/v1/media/artwork/{artworkId}:
+    parameters:
+      - { name: artworkId, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [media]
+      operationId: getArtwork
+      summary: Cover art, resized.
+      x-milestone: M1
+      responses:
+        "200": { description: Image bytes., content: { image/*: { schema: { type: string, format: binary } } } }
+        "501": { $ref: "#/components/responses/NotImplemented" }
+  /api/v1/media/tracks/{trackId}/lyrics:
+    parameters: [{ $ref: "#/components/parameters/TrackId" }]
+    get:
+      tags: [media]
+      operationId: getLyrics
+      summary: Synced or plain lyrics when the file has them.
+      x-milestone: M1
+      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+  /api/v1/media/tracks/{trackId}/download:
+    parameters: [{ $ref: "#/components/parameters/TrackId" }]
+    post:
+      tags: [media]
+      operationId: createDownloadTicket
+      summary: Permission to keep a song offline, with its valid-until date.
+      x-milestone: M4
+      requestBody: { $ref: "#/components/requestBodies/Pending" }
+      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+
+  # -------------------------------------------------------------- listen (M3)
+  /api/v1/listen/match:
+    post:
+      tags: [listen]
+      operationId: matchClip
+      summary: Match a short recording against the family library; the clip is deleted afterwards.
+      x-milestone: M3
+      requestBody: { $ref: "#/components/requestBodies/Pending" }
+      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+  /api/v1/listen/history:
+    get:
+      tags: [listen]
+      operationId: listListenHistory
+      summary: The person's recognitions, labelled by source (library or Shazam).
+      x-milestone: M3
+      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+    post:
+      tags: [listen]
+      operationId: recordListenResult
+      summary: Save a recognition made on the device by Shazam, so history covers both sources.
+      x-milestone: M5
+      requestBody: { $ref: "#/components/requestBodies/Pending" }
+      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+  /api/v1/listen/requests:
+    post:
+      tags: [listen]
+      operationId: createSongRequest
+      summary: Ask the admin to add a song (from Listen or from a search with no results).
+      x-milestone: M3
+      requestBody: { $ref: "#/components/requestBodies/Pending" }
+      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+  /api/v1/listen/shazam-token:
+    post:
+      tags: [listen]
+      operationId: createShazamToken
+      summary: Short-lived Apple developer token for ShazamKit on Android.
+      x-milestone: M5
+      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+
+  # ---------------------------------------------------------------- sync (M4)
+  /api/v1/sync/session:
+    get:
+      tags: [sync]
+      operationId: getPlaySession
+      summary: The person's live play session, for the continuity offer.
+      x-milestone: M4
+      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+    put:
+      tags: [sync]
+      operationId: updatePlaySession
+      summary: Report play, pause, seek, skip or queue changes from the playing device.
+      x-milestone: M4
+      requestBody: { $ref: "#/components/requestBodies/Pending" }
+      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+
+  # --------------------------------------------------------------- admin (M1+)
+  /api/v1/admin/session/email:
+    post:
+      tags: [admin]
+      operationId: adminStartEmailSignIn
+      summary: Email an admin sign-in code (fallback to passkeys).
+      x-milestone: M2
+      security: []
+      requestBody: { $ref: "#/components/requestBodies/Pending" }
+      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+  /api/v1/admin/session/email/verify:
+    post:
+      tags: [admin]
+      operationId: adminVerifyEmailSignIn
+      summary: Check the admin email code and start a session.
+      x-milestone: M2
+      security: []
+      requestBody: { $ref: "#/components/requestBodies/Pending" }
+      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+  /api/v1/admin/session/passkey/options:
+    post:
+      tags: [admin]
+      operationId: adminPasskeyOptions
+      summary: Start a passkey sign-in or registration.
+      x-milestone: M2
+      security: []
+      requestBody: { $ref: "#/components/requestBodies/Pending" }
+      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+  /api/v1/admin/session/passkey/verify:
+    post:
+      tags: [admin]
+      operationId: adminPasskeyVerify
+      summary: Finish a passkey sign-in or registration.
+      x-milestone: M2
+      security: []
+      requestBody: { $ref: "#/components/requestBodies/Pending" }
+      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+  /api/v1/admin/session:
+    delete:
+      tags: [admin]
+      operationId: adminSignOut
+      summary: End the admin session.
+      x-milestone: M2
+      responses: { "204": { description: Signed out. }, "501": { $ref: "#/components/responses/NotImplemented" } }
+  /api/v1/admin/overview:
+    get:
+      tags: [admin]
+      operationId: adminGetOverview
+      summary: Health cards, requests waiting and recent activity.
+      x-milestone: M2
+      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+  /api/v1/admin/requests:
+    get:
+      tags: [admin]
+      operationId: adminListRequests
+      summary: Access requests waiting for approval.
+      x-milestone: M2
+      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+  /api/v1/admin/requests/{requestId}/approve:
+    parameters: [{ $ref: "#/components/parameters/RequestId" }]
+    post:
+      tags: [admin]
+      operationId: adminApproveRequest
+      summary: Approve a request (undo allowed for 10 seconds).
+      x-milestone: M2
+      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+  /api/v1/admin/requests/{requestId}/decline:
+    parameters: [{ $ref: "#/components/parameters/RequestId" }]
+    post:
+      tags: [admin]
+      operationId: adminDeclineRequest
+      summary: Decline a request.
+      x-milestone: M2
+      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+  /api/v1/admin/invites:
+    get:
+      tags: [admin]
+      operationId: adminListInvites
+      summary: Invites not yet used.
+      x-milestone: M2
+      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+    post:
+      tags: [admin]
+      operationId: adminCreateInvite
+      summary: Create an invite; returns the Hive code and QR payload plus the private-network invite link.
+      x-milestone: M2
+      requestBody: { $ref: "#/components/requestBodies/Pending" }
+      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+  /api/v1/admin/invites/{inviteId}:
+    parameters:
+      - { name: inviteId, in: path, required: true, schema: { type: string } }
+    delete:
+      tags: [admin]
+      operationId: adminRevokeInvite
+      summary: Cancel an unused invite.
+      x-milestone: M2
+      responses: { "204": { description: Cancelled. }, "501": { $ref: "#/components/responses/NotImplemented" } }
+  /api/v1/admin/people:
+    get:
+      tags: [admin]
+      operationId: adminListPeople
+      summary: Everyone with access, their devices used and status.
+      x-milestone: M2
+      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+  /api/v1/admin/people/{personId}:
+    parameters:
+      - { name: personId, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [admin]
+      operationId: adminGetPerson
+      summary: One person with devices, swaps used and activity.
+      x-milestone: M2
+      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+    patch:
+      tags: [admin]
+      operationId: adminUpdatePerson
+      summary: Suspend, reinstate, change role, override the device limit, set Simple mode.
+      x-milestone: M2
+      requestBody: { $ref: "#/components/requestBodies/Pending" }
+      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+  /api/v1/admin/devices:
+    get:
+      tags: [admin]
+      operationId: adminListDevices
+      summary: Every device across the family.
+      x-milestone: M2
+      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+  /api/v1/admin/devices/{deviceId}/revoke:
+    parameters: [{ $ref: "#/components/parameters/DeviceId" }]
+    post:
+      tags: [admin]
+      operationId: adminRevokeDevice
+      summary: Sign a device out and delete its downloads on next contact.
+      x-milestone: M2
+      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+  /api/v1/admin/library/imports:
+    get:
+      tags: [admin]
+      operationId: adminListImports
+      summary: Import queue and files that need attention.
+      x-milestone: M1
+      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+  /api/v1/admin/library/scan:
+    post:
+      tags: [admin]
+      operationId: adminStartScan
+      summary: Rescan the music folders now.
+      x-milestone: M1
+      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+  /api/v1/admin/uploads:
+    post:
+      tags: [admin]
+      operationId: adminCreateUpload
+      summary: Start a resumable upload (tus protocol; chunks go to the returned location).
+      x-milestone: M1
+      requestBody: { $ref: "#/components/requestBodies/Pending" }
+      responses: { "201": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+  /api/v1/admin/song-requests:
+    get:
+      tags: [admin]
+      operationId: adminListSongRequests
+      summary: Songs the family asked to add, from Listen or search.
+      x-milestone: M3
+      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+  /api/v1/admin/recognition:
+    get:
+      tags: [admin]
+      operationId: adminGetRecognition
+      summary: Fingerprint coverage and matches this week by source.
+      x-milestone: M3
+      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+  /api/v1/admin/settings:
+    get:
+      tags: [admin]
+      operationId: adminGetSettings
+      summary: Server settings.
+      x-milestone: M2
+      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+    patch:
+      tags: [admin]
+      operationId: adminUpdateSettings
+      summary: Change server settings.
+      x-milestone: M2
+      requestBody: { $ref: "#/components/requestBodies/Pending" }
+      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+  /api/v1/admin/audit:
+    get:
+      tags: [admin]
+      operationId: adminListAudit
+      summary: Every admin action, filterable.
+      x-milestone: M2
+      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+  /api/v1/admin/backups:
+    get:
+      tags: [admin]
+      operationId: adminListBackups
+      summary: Backup schedule, destination and history.
+      x-milestone: M4
+      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+    post:
+      tags: [admin]
+      operationId: adminRunBackup
+      summary: Back up now.
+      x-milestone: M4
+      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+  /api/v1/admin/backups/{backupId}/restore:
+    parameters:
+      - { name: backupId, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [admin]
+      operationId: adminRestoreBackup
+      summary: Restore a backup, re-applying revocations and suspensions made after it.
+      x-milestone: M4
+      requestBody: { $ref: "#/components/requestBodies/Pending" }
+      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+  /api/v1/admin/logs:
+    get:
+      tags: [admin]
+      operationId: adminGetLogs
+      summary: Recent server log lines with level and text filters.
+      x-milestone: M4
+      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+
+components:
+  securitySchemes:
+    deviceToken:
+      type: http
+      scheme: bearer
+      description: Short-lived access token for a registered device (from M2).
+    adminSession:
+      type: apiKey
+      in: cookie
+      name: hive_admin
+      description: Admin browser session (from M2).
+
+  parameters:
+    RequestId: { name: requestId, in: path, required: true, schema: { type: string } }
+    DeviceId: { name: deviceId, in: path, required: true, schema: { type: string } }
+    AlbumId: { name: albumId, in: path, required: true, schema: { type: string } }
+    ArtistId: { name: artistId, in: path, required: true, schema: { type: string } }
+    TrackId: { name: trackId, in: path, required: true, schema: { type: string } }
+    PlaylistId: { name: playlistId, in: path, required: true, schema: { type: string } }
+
+  requestBodies:
+    Pending:
+      description: Body defined by the operation's milestone.
+      required: false
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Pending" }
+
+  responses:
+    Pending:
+      description: Response defined by the operation's milestone.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Pending" }
+    NotImplemented:
+      description: Not built yet; `milestone` says when it will be.
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+
+  schemas:
+    Health:
+      type: object
+      required: [status, homeName, serverVersion, apiVersion, serverTime]
+      properties:
+        status:
+          type: string
+          enum: [ok]
+          description: Always "ok" when the server answers.
+        homeName:
+          type: string
+          description: What the family sees as the home, e.g. "Arun's home".
+          examples: ["Arun's home"]
+        serverVersion:
+          type: string
+          examples: ["0.1.0"]
+        apiVersion:
+          type: string
+          description: Version of this contract the server implements.
+          examples: ["0.1.0"]
+        minAppVersion:
+          type: string
+          description: Older apps show "Time for an update".
+          examples: ["0.1.0"]
+        serverTime:
+          type: string
+          format: date-time
+          description: The server's clock; apps measure their offset from it.
+    Problem:
+      type: object
+      description: Error body (RFC 9457 problem details).
+      required: [title, status]
+      properties:
+        type: { type: string }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        milestone:
+          type: string
+          description: For 501 responses, the milestone that builds this operation.
+    Pending:
+      type: object
+      description: Placeholder until this operation's milestone defines the real shape.
+      additionalProperties: true
+
+security:
+  - deviceToken: []
+  - adminSession: []

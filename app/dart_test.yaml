@@ -1,0 +1,5 @@
+# Screenshot tests render with real fonts for visual review; run them on purpose:
+#   flutter test --tags screenshots --update-goldens
+tags:
+  screenshots:
+    skip: "Run with --tags screenshots"
