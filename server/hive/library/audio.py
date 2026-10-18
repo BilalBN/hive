@@ -1,8 +1,9 @@
 """FFmpeg: loudness measurement and the cached Opus / FLAC streams.
 
 Originals are never touched. Lossy streams (High = Opus 256 kbps, Data saver =
-Opus 96 kbps) and FLAC copies of ALAC/AIFF for non-Apple players are made once,
-written next to nothing else in ``<data>/cache/streams``, and reused.
+Opus 96 kbps; AAC at the same rates for Apple's player) and FLAC copies of
+ALAC/AIFF for non-Apple players are made once in ``<data>/cache/streams`` and
+reused.
 """
 
 from __future__ import annotations
@@ -99,20 +100,17 @@ class Variant:
     mime: str
     bitrate_kbps: int | None
     lossless: bool
-    copy: bool = False  # re-wrap without re-encoding
 
 
-OPUS_HIGH_OGG = Variant("opus256.ogg", "opus", "ogg", "audio/ogg", 256, False)
-OPUS_HIGH_CAF = Variant("opus256.caf", "opus", "caf", "audio/x-caf", 256, False)
-OPUS_SAVER_OGG = Variant("opus96.ogg", "opus", "ogg", "audio/ogg", 96, False)
-OPUS_SAVER_CAF = Variant("opus96.caf", "opus", "caf", "audio/x-caf", 96, False)
+OPUS_HIGH = Variant("opus256.ogg", "opus", "ogg", "audio/ogg", 256, False)
+OPUS_SAVER = Variant("opus96.ogg", "opus", "ogg", "audio/ogg", 96, False)
+# Apple's player (AVFoundation) doesn't stream Opus or Ogg reliably, so Apple
+# devices get AAC in MP4 at the same bitrates.
+AAC_HIGH = Variant("aac256.m4a", "aac", "mp4", "audio/mp4", 256, False)
+AAC_SAVER = Variant("aac96.m4a", "aac", "mp4", "audio/mp4", 96, False)
 FLAC_COPY = Variant("lossless.flac", "flac", "flac", "audio/flac", None, True)
-# An Opus original re-wrapped for Apple's player, which can't open Ogg.
-OPUS_COPY_CAF = Variant("copy.caf", "opus", "caf", "audio/x-caf", None, False, copy=True)
 
-ALL_VARIANTS = (
-    OPUS_HIGH_OGG, OPUS_HIGH_CAF, OPUS_SAVER_OGG, OPUS_SAVER_CAF, FLAC_COPY, OPUS_COPY_CAF,
-)  # fmt: skip
+ALL_VARIANTS = (OPUS_HIGH, OPUS_SAVER, AAC_HIGH, AAC_SAVER, FLAC_COPY)
 
 ORIGINAL_MIME = {
     "flac": "audio/flac",
@@ -130,6 +128,12 @@ def original_mime(codec: str, path: Path) -> str:
     if codec == "aac" and path.suffix.lower() == ".aac":
         return "audio/aac"
     return ORIGINAL_MIME.get(codec, "application/octet-stream")
+
+
+class TranscodeError(RuntimeError):
+    def __init__(self, message: str, ffmpeg_output: str = "") -> None:
+        super().__init__(message)
+        self.ffmpeg_output = ffmpeg_output
 
 
 class Transcoder:
@@ -162,12 +166,13 @@ class Transcoder:
             tmp = out.with_name(out.name + f".part{os.getpid()}")
             cmd = [str(self.ffmpeg), "-hide_banner", "-nostdin", "-loglevel", "error", "-y",
                    "-i", str(source), "-map", "0:a:0", "-map_metadata", "-1", "-vn"]  # fmt: skip
-            if variant.copy:
-                cmd += ["-c:a", "copy", "-f", variant.container]
-            elif variant.codec == "opus":
+            if variant.codec == "opus":
                 cmd += ["-c:a", "libopus", "-b:a", f"{variant.bitrate_kbps}k", "-vbr", "on",
-                        "-application", "audio", "-ar", "48000"]  # fmt: skip
-                cmd += ["-f", "caf" if variant.container == "caf" else "ogg"]
+                        "-application", "audio", "-ar", "48000", "-f", "ogg"]  # fmt: skip
+            elif variant.codec == "aac":
+                # The index goes at the front so playback can start before the end arrives.
+                cmd += ["-c:a", "aac", "-b:a", f"{variant.bitrate_kbps}k", "-ac", "2",
+                        "-movflags", "+faststart", "-f", "mp4"]  # fmt: skip
             else:
                 # FLAC copy of ALAC/AIFF/WAV: bit-identical audio, keeps the bit depth.
                 cmd += ["-c:a", "flac", "-compression_level", "5", "-f", "flac"]
@@ -179,8 +184,9 @@ class Transcoder:
                 raise RuntimeError("Making the stream took too long") from e
             if r.returncode != 0 or not tmp.is_file():
                 tmp.unlink(missing_ok=True)
-                log.error("ffmpeg failed for %s: %s", source.name, r.stderr.strip()[-500:])
-                raise RuntimeError("FFmpeg couldn't convert this song")
+                reason = r.stderr.strip()[-500:]
+                log.error("ffmpeg failed for %s: %s", source.name, reason)
+                raise TranscodeError("FFmpeg couldn't convert this song", reason)
             os.replace(tmp, out)
             log.info("made %s for %s", variant.key, source.name)
             return out

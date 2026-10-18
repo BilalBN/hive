@@ -7,26 +7,32 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../api/hive_api.g.dart';
 
-/// Where home is. Saved on the device; in M2 it comes from the invite instead
-/// of being typed.
+/// Where home is, and (until M2) the key Hive Admin shows for the apps.
+/// Saved on the device; in M2 both come from the invite instead of being typed.
 class HomeAddressStore extends ChangeNotifier {
   HomeAddressStore(this._prefs);
 
-  static const _key = 'home.address';
+  static const _addressKey = 'home.address';
+  static const _devKey = 'home.developmentKey';
   final SharedPreferences _prefs;
 
   Uri? get address {
-    final raw = _prefs.getString(_key);
+    final raw = _prefs.getString(_addressKey);
     return raw == null ? null : Uri.tryParse(raw);
   }
 
-  Future<void> save(Uri address) async {
-    await _prefs.setString(_key, address.toString());
+  /// The temporary key for the M1 library API (Hive Admin → Overview).
+  String? get key => _prefs.getString(_devKey);
+
+  Future<void> save(Uri address, {String? key}) async {
+    await _prefs.setString(_addressKey, address.toString());
+    if (key != null) await _prefs.setString(_devKey, key);
     notifyListeners();
   }
 
   Future<void> forget() async {
-    await _prefs.remove(_key);
+    await _prefs.remove(_addressKey);
+    await _prefs.remove(_devKey);
     notifyListeners();
   }
 }
@@ -66,6 +72,17 @@ Dio dioFor(Uri address) => Dio(
     receiveTimeout: const Duration(seconds: 10),
     headers: {'Accept': 'application/json'},
   ),
+);
+
+/// Checks the M1 key against home (a library call that needs it). Replaced in tests.
+typedef KeyCheck = Future<void> Function(Uri address, String key);
+
+final keyCheckProvider = Provider<KeyCheck>(
+  (ref) => (address, key) async {
+    final dio = dioFor(address)
+      ..options.headers['Authorization'] = 'Bearer $key';
+    await HiveApi(dio).listPlaylists();
+  },
 );
 
 final healthCheckProvider = Provider<HealthCheck>(

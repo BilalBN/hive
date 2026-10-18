@@ -232,11 +232,20 @@ jobs:
           cache: true
       # Not notarized until the Apple Developer account exists (M5); see docs/dev-setup.md
       # for opening it the first time.
-      - run: flutter build macos --release
+      - name: flutter build macos
+        shell: bash
+        run: |
+          set -o pipefail
+          flutter build macos --release 2>&1 | tee build.log || {
+            echo "::error title=flutter build macos::$(grep -iE 'error|failed' build.log | tail -20 | sed ':a;N;$!ba;s/\n/%0A/g')"
+            exit 1
+          }
       # A disk image keeps the app bundle exactly as built (framework symlinks,
       # signature); zips passed through browsers and unzip tools can break it.
       - name: Package as a disk image
+        shell: bash
         run: |
+          trap 'echo "::error title=Packaging::failed at: $BASH_COMMAND"' ERR
           mkdir -p dmg
           ditto build/macos/Build/Products/Release/Hive.app dmg/Hive.app
           ln -s /Applications dmg/Applications

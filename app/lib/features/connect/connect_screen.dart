@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../api/hive_api.g.dart';
+import '../../core/api.dart';
 import '../../core/home_connection.dart';
 import '../../design/icons.g.dart';
 import '../../design/theme.dart';
@@ -22,19 +24,24 @@ class ConnectScreen extends ConsumerStatefulWidget {
 
 class _ConnectScreenState extends ConsumerState<ConnectScreen> {
   final _controller = TextEditingController();
+  final _keyController = TextEditingController();
   String? _error;
+  String? _keyError;
   bool _busy = false;
 
   @override
   void initState() {
     super.initState();
-    final saved = ref.read(homeAddressStoreProvider).address;
+    final store = ref.read(homeAddressStoreProvider);
+    final saved = store.address;
     if (saved != null) _controller.text = saved.toString();
+    _keyController.text = store.key ?? '';
   }
 
   @override
   void dispose() {
     _controller.dispose();
+    _keyController.dispose();
     super.dispose();
   }
 
@@ -46,16 +53,38 @@ class _ConnectScreenState extends ConsumerState<ConnectScreen> {
       );
       return;
     }
+    final key = _keyController.text.trim();
+    if (key.isEmpty) {
+      setState(
+        () => _keyError =
+            'Copy the key from Hive Admin → Overview on the home computer.',
+      );
+      return;
+    }
     setState(() {
       _busy = true;
       _error = null;
+      _keyError = null;
     });
     try {
       await ref.read(healthCheckProvider)(address);
-      await ref.read(homeAddressStoreProvider).save(address);
-      if (mounted) context.go('/home');
     } catch (e) {
-      setState(() => _error = describeFailure(e));
+      setState(() {
+        _error = describeFailure(e);
+        _busy = false;
+      });
+      return;
+    }
+    try {
+      await ref.read(keyCheckProvider)(address, key);
+      await ref.read(homeAddressStoreProvider).save(address, key: key);
+      if (mounted) context.go('/home');
+    } on HiveApiException catch (e) {
+      setState(
+        () => _keyError = e.status == 401
+            ? "Home didn't accept that key. Check it against Hive Admin → Overview."
+            : describeError(e),
+      );
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -94,28 +123,10 @@ class _ConnectScreenState extends ConsumerState<ConnectScreen> {
                   textInputAction: TextInputAction.go,
                   onSubmitted: (_) => _connect(),
                   style: HiveType.body.copyWith(color: p.textPrimary),
-                  decoration: InputDecoration(
-                    hintText: '100.84.12.7 or hive-pc:8443',
-                    hintStyle: HiveType.body.copyWith(color: p.textTertiary),
-                    filled: true,
-                    fillColor: p.surface,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: HiveSpace.md,
-                      vertical: HiveSpace.md,
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(HiveRadius.card),
-                      borderSide: BorderSide(
-                        color: _error == null ? p.border : p.danger,
-                      ),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(HiveRadius.card),
-                      borderSide: BorderSide(
-                        color: _error == null ? p.accent : p.danger,
-                        width: 1.5,
-                      ),
-                    ),
+                  decoration: _fieldDecoration(
+                    p,
+                    hint: '100.84.12.7 or hive-pc:8443',
+                    error: _error != null,
                   ),
                 ),
                 if (_error != null) ...[
@@ -125,6 +136,33 @@ class _ConnectScreenState extends ConsumerState<ConnectScreen> {
                     style: HiveType.callout.copyWith(color: p.danger),
                   ),
                 ],
+                const SizedBox(height: HiveSpace.md),
+                Text(
+                  'Key from Hive Admin',
+                  style: HiveType.callout.copyWith(color: p.textSecondary),
+                ),
+                const SizedBox(height: HiveSpace.xs),
+                TextField(
+                  key: const Key('dev-key'),
+                  controller: _keyController,
+                  autocorrect: false,
+                  enableSuggestions: false,
+                  textInputAction: TextInputAction.go,
+                  onSubmitted: (_) => _connect(),
+                  style: HiveType.body.copyWith(color: p.textPrimary),
+                  decoration: _fieldDecoration(
+                    p,
+                    hint: 'hive-dev-xxxx-xxxx-xxxx-xxxx',
+                    error: _keyError != null,
+                  ),
+                ),
+                const SizedBox(height: HiveSpace.xs),
+                Text(
+                  _keyError ?? 'Shown on the Overview page of Hive Admin. Needed until invites arrive.',
+                  style: HiveType.caption.copyWith(
+                    color: _keyError == null ? p.textTertiary : p.danger,
+                  ),
+                ),
                 const SizedBox(height: HiveSpace.lg),
                 HivePrimaryButton(
                   label: 'Connect',
@@ -138,4 +176,27 @@ class _ConnectScreenState extends ConsumerState<ConnectScreen> {
       ),
     );
   }
+
+  InputDecoration _fieldDecoration(
+    HivePalette p, {
+    required String hint,
+    required bool error,
+  }) => InputDecoration(
+    hintText: hint,
+    hintStyle: HiveType.body.copyWith(color: p.textTertiary),
+    filled: true,
+    fillColor: p.surface,
+    contentPadding: const EdgeInsets.symmetric(
+      horizontal: HiveSpace.md,
+      vertical: HiveSpace.md,
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(HiveRadius.card),
+      borderSide: BorderSide(color: error ? p.danger : p.border),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(HiveRadius.card),
+      borderSide: BorderSide(color: error ? p.danger : p.accent, width: 1.5),
+    ),
+  );
 }

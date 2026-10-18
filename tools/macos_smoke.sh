@@ -3,6 +3,7 @@
 # (frameworks, symlinks, signature) and actually starts. A broken bundle fails
 # at launch with "Hive cannot be opened because of a problem".
 set -euo pipefail
+trap 'echo "::error title=macOS smoke test::failed at line $LINENO: $BASH_COMMAND"' ERR
 DMG="$1"
 MNT=$(mktemp -d)
 WORK=$(mktemp -d)
@@ -26,7 +27,7 @@ for _ in $(seq 1 30); do
 done
 if ! kill -0 "$PID" 2>/dev/null; then
   cat "$LOG"
-  echo "::error::The macOS app closed at launch."
+  echo "::error title=The macOS app closed at launch::$(tail -c 1500 "$LOG" | sed ':a;N;$!ba;s/\n/%0A/g')"
   exit 1
 fi
 kill "$PID" || true

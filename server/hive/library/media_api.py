@@ -44,7 +44,6 @@ class StreamRequest(BaseModel):
 def choose_variant(t: Track, quality: str, player: str) -> A.Variant | None:
     """The stream to send, or None for the original file untouched."""
     apple = player == "apple"
-    ogg_original = t.codec in ("opus", "vorbis")
     if quality == "lossless" or not t.lossless:
         if t.lossless:
             # Non-Apple players get ALAC and AIFF as FLAC: same samples, still lossless.
@@ -53,16 +52,16 @@ def choose_variant(t: Track, quality: str, player: str) -> A.Variant | None:
             return None
         target = TARGET_KBPS.get(quality)
         small_enough = target is None or not t.bitrate_kbps or t.bitrate_kbps <= target * 1.1
-        if small_enough:
-            # A lossy original is sent as it is, except Ogg files to Apple's
-            # player, which can't open Ogg: those are re-wrapped or re-encoded.
-            if apple and ogg_original:
-                return A.OPUS_COPY_CAF if t.codec == "opus" else A.OPUS_HIGH_CAF
+        # A lossy original is sent as it is, except Ogg (Opus, Vorbis) to Apple's
+        # player, which can't open it: that becomes AAC.
+        if small_enough and not (apple and t.codec in ("opus", "vorbis")):
             return None
+        if target is None:
+            return A.AAC_HIGH
     target = TARGET_KBPS[quality]
     if apple:
-        return A.OPUS_HIGH_CAF if target == 256 else A.OPUS_SAVER_CAF
-    return A.OPUS_HIGH_OGG if target == 256 else A.OPUS_SAVER_OGG
+        return A.AAC_HIGH if target == 256 else A.AAC_SAVER
+    return A.OPUS_HIGH if target == 256 else A.OPUS_SAVER
 
 
 def _ticket_ttl(duration_ms: int) -> int:
@@ -116,9 +115,11 @@ async def create_stream_ticket(
             raise HTTPException(503, str(e)) from e
         if variant.codec == "flac":
             fmt = audio_format("flac", True, t.sample_rate, t.channels, t.bit_depth, None)
+        elif variant.codec == "aac":
+            rate = 48000 if t.sample_rate > 48000 else t.sample_rate
+            fmt = audio_format("aac", False, rate, 2, None, variant.bitrate_kbps)
         else:
-            kbps = variant.bitrate_kbps or t.bitrate_kbps
-            fmt = audio_format("opus", False, 48000, min(t.channels, 2), None, kbps)
+            fmt = audio_format("opus", False, 48000, min(t.channels, 2), None, variant.bitrate_kbps)
         mime = variant.mime
 
     ticket, exp = sign_ticket(

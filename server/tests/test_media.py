@@ -85,13 +85,14 @@ def test_high_is_opus_256_in_ogg_and_cached(home: Home) -> None:
     assert {p: p.stat().st_mtime for p in cache.rglob("*.ogg")} == before
 
 
-def test_apple_players_get_caf(home: Home) -> None:
+def test_apple_players_get_aac_in_mp4(home: Home) -> None:
     t = _ticket(home, "Dreams", quality="dataSaver", player="apple")
-    assert t["mimeType"] == "audio/x-caf"
-    assert t["format"]["bitrateKbps"] == 96
+    assert t["mimeType"] == "audio/mp4"
+    assert t["format"]["codec"] == "aac" and t["format"]["bitrateKbps"] == 96
+    assert t["format"]["label"] == "AAC 96"
     info = _probe(home.client.get(t["url"]).content)
-    assert info["streams"][0]["codec_name"] == "opus"
-    assert info["format"]["format_name"] == "caf"
+    assert info["streams"][0]["codec_name"] == "aac"
+    assert "mp4" in info["format"]["format_name"]
 
 
 def test_alac_becomes_flac_for_non_apple_players(home: Home) -> None:
@@ -111,11 +112,11 @@ def test_lossy_originals_are_sent_as_they_are_unless_too_big(home: Home) -> None
     assert t["transcoded"] is True and t["format"]["bitrateKbps"] == 96
     t = _ticket(home, "So What", quality="high")
     assert t["transcoded"] is False and t["mimeType"] == "audio/ogg"
-    # Apple can't open Ogg: the Opus is re-wrapped, not re-encoded.
+    # Apple's player can't open Ogg, so an Opus original becomes AAC there.
     t = _ticket(home, "So What", quality="lossless", player="apple")
-    assert t["transcoded"] is True and t["mimeType"] == "audio/x-caf"
+    assert t["transcoded"] is True and t["mimeType"] == "audio/mp4"
     info = _probe(home.client.get(t["url"]).content)
-    assert info["streams"][0]["codec_name"] == "opus"
+    assert info["streams"][0]["codec_name"] == "aac"
 
 
 def test_tickets_expire_and_cannot_be_forged(home: Home) -> None:

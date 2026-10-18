@@ -1,5 +1,7 @@
 package dev.hivemusic.hive
 
-import io.flutter.embedding.android.FlutterActivity
+import com.ryanheise.audioservice.AudioServiceActivity
 
-class MainActivity : FlutterActivity()
+// AudioServiceActivity keeps one Flutter engine shared with the background
+// playback service, so music continues with the screen locked.
+class MainActivity : AudioServiceActivity()

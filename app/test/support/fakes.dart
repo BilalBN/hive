@@ -1,0 +1,179 @@
+import 'dart:async';
+
+import 'package:hive/api/hive_api.g.dart';
+import 'package:hive/player/engine.dart';
+import 'package:hive/player/quality.dart';
+
+const flac1644 = AudioFormat(
+  codec: 'flac',
+  lossless: true,
+  sampleRate: 44100,
+  channels: 2,
+  bitDepth: 16,
+  tier: 'lossless',
+  label: 'Lossless 16/44.1',
+);
+
+const flac2496 = AudioFormat(
+  codec: 'flac',
+  lossless: true,
+  sampleRate: 96000,
+  channels: 2,
+  bitDepth: 24,
+  tier: 'hires',
+  label: 'Hi-Res 24/96',
+);
+
+const opus256 = AudioFormat(
+  codec: 'opus',
+  lossless: false,
+  sampleRate: 48000,
+  channels: 2,
+  bitrateKbps: 256,
+  tier: 'lossy',
+  label: 'Opus 256',
+);
+
+TrackSummary track(
+  String id, {
+  String? title,
+  String artist = 'Vijay Yesudas',
+  String album = 'Premam',
+  int ms = 240000,
+  AudioFormat format = flac1644,
+  bool liked = false,
+}) => TrackSummary(
+  id: id,
+  title: title ?? 'Song $id',
+  artistName: artist,
+  albumId: 'album-$album',
+  albumTitle: album,
+  durationMs: ms,
+  format: format,
+  liked: liked,
+  artistId: 'artist-$artist',
+  artworkId: 'art-$album',
+);
+
+StreamTicket ticket(
+  String trackId, {
+  AudioFormat format = flac1644,
+  AudioFormat? source,
+  bool transcoded = false,
+  Loudness? loudness,
+}) => StreamTicket(
+  url: '/api/v1/media/stream/$trackId',
+  expiresAt: DateTime.now().add(const Duration(hours: 1)),
+  format: format,
+  source: source,
+  mimeType: 'audio/flac',
+  durationMs: 240000,
+  transcoded: transcoded,
+  loudness: loudness,
+);
+
+/// Records ticket requests: (trackId, quality, play?).
+class FakeTickets {
+  final calls = <(String, QualityMode, bool)>[];
+  bool fail = false;
+
+  Future<StreamTicket> call(
+    String id,
+    QualityMode mode, {
+    required bool play,
+    PlayContext? context,
+  }) async {
+    calls.add((id, mode, play));
+    if (fail) throw HiveApiException(null, null, "down");
+    return ticket(id);
+  }
+}
+
+/// An audio engine without audio: holds sources, and lets tests move it on.
+class FakeEngine implements AudioEngine {
+  final sources = <EngineSource>[];
+  final _index = StreamController<int?>.broadcast(sync: true);
+  final _playing = StreamController<bool>.broadcast(sync: true);
+  final _processing = StreamController<EngineProcessing>.broadcast(sync: true);
+  bool _isPlaying = false;
+  double volume = 1;
+  bool repeatOne = false;
+  Duration _position = Duration.zero;
+
+  /// The track ids (from stream URLs) currently loaded, in order.
+  List<String> get loaded => [for (final s in sources) s.uri.pathSegments.last];
+
+  /// Gapless move to the next loaded song, as the real engine does.
+  Future<void> advance() async {
+    _index.add(1);
+    await pump();
+  }
+
+  void complete() => _processing.add(EngineProcessing.completed);
+
+  @override
+  Stream<int?> get indexStream => _index.stream;
+  @override
+  Stream<bool> get playingStream => _playing.stream;
+  @override
+  Stream<Duration> get positionStream => const Stream.empty();
+  @override
+  Stream<Duration?> get durationStream => const Stream.empty();
+  @override
+  Stream<Duration> get bufferedStream => const Stream.empty();
+  @override
+  Stream<EngineProcessing> get processingStream => _processing.stream;
+  @override
+  int? get index => sources.isEmpty ? null : 0;
+  @override
+  Duration get position => _position;
+  @override
+  bool get playing => _isPlaying;
+  @override
+  int get length => sources.length;
+
+  @override
+  Future<void> setSources(
+    List<EngineSource> s, {
+    Duration position = Duration.zero,
+  }) async {
+    sources
+      ..clear()
+      ..addAll(s);
+    _position = position;
+  }
+
+  @override
+  Future<void> addSource(EngineSource s) async => sources.add(s);
+  @override
+  Future<void> removeAt(int i) async => sources.removeAt(i);
+  @override
+  Future<void> play() async {
+    _isPlaying = true;
+    _playing.add(true);
+  }
+
+  @override
+  Future<void> pause() async {
+    _isPlaying = false;
+    _playing.add(false);
+  }
+
+  @override
+  Future<void> seek(Duration p) async => _position = p;
+  @override
+  Future<void> setVolume(double v) async => volume = v;
+  @override
+  Future<void> setRepeatOne(bool on) async => repeatOne = on;
+  @override
+  Future<void> stop() async => sources.clear();
+  @override
+  Future<void> dispose() async {}
+}
+
+/// Let pending futures and microtasks run.
+Future<void> pump() async {
+  for (var i = 0; i < 10; i++) {
+    await Future<void>.delayed(Duration.zero);
+  }
+}

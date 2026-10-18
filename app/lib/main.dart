@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'app.dart';
 import 'core/home_connection.dart';
 import 'core/startup.dart';
+import 'player/media_session.dart';
 
 /// Starts Hive. Any failure before the first screen is shown on screen rather
 /// than leaving the launch logo up forever.
@@ -23,11 +24,12 @@ void main() {
         runApp(StartupFailedApp(error: error, stack: stack));
         return;
       }
+      final container = ProviderContainer(
+        overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+      );
+      await initAudio(container);
       runApp(
-        ProviderScope(
-          overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
-          child: const HiveApp(),
-        ),
+        UncontrolledProviderScope(container: container, child: const HiveApp()),
       );
       // CI's Android smoke test waits for this line in the device log.
       debugPrint('Hive started');

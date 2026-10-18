@@ -1077,15 +1077,16 @@ components:
         quality:
           type: string
           enum: [lossless, high, dataSaver]
-          description: lossless = the original file; high = Opus 256 kbps; dataSaver = Opus 96 kbps. A lossy original is always sent as it is.
+          description: lossless = the original file; high = 256 kbps; dataSaver = 96 kbps (Opus, or AAC for Apple's player). A lossy original small enough is sent as it is.
         player:
           type: string
           enum: [apple, other]
           default: other
           description: |
-            Which audio engine will play it. Apple's player gets Opus in CAF
-            and ALAC as it is; others get Opus in Ogg, and ALAC or AIFF
-            originals as FLAC (bit-identical, so still lossless).
+            Which audio engine will play it. Apple's player gets High and Data
+            saver as AAC in MP4 (it can't stream Opus) and ALAC as it is;
+            others get Opus in Ogg, and ALAC or AIFF originals as FLAC
+            (bit-identical, so still lossless).
         context:
           $ref: "#/components/schemas/PlayContext"
         purpose:
@@ -1120,7 +1121,7 @@ components:
         format: { $ref: "#/components/schemas/AudioFormat" }
         source:
           $ref: "#/components/schemas/AudioFormat"
-        mimeType: { type: string, examples: ["audio/flac", "audio/ogg"] }
+        mimeType: { type: string, examples: ["audio/flac", "audio/ogg", "audio/mp4"] }
         sizeBytes: { type: integer }
         durationMs: { type: integer }
         transcoded: { type: boolean, description: False when the original file is sent untouched. }

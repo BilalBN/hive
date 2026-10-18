@@ -37,6 +37,7 @@ Future<void> pumpHive(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
         healthCheckProvider.overrideWithValue(check),
+        keyCheckProvider.overrideWithValue((_, _) async {}),
       ],
       child: const HiveApp(),
     ),
@@ -83,6 +84,10 @@ void main() {
       },
     );
     await tester.enterText(find.byKey(const Key('address')), '100.84.12.7');
+    await tester.enterText(
+      find.byKey(const Key('dev-key')),
+      'hive-dev-aaaa-bbbb-cccc-dddd',
+    );
     await tester.tap(find.text('Connect'));
     await tester.pumpAndSettle();
     expect(asked.toString(), 'http://100.84.12.7:8443');
@@ -90,6 +95,10 @@ void main() {
     expect(find.text("Arun's home"), findsOneWidget);
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getString('home.address'), 'http://100.84.12.7:8443');
+    expect(
+      prefs.getString('home.developmentKey'),
+      'hive-dev-aaaa-bbbb-cccc-dddd',
+    );
   });
 
   testWidgets('shows a plain explanation when the address is wrong', (
@@ -97,6 +106,10 @@ void main() {
   ) async {
     await pumpHive(tester, check: unreachable);
     await tester.enterText(find.byKey(const Key('address')), '100.84.12.7');
+    await tester.enterText(
+      find.byKey(const Key('dev-key')),
+      'hive-dev-aaaa-bbbb-cccc-dddd',
+    );
     await tester.tap(find.text('Connect'));
     await tester.pumpAndSettle();
     expect(find.textContaining('may be asleep'), findsOneWidget);

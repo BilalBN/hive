@@ -778,9 +778,9 @@ class StreamRequest {
     this.purpose,
   });
 
-  /// lossless = the original file; high = Opus 256 kbps; dataSaver = Opus 96 kbps. A lossy original is always sent as it is.
+  /// lossless = the original file; high = 256 kbps; dataSaver = 96 kbps (Opus, or AAC for Apple's player). A lossy original small enough is sent as it is.
   final String quality;
-  /// Which audio engine will play it. Apple's player gets Opus in CAF and ALAC as it is; others get Opus in Ogg, and ALAC or AIFF originals as FLAC (bit-identical, so still lossless).
+  /// Which audio engine will play it. Apple's player gets High and Data saver as AAC in MP4 (it can't stream Opus) and ALAC as it is; others get Opus in Ogg, and ALAC or AIFF originals as FLAC (bit-identical, so still lossless).
   final String? player;
   /// Where the song was started from; feeds "Jump back in" on Home.
   final PlayContext? context;
