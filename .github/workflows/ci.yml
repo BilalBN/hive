@@ -88,6 +88,27 @@ jobs:
         shell: bash
         run: python ../tools/junit_annotations.py pytest-report.xml
 
+  lookup-live:
+    name: Lookup against the real services
+    runs-on: ubuntu-latest
+    # MusicBrainz, Cover Art Archive or Wikidata being down must not block a
+    # build; a failure here still shows, so a change in their answers is caught.
+    continue-on-error: true
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: server/pyproject.toml
+      - run: pip install -e ".[dev]"
+      - run: pytest tests/test_live_lookup.py -v
+        env:
+          HIVE_LIVE_LOOKUP: "1"
+
   admin:
     name: Admin panel
     runs-on: ubuntu-latest

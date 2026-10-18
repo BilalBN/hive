@@ -299,6 +299,7 @@ class Album {
     this.genre,
     this.language,
     this.kind,
+    this.filmTitle,
     this.film,
     this.credits,
     required this.tracks,
@@ -317,6 +318,7 @@ class Album {
   final String? genre;
   final String? language;
   final String? kind;
+  final String? filmTitle;
   final Film? film;
   /// Music directors, composers and lyricists of the album; cast and director of its film.
   final List<Credit>? credits;
@@ -336,6 +338,7 @@ class Album {
         genre: json['genre'] == null ? null : json['genre'] as String,
         language: json['language'] == null ? null : json['language'] as String,
         kind: json['kind'] == null ? null : json['kind'] as String,
+        filmTitle: json['filmTitle'] == null ? null : json['filmTitle'] as String,
         film: json['film'] == null ? null : Film.fromJson((json['film'] as Map).cast<String, dynamic>()),
         credits: json['credits'] == null ? null : (json['credits'] as List<dynamic>).map((e) => Credit.fromJson((e as Map).cast<String, dynamic>())).toList(),
         tracks: (json['tracks'] as List<dynamic>).map((e) => TrackSummary.fromJson((e as Map).cast<String, dynamic>())).toList(),
@@ -355,6 +358,7 @@ class Album {
         'genre': ?genre,
         'language': ?language,
         'kind': ?kind,
+        'filmTitle': ?filmTitle,
         'film': ?film?.toJson(),
         'credits': ?credits?.map((e) => e.toJson()).toList(),
         'tracks': tracks.map((e) => e.toJson()).toList(),
@@ -1343,6 +1347,7 @@ class FoundAlbum {
     this.year,
     this.language,
     this.kind,
+    this.filmTitle,
     this.film,
     this.credits,
     this.artworkId,
@@ -1357,6 +1362,7 @@ class FoundAlbum {
   final int? year;
   final String? language;
   final String? kind;
+  final String? filmTitle;
   final Film? film;
   final List<Credit>? credits;
   /// The cover it found
@@ -1375,6 +1381,7 @@ class FoundAlbum {
         year: json['year'] == null ? null : json['year'] as int,
         language: json['language'] == null ? null : json['language'] as String,
         kind: json['kind'] == null ? null : json['kind'] as String,
+        filmTitle: json['filmTitle'] == null ? null : json['filmTitle'] as String,
         film: json['film'] == null ? null : Film.fromJson((json['film'] as Map).cast<String, dynamic>()),
         credits: json['credits'] == null ? null : (json['credits'] as List<dynamic>).map((e) => Credit.fromJson((e as Map).cast<String, dynamic>())).toList(),
         artworkId: json['artworkId'] == null ? null : json['artworkId'] as String,
@@ -1390,6 +1397,7 @@ class FoundAlbum {
         'year': ?year,
         'language': ?language,
         'kind': ?kind,
+        'filmTitle': ?filmTitle,
         'film': ?film?.toJson(),
         'credits': ?credits?.map((e) => e.toJson()).toList(),
         'artworkId': ?artworkId,

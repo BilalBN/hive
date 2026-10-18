@@ -1314,6 +1314,7 @@ export interface components {
             genre?: string;
             language?: string;
             kind?: components["schemas"]["AlbumKind"];
+            filmTitle?: string;
             film?: components["schemas"]["Film"];
             /** @description Music directors, composers and lyricists of the album; cast and director of its film. */
             credits?: components["schemas"]["Credit"][];
@@ -1616,6 +1617,7 @@ export interface components {
             year?: number;
             language?: string;
             kind?: components["schemas"]["AlbumKind"];
+            filmTitle?: string;
             film?: components["schemas"]["Film"];
             credits?: components["schemas"]["Credit"][];
             /** @description The cover it found */

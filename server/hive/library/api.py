@@ -202,6 +202,10 @@ def get_album(albumId: str, caller: CallerDep, s: SessionDep) -> dict[str, Any]:
     album = s.get(Album, albumId)
     if album is None:
         raise HTTPException(404, "No such album")
+    return album_body(s, caller, album)
+
+
+def album_body(s: Session, caller: Caller, album: Album) -> dict[str, Any]:
     body = album_summaries(s, [album])[0]
     body["durationMs"] = album_stats(s, [album.id]).get(album.id, {}).get("durationMs", 0)
     if album.genre:

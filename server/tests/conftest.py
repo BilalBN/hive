@@ -29,6 +29,8 @@ def settings(tmp_path: Path) -> Settings:
         music_folders=[tmp_path / "music"],
         watch_folders=False,
         scan_workers=2,
+        lookup_online=False,
+        lookup_worker=False,
     )
 
 

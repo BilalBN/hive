@@ -1049,6 +1049,7 @@ components:
         genre: { type: string }
         language: { type: string }
         kind: { $ref: "#/components/schemas/AlbumKind" }
+        filmTitle: { type: string }
         film: { $ref: "#/components/schemas/Film" }
         credits:
           type: array
@@ -1408,7 +1409,7 @@ components:
           description: What leaves home, in plain words, for the admin panel to show.
     LookupState:
       type: string
-      enum: [off, waiting, working, found, review, notFound, failed, edited]
+      enum: ["off", waiting, working, found, review, notFound, failed, edited]
     FoundAlbum:
       type: object
       required: [title, artistName, score, source]
@@ -1418,6 +1419,7 @@ components:
         year: { type: integer }
         language: { type: string }
         kind: { $ref: "#/components/schemas/AlbumKind" }
+        filmTitle: { type: string }
         film: { $ref: "#/components/schemas/Film" }
         credits: { type: array, items: { $ref: "#/components/schemas/Credit" } }
         artworkId: { type: string, description: The cover it found, already saved at home. }

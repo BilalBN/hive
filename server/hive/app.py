@@ -19,6 +19,8 @@ from hive.contract import contract_path, load_contract, problem, register_unbuil
 from hive.db import Database, migrate
 from hive.library.admin_api import router as admin_library_router
 from hive.library.api import router as library_router
+from hive.library.lookup.http import Http
+from hive.library.lookup.service import LookupService
 from hive.library.media_api import router as media_router
 from hive.library.scanner import Library
 from hive.library.uploads import router as uploads_router
@@ -27,7 +29,8 @@ from hive.system import router as system_router
 log = logging.getLogger("hive.server")
 
 
-def create_app(settings: Settings | None = None) -> FastAPI:
+def create_app(settings: Settings | None = None, lookup_http: Http | None = None) -> FastAPI:
+    """[lookup_http] lets tests answer the online lookup themselves."""
     settings = settings or get_settings()
 
     @asynccontextmanager
@@ -39,9 +42,19 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         app.state.ticket_secret = ticket_secret(app.state.db)
         app.state.library = Library(settings, app.state.db)
         app.state.library.start()
+        app.state.lookup = LookupService(
+            settings,
+            app.state.db,
+            app.state.library.artwork,
+            app.state.library._write_lock,
+            http=lookup_http,
+        )
+        if settings.lookup_worker:
+            app.state.lookup.start()
         log.info("Hive %s started for %s", __version__, settings.home_name)
         log.info("development key for the apps (until M2): %s", app.state.dev_key)
         yield
+        app.state.lookup.stop()
         app.state.library.stop()
         app.state.db.engine.dispose()
         log.info("Hive stopped")

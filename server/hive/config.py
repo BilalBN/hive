@@ -64,6 +64,14 @@ class Settings(BaseSettings):
     # Found on PATH or in the usual Homebrew and Windows places when not set.
     ffmpeg: Path | None = None
 
+    # Look up album details, covers and films online (MusicBrainz, Cover Art
+    # Archive, Wikidata). Hive Admin can switch it; this is the starting value.
+    lookup_online: bool = True
+    # Optional AcoustID application key, to recognise songs by their sound.
+    acoustid_key: str | None = None
+    # Run the lookup in the background (tests drive it themselves).
+    lookup_worker: bool = True
+
     admin_dist: Path = Field(default_factory=lambda: REPO_ROOT / "admin" / "dist")
     log_level: str = "INFO"
     min_app_version: str = "0.1.0"
