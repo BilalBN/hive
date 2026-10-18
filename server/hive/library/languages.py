@@ -56,6 +56,13 @@ _BY_NAME.update({"hindustani": "hi", "bangla": "bn", "no linguistic content": "z
 
 BY_WIKIDATA = {lang.wikidata: lang.code for lang in LANGUAGES.values()}
 _BY_SCRIPT = {lang.script: lang.code for lang in LANGUAGES.values() if lang.script}
+# Folder names match whole language names only: "AR Rahman" isn't Arabic.
+_FOLDER_NAMES = {
+    k.casefold(): lang.code
+    for lang in LANGUAGES.values()
+    for k in (lang.name, lang.native)
+    if lang.code not in ("en", "zxx")
+}
 
 
 def from_tag(value: str | None) -> str | None:
@@ -106,8 +113,8 @@ def from_folders(parts: Iterable[str]) -> str | None:
     """A folder named after a language: "Malayalam", "Hindi Songs", "Tamil Hits"."""
     for part in parts:
         for word in part.replace("_", " ").replace("-", " ").split():
-            code = _BY_NAME.get(word.casefold())
-            if code and code not in ("en",):  # "English" folders are rare and ambiguous
+            code = _FOLDER_NAMES.get(word.casefold())
+            if code:
                 return code
     return None
 

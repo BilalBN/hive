@@ -1,6 +1,6 @@
 import { vi } from "vitest";
 
-import type { Health, LibraryStatus } from "../api/client";
+import type { AdminAlbum, Health, LibraryStatus, LookupStatus } from "../api/client";
 
 export const health: Health = {
   status: "ok",
@@ -31,6 +31,67 @@ export const library: LibraryStatus = {
   ],
 };
 
+export const lookup: LookupStatus = {
+  enabled: true,
+  acoustidKey: false,
+  fingerprinting: false,
+  working: false,
+  waiting: 0,
+  found: 80,
+  notFound: 6,
+  review: 2,
+  failed: 0,
+  edited: 1,
+  sends:
+    "Album and artist names, song titles and lengths go to MusicBrainz, Cover Art Archive and Wikidata. Never the music itself, and nothing about who listens.",
+};
+
+export const kumbalangi: AdminAlbum = {
+  album: {
+    id: "kn",
+    title: "Kumbalangi Nights",
+    artistName: "Sushin Shyam",
+    trackCount: 2,
+    tier: "lossless",
+    addedAt: "2026-10-18T06:00:00Z",
+    durationMs: 420000,
+    language: "ml",
+    tracks: [
+      {
+        id: "t1",
+        title: "ചെരാതുകൾ",
+        artistName: "Sithara Krishnakumar",
+        albumId: "kn",
+        albumTitle: "Kumbalangi Nights",
+        trackNumber: 1,
+        durationMs: 210000,
+        format: { codec: "flac", lossless: true, sampleRate: 44100, channels: 2, bitDepth: 16, tier: "lossless", label: "Lossless 16/44.1" },
+        liked: false,
+        composer: "Sushin Shyam",
+        lyricist: "Anwar Ali",
+      },
+    ],
+  },
+  lookup: "review",
+  lookupNote: "Found something that might be it: check it in Hive Admin.",
+  edited: [],
+  sources: { language: "script" },
+  folder: "Malayalam/Kumbalangi Nights",
+  found: {
+    title: "Kumbalangi Nights (Original Motion Picture Soundtrack)",
+    artistName: "Sushin Shyam",
+    year: 2019,
+    language: "ml",
+    kind: "soundtrack",
+    film: { title: "Kumbalangi Nights", year: 2019, wikidataId: "Q100" },
+    credits: [{ role: "actor", name: "Fahadh Faasil" }],
+    trackCount: 7,
+    score: 0.62,
+    source: "MusicBrainz · Wikidata",
+    link: "https://musicbrainz.org/release/rel-kn",
+  },
+};
+
 type Route = { status?: number; body: unknown };
 
 /** Replace fetch with canned answers by path; anything else is a network failure. */
@@ -39,6 +100,7 @@ export function mockApi(routes: Record<string, Route | ((req: Request) => Route)
     "GET /api/v1/health": { body: health },
     "GET /api/v1/admin/library/imports": { body: library },
     "GET /api/v1/admin/development-key": { body: { key: "hive-dev-7k2q-9mxp-4c8a-tr3z" } },
+    "GET /api/v1/admin/library/lookup": { body: lookup },
     ...routes,
   };
   const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {

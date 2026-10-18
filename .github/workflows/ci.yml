@@ -105,9 +105,12 @@ jobs:
           cache: pip
           cache-dependency-path: server/pyproject.toml
       - run: pip install -e ".[dev]"
-      - run: pytest tests/test_live_lookup.py -v
+      - run: pytest tests/test_live_lookup.py -v --junitxml=pytest-report.xml
         env:
           HIVE_LIVE_LOOKUP: "1"
+      - name: Report failed tests
+        if: failure()
+        run: python ../tools/junit_annotations.py pytest-report.xml
 
   admin:
     name: Admin panel

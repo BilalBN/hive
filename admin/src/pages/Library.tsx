@@ -3,6 +3,7 @@ import { CircleAlert, FolderOpen, Loader, RefreshCw, TriangleAlert } from "lucid
 
 import { fetchLibrary, type ImportItem, type LibraryStatus, startScan } from "../api/client";
 import { Artwork } from "../components/Artwork";
+import { LookupPanel } from "../components/LookupPanel";
 import { QueryError } from "../components/QueryError";
 import { formatBytes } from "../upload/queue";
 
@@ -122,6 +123,8 @@ export function LibraryPage() {
               <p className="card__meta">{data.needsAttention.length ? "Listed below" : "Every file was read"}</p>
             </article>
           </div>
+
+          <LookupPanel />
 
           <section className="panel" aria-labelledby="folders-h">
             <h2 id="folders-h" className="panel__title">

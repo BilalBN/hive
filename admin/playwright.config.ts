@@ -24,6 +24,8 @@ export default defineConfig({
       HIVE_MUSIC_FOLDERS: JSON.stringify([`${data}/music`]),
       HIVE_HOME_NAME: "E2E home",
       HIVE_ADMIN_DIST: "../admin/dist",
+      // No online lookup in these tests: nothing should depend on the internet.
+      HIVE_LOOKUP_ONLINE: "false",
     },
   },
 });

@@ -179,6 +179,7 @@ FILTERS = {
 
 @router.get("/library/albums")
 def admin_list_albums(
+    request: Request,
     caller: CallerDep,
     s: SessionDep,
     offset: Annotated[int, Query(ge=0)] = 0,
@@ -197,8 +198,10 @@ def admin_list_albums(
         query.order_by(Album.added_at.desc(), Album.title_key).offset(offset).limit(limit)
     ).all()
     items = []
+    off = not request.app.state.lookup.enabled
     for a, summary in zip(rows, album_summaries(s, rows), strict=True):
-        item: dict[str, Any] = {"album": summary, "lookup": a.lookup_state}
+        state = "off" if off and a.lookup_state == "waiting" else a.lookup_state
+        item: dict[str, Any] = {"album": summary, "lookup": state}
         if a.lookup_note:
             item["lookupNote"] = a.lookup_note
         items.append(item)

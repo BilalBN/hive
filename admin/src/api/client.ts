@@ -66,3 +66,78 @@ export async function fetchDevelopmentKey(): Promise<string> {
 export function artworkUrl(artworkId: string, size: 96 | 192 | 300 | 600 = 96): string {
   return `/api/v1/media/artwork/${encodeURIComponent(artworkId)}?size=${size}`;
 }
+
+// ---------------------------------------------------------------- M1.5: lookup and album editor
+
+export type LookupStatus = components["schemas"]["LookupStatus"];
+export type LookupState = components["schemas"]["LookupState"];
+export type AdminAlbum = components["schemas"]["AdminAlbum"];
+export type AdminAlbumPage = components["schemas"]["AdminAlbumPage"];
+export type AlbumEdit = components["schemas"]["AlbumEdit"];
+export type FoundAlbum = components["schemas"]["FoundAlbum"];
+export type Credit = components["schemas"]["Credit"];
+export type AlbumFilter = "all" | "review" | "noArt" | "noLanguage" | "notFound";
+
+export async function fetchLookup(): Promise<LookupStatus> {
+  const { data, error, response } = await api.GET("/api/v1/admin/library/lookup");
+  if (!data) fail(response, error);
+  return data;
+}
+
+export async function updateLookup(body: { enabled?: boolean; acoustidKey?: string }): Promise<LookupStatus> {
+  const { data, error, response } = await api.PATCH("/api/v1/admin/library/lookup", { body });
+  if (!data) fail(response, error);
+  return data;
+}
+
+export async function retryLookup(body: { albumIds?: string[]; all?: boolean }): Promise<LookupStatus> {
+  const { data, error, response } = await api.POST("/api/v1/admin/library/lookup/retry", { body });
+  if (!data) fail(response, error);
+  return data;
+}
+
+export async function fetchAdminAlbums(filter: AlbumFilter, q: string, offset = 0): Promise<AdminAlbumPage> {
+  const { data, error, response } = await api.GET("/api/v1/admin/library/albums", {
+    params: { query: { filter, offset, limit: 100, ...(q.trim() ? { q: q.trim() } : {}) } },
+  });
+  if (!data) fail(response, error);
+  return data;
+}
+
+export async function fetchAdminAlbum(albumId: string): Promise<AdminAlbum> {
+  const { data, error, response } = await api.GET("/api/v1/admin/library/albums/{albumId}", {
+    params: { path: { albumId } },
+  });
+  if (!data) fail(response, error);
+  return data;
+}
+
+export async function updateAlbum(albumId: string, body: AlbumEdit): Promise<AdminAlbum> {
+  const { data, error, response } = await api.PATCH("/api/v1/admin/library/albums/{albumId}", {
+    params: { path: { albumId } },
+    // openapi-typescript reads the null-only `artwork` field as `undefined`.
+    body: body as Omit<AlbumEdit, "artwork">,
+  });
+  if (!data) fail(response, error);
+  return data;
+}
+
+export async function decideMatch(albumId: string, accept: boolean): Promise<AdminAlbum> {
+  const { data, error, response } = await api.POST("/api/v1/admin/library/albums/{albumId}/match", {
+    params: { path: { albumId } },
+    body: { accept },
+  });
+  if (!data) fail(response, error);
+  return data;
+}
+
+/** Replace an album's cover with an image file (JPEG, PNG or WebP). */
+export async function setAlbumArtwork(albumId: string, file: Blob): Promise<AdminAlbum> {
+  const response = await globalThis.fetch(
+    `${globalThis.location?.origin ?? ""}/api/v1/admin/library/albums/${encodeURIComponent(albumId)}/artwork`,
+    { method: "PUT", body: file, headers: { "Content-Type": file.type || "image/jpeg" } },
+  );
+  const body = await response.json().catch(() => undefined);
+  if (!response.ok) throw new ApiError(response.status, body as Problem | undefined);
+  return body as AdminAlbum;
+}

@@ -2,6 +2,7 @@ import {
   Activity,
   AudioWaveform,
   DatabaseBackup,
+  Disc3,
   LayoutGrid,
   Library,
   type LucideIcon,
@@ -37,6 +38,7 @@ export const sectionGroups: Section[][] = [
   ],
   [
     { path: "/library", label: "Library", icon: Library, milestone: "M1", summary: "Music folders, the import queue and files that need attention." },
+    { path: "/albums", label: "Albums", icon: Disc3, milestone: "M1", summary: "Check and correct what Hive knows about each album." },
     { path: "/upload", label: "Upload", icon: Upload, milestone: "M1", summary: "Add music from this computer." },
     { path: "/recognition", label: "Recognition", icon: AudioWaveform, milestone: "M3", summary: "Fingerprint coverage and how Listen is doing." },
   ],

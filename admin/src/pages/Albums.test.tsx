@@ -1,0 +1,98 @@
+import { fireEvent, screen, waitFor } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+import { kumbalangi, lookup, mockApi } from "../test/mockApi";
+import { renderAt } from "../test/render";
+
+afterEach(() => vi.unstubAllGlobals());
+
+const page = {
+  items: [
+    {
+      album: { id: "kn", title: "Kumbalangi Nights", artistName: "Sushin Shyam", year: 2019, language: "ml", trackCount: 2, tier: "lossless", addedAt: "2026-10-18T06:00:00Z" },
+      lookup: "review",
+    },
+  ],
+  total: 1,
+  offset: 0,
+};
+
+describe("Lookup on the Library page", () => {
+  it("shows progress, what leaves home, and turns off", async () => {
+    const fetchMock = mockApi({
+      "PATCH /api/v1/admin/library/lookup": (req) => {
+        void req;
+        return { body: { ...lookup, enabled: false } };
+      },
+    });
+    renderAt("/library");
+    expect(await screen.findByText(/80 filled in · 2 to check · 6 not found/)).toBeInTheDocument();
+    expect(screen.getByText(/Never the music itself/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Check 2 matches/ })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("switch"));
+    expect(await screen.findByText(/Off\. Albums show what their files say/)).toBeInTheDocument();
+    const patch = fetchMock.mock.calls.map(([r]) => r as Request).find((r) => r.method === "PATCH")!;
+    expect(await patch.clone().json()).toEqual({ enabled: false });
+  });
+});
+
+describe("Albums page", () => {
+  it("lists albums to check and opens one", async () => {
+    mockApi({
+      "GET /api/v1/admin/library/albums": { body: page },
+      "GET /api/v1/admin/library/albums/kn": { body: kumbalangi },
+    });
+    renderAt("/albums?filter=review");
+    const link = await screen.findByRole("link", { name: /Kumbalangi Nights/ });
+    expect(link).toHaveTextContent("To check");
+    expect(screen.getByRole("button", { name: "To check" })).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(link);
+    expect(await screen.findByText("Is this the album?")).toBeInTheDocument();
+    expect(screen.getByText(/62% sure · MusicBrainz · Wikidata/)).toBeInTheDocument();
+    expect(screen.getByText(/Film: Kumbalangi Nights \(2019\)/)).toBeInTheDocument();
+    expect(screen.getByText("from the titles' script")).toBeInTheDocument();
+    expect(screen.getByText(/Music: Sushin Shyam · Lyrics: Anwar Ali/)).toBeInTheDocument();
+  });
+
+  it("accepts a match", async () => {
+    const fetchMock = mockApi({
+      "GET /api/v1/admin/library/albums/kn": { body: kumbalangi },
+      "POST /api/v1/admin/library/albums/kn/match": {
+        body: { ...kumbalangi, lookup: "found", found: undefined, lookupNote: "Added album details from MusicBrainz." },
+      },
+    });
+    renderAt("/albums?album=kn");
+    fireEvent.click(await screen.findByRole("button", { name: /Yes, use this/ }));
+    expect(await screen.findByText("Filled in")).toBeInTheDocument();
+    expect(screen.queryByText("Is this the album?")).not.toBeInTheDocument();
+    const post = fetchMock.mock.calls.map(([r]) => r as Request).find((r) => r.method === "POST")!;
+    expect(await post.clone().json()).toEqual({ accept: true });
+  });
+
+  it("saves only what changed, and can undo it", async () => {
+    let saved: unknown;
+    mockApi({
+      "GET /api/v1/admin/library/albums/kn": { body: { ...kumbalangi, lookup: "found", found: undefined } },
+      "PATCH /api/v1/admin/library/albums/kn": (req) => {
+        void req.clone().json().then((b) => (saved = b));
+        return {
+          body: {
+            ...kumbalangi,
+            lookup: "edited",
+            found: undefined,
+            edited: ["language"],
+            sources: { language: "admin" },
+            album: { ...kumbalangi.album, language: "ta" },
+          },
+        };
+      },
+    });
+    renderAt("/albums?album=kn");
+    const language = await screen.findByLabelText("Language");
+    fireEvent.change(language, { target: { value: "ta" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+    await waitFor(() => expect(saved).toEqual({ language: "ta" }));
+    expect(await screen.findByText("Set by you")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Undo/ })).toBeInTheDocument();
+  });
+});

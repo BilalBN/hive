@@ -39,6 +39,7 @@ def test_language_from_script_tags_and_folders() -> None:
     assert L.from_tag("xyz") is None
     assert L.from_folders(["Music", "Tamil Hits", "Roja"]) == "ta"
     assert L.from_folders(["Music", "English"]) is None
+    assert L.from_folders(["AR Rahman", "OK Kanmani"]) is None  # "AR" isn't Arabic
 
 
 def _write_soundtrack(home: Home) -> None:
