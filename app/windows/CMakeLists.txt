@@ -57,6 +57,12 @@ add_subdirectory("runner")
 # them to the application.
 include(flutter/generated_plugins.cmake)
 
+# audio_service_win uses C++/WinRT, which needs C++20 coroutines on current
+# Visual Studio (the old /await coroutines were removed in MSVC 14.5x).
+if(TARGET audio_service_win_plugin)
+  target_compile_features(audio_service_win_plugin PRIVATE cxx_std_20)
+endif()
+
 
 # === Installation ===
 # Support files are copied into place next to the executable, so that it can

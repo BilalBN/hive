@@ -357,24 +357,27 @@ class Library:
             self._finish(item.id, "queued")  # still being written
             return
 
-        replaces: str | None = None
-        twin_path = ""
-        with Session(self.db.engine) as s:
+        def copy_of(s: Session) -> tuple[str | None, Track | None]:
+            """(skip reason, twin to take over) for an exact copy already in the library."""
             twin = s.scalar(select(Track).where(Track.sha256 == digest, Track.path != str(path)))
-            if twin is not None and Path(twin.path).exists():
-                if st.st_mtime >= twin.mtime:
-                    rel = _relative(Path(twin.path), self.folders)
-                    self._finish(
-                        item.id,
-                        "failed",
-                        f"Same file as {rel}, so it was skipped",
-                        size=st.st_size,
-                        mtime=st.st_mtime,
-                    )
-                    return
-                # This one is older, so it's the original and the other the copy:
-                # the song keeps its id (likes, playlists) and moves to this file.
-                replaces, twin_path = twin.id, twin.path
+            if twin is None or not Path(twin.path).exists():
+                return None, None
+            if st.st_mtime >= twin.mtime:
+                rel = _relative(Path(twin.path), self.folders)
+                return f"Same file as {rel}, so it was skipped", None
+            # This one is older, so it's the original and the other the copy:
+            # the song keeps its id (likes, playlists) and moves to this file.
+            return None, twin
+
+        def skip(reason: str) -> None:
+            self._finish(item.id, "failed", reason, size=st.st_size, mtime=st.st_mtime)
+
+        # A first look before the slow work (loudness), so copies cost nothing.
+        with Session(self.db.engine) as s:
+            reason, _ = copy_of(s)
+        if reason:
+            skip(reason)
+            return
 
         loudness = None
         if self.ffmpeg is not None:
@@ -382,22 +385,60 @@ class Library:
         artwork_id = self.artwork.save(info.picture) if info.picture else None
 
         with self._write_lock, Session(self.db.engine) as s:
-            if replaces is not None:
-                s.execute(update(Track).where(Track.id == replaces).values(path=str(path)))
-                rel = _relative(path, self.folders)
-                s.execute(
-                    update(ImportItem)
-                    .where(ImportItem.path == twin_path)
-                    .values(
-                        status="failed",
-                        problem=f"Same file as {rel}, so it was skipped",
-                        track_id=None,
-                        updated_at=_now(),
-                    )
+            # Decide again under the lock: another worker may have added the
+            # original or the copy while this one measured loudness.
+            reason, twin = copy_of(s)
+            if reason is None:
+                self._store(s, item.id, path, root, st, digest, info, loudness, artwork_id, twin)
+        if reason:
+            skip(reason)
+
+    def _store(
+        self,
+        s: Session,
+        item_id: int,
+        path: Path,
+        root: Path,
+        st,
+        digest: str,
+        info,
+        loudness,
+        artwork_id,
+        twin,
+    ) -> None:
+        """Add or update the song and mark its import done, in one transaction
+        (so a worker handling the copy can't overwrite the outcome). When
+        [twin] was a copy, the song keeps its id (likes, playlists) and moves
+        to this file."""
+        if twin is not None:
+            # Read before the update: the session refreshes twin.path with it.
+            copy_path = twin.path
+            s.execute(update(Track).where(Track.id == twin.id).values(path=str(path)))
+            rel = _relative(path, self.folders)
+            s.execute(
+                update(ImportItem)
+                .where(ImportItem.path == copy_path)
+                .values(
+                    status="failed",
+                    problem=f"Same file as {rel}, so it was skipped",
+                    track_id=None,
+                    updated_at=_now(),
                 )
-            track_id = _upsert(s, path, root, st, digest, info, loudness, artwork_id)
-            s.commit()
-        self._finish(item.id, "done", None, track_id=track_id, size=st.st_size, mtime=st.st_mtime)
+            )
+        track_id = _upsert(s, path, root, st, digest, info, loudness, artwork_id)
+        s.execute(
+            update(ImportItem)
+            .where(ImportItem.id == item_id)
+            .values(
+                status="done",
+                problem=None,
+                track_id=track_id,
+                size=st.st_size,
+                mtime=st.st_mtime,
+                updated_at=_now(),
+            )
+        )
+        s.commit()
 
 
 def _relative(path: Path, folders: list[Path]) -> str:
