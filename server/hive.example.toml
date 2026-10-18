@@ -24,3 +24,11 @@ music_folders = ["~/Music/Hive"]
 # ffmpeg = "/opt/homebrew/bin/ffmpeg"
 log_level = "INFO"
 min_app_version = "0.1.0"
+
+# Look up album details, covers, language and films online (MusicBrainz,
+# Cover Art Archive, Wikidata). Album and artist names, song titles and
+# lengths leave home; never the music. Hive Admin can switch it too.
+lookup_online = true
+# Optional: an AcoustID application key, to recognise songs by their sound
+# (needs Chromaprint's fpcalc: brew install chromaprint).
+# acoustid_key = ""

@@ -141,6 +141,38 @@ Malayalam album gaplessly with the screen locked, and the badge reads
    the song reaches you), the queue, lyrics, the lock screen. Then switch Wi-Fi
    off on the phone and keep listening on mobile data.
 
+## M1.5: know your music
+
+**The M1.5 gate:** drop in a folder of untagged Malayalam film songs; within a
+few minutes they show as one album with the right cover, under Malayalam, and
+searching the lead actor's name finds it.
+
+1. **Update the server** (it needs one new package, so install again):
+
+   ```sh
+   git pull
+   cd server && .venv/bin/pip install -e ".[dev]"
+   .venv/bin/python -m hive serve
+   ```
+
+   The first start reads every song once more (composers, lyricists,
+   language). Then each album is looked up online, one at a time, about a
+   minute per ten albums.
+
+2. **Update the admin panel and the apps** from the latest run, as before.
+
+3. **Hive Admin → Library → Album details from the internet** shows progress
+   and what leaves home. **Hive Admin → Albums** lists albums to check
+   ("Is this the album?") and lets you correct anything; what you set stays.
+
+4. *Optional:* to recognise songs with no useful tags by their sound, run
+   `brew install chromaprint`, get a free key at acoustid.org/new-application
+   and paste it under "Recognise songs with no useful tags" on the Library page.
+
+5. **In the app:** language chips on Home, Library and Search; album pages show
+   the film, cast and music; search an actor, music director, singer or
+   lyricist, in English even for Malayalam or Hindi titles.
+
 ## Useful commands
 
 | What | Command |
