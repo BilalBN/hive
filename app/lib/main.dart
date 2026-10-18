@@ -29,6 +29,8 @@ void main() {
           child: const HiveApp(),
         ),
       );
+      // CI's Android smoke test waits for this line in the device log.
+      debugPrint('Hive started');
     },
     (error, stack) {
       debugPrint('Hive error: $error\n$stack');
