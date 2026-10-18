@@ -14,6 +14,13 @@ dependencies:
   go_router: ^18.1.0
   shared_preferences: ^2.5.0
 
+# shared_preferences_android 2.5.0 (17 Oct 2026) moved to JNI and fails in
+# release builds with NoSuchMethodError on getAll, so the app can't start.
+# Hold the last method-channel version until a fixed release passes CI's
+# Android emulator check.
+dependency_overrides:
+  shared_preferences_android: 2.4.28
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
