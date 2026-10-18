@@ -4,12 +4,53 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../api/hive_api.g.dart';
 import '../core/api.dart';
+import '../core/home_connection.dart';
 import '../player/player_controller.dart';
 
 /// Library data from home. Screens watch these; mutations invalidate them.
 
+/// The language the family member is browsing in (null = all), shared by
+/// Home, Library and Search, and remembered on this device.
+class LanguageFilter extends Notifier<String?> {
+  static const _key = 'library.language';
+
+  @override
+  String? build() => ref.watch(sharedPreferencesProvider).getString(_key);
+
+  Future<void> set(String? code) async {
+    state = code;
+    final prefs = ref.read(sharedPreferencesProvider);
+    if (code == null) {
+      await prefs.remove(_key);
+    } else {
+      await prefs.setString(_key, code);
+    }
+  }
+}
+
+final languageFilterProvider = NotifierProvider<LanguageFilter, String?>(
+  LanguageFilter.new,
+);
+
+/// Languages that have music at home, most albums first.
+final languagesProvider = FutureProvider.autoDispose<List<Language>>(
+  (ref) async => (await ref.watch(hiveApiProvider).listLanguages()).items,
+);
+
+/// The language filter, if home still has music in it (a stale choice from
+/// another home or a deleted album is ignored).
+final activeLanguageProvider = Provider.autoDispose<String?>((ref) {
+  final code = ref.watch(languageFilterProvider);
+  if (code == null) return null;
+  final langs = ref.watch(languagesProvider).value;
+  if (langs == null) return code;
+  return langs.any((l) => l.code == code) ? code : null;
+});
+
 final homeShelvesProvider = FutureProvider.autoDispose<Home>(
-  (ref) => ref.watch(hiveApiProvider).getHome(),
+  (ref) => ref
+      .watch(hiveApiProvider)
+      .getHome(language: ref.watch(activeLanguageProvider)),
 );
 
 final albumProvider = FutureProvider.autoDispose.family<Album, String>(
@@ -45,7 +86,9 @@ final searchProvider = FutureProvider.autoDispose.family<SearchResults, String>(
     ref.onDispose(() => cancelled = true);
     await Future<void>.delayed(const Duration(milliseconds: 200));
     if (cancelled) throw StateError('cancelled');
-    return ref.watch(hiveApiProvider).search(q: q, limit: 12);
+    return ref
+        .watch(hiveApiProvider)
+        .search(q: q, limit: 12, language: ref.watch(activeLanguageProvider));
   },
 );
 
@@ -116,6 +159,7 @@ class AlbumsNotifier extends PagedNotifier<AlbumSummary> {
           offset: offset,
           limit: PagedNotifier.pageSize,
           sort: sort.wire,
+          language: ref.read(activeLanguageProvider),
         );
     return (items: p.items, total: p.total);
   }
@@ -123,6 +167,7 @@ class AlbumsNotifier extends PagedNotifier<AlbumSummary> {
   @override
   Paged<AlbumSummary> build() {
     ref.watch(hiveApiProvider);
+    ref.watch(activeLanguageProvider);
     return super.build();
   }
 }
@@ -160,6 +205,7 @@ class SongsNotifier extends PagedNotifier<TrackSummary> {
           offset: offset,
           limit: PagedNotifier.pageSize,
           sort: 'title',
+          language: ref.read(activeLanguageProvider),
         );
     return (items: p.items, total: p.total);
   }
@@ -167,6 +213,7 @@ class SongsNotifier extends PagedNotifier<TrackSummary> {
   @override
   Paged<TrackSummary> build() {
     ref.watch(hiveApiProvider);
+    ref.watch(activeLanguageProvider);
     return super.build();
   }
 }

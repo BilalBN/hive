@@ -8,6 +8,7 @@ import '../../design/tokens.g.dart';
 import '../../library/library_providers.dart';
 import '../../player/player_controller.dart';
 import '../../ui/artwork.dart';
+import '../../ui/credits.dart';
 import '../../ui/nav.dart';
 import '../../ui/states.dart';
 import '../../ui/tiles.dart';
@@ -39,11 +40,25 @@ class _AlbumPage extends ConsumerWidget {
     final player = ref.read(playerProvider.notifier);
     final multiDisc =
         album.tracks.map((t) => t.discNumber ?? 1).toSet().length > 1;
+    final language = languageName(ref, album.language);
+    final film = album.film;
     final facts = [
       if (album.year != null) '${album.year}',
+      ?language,
       plural(album.trackCount, 'song'),
       formatLength(album.durationMs),
     ].join(' · ');
+    final kicker = switch (album.kind) {
+      'soundtrack' =>
+        film != null && film.title != album.title
+            ? 'Soundtrack · ${film.title}${film.year != null ? ' (${film.year})' : ''}'
+            : 'Film soundtrack',
+      'compilation' => 'Compilation',
+      'single' => 'Single',
+      'ep' => 'EP',
+      'live' => 'Live',
+      _ => null,
+    };
 
     final rows = <Widget>[];
     int? disc;
@@ -95,6 +110,7 @@ class _AlbumPage extends ConsumerWidget {
               title: album.title,
               pixels: 600,
             ),
+            kicker: kicker,
             title: album.title,
             subtitle: album.artistName,
             onSubtitle: album.artistId == null
@@ -114,6 +130,18 @@ class _AlbumPage extends ConsumerWidget {
             ),
           ),
         ),
+        if (album.credits?.isNotEmpty ?? false)
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(
+                HiveSpace.md,
+                HiveSpace.sm,
+                HiveSpace.md,
+                0,
+              ),
+              child: CreditLines(credits: album.credits!),
+            ),
+          ),
         SliverList.list(children: rows),
       ],
     );

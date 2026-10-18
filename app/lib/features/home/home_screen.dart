@@ -11,6 +11,7 @@ import '../../design/widgets.dart';
 import '../../library/library_providers.dart';
 import '../../player/player_controller.dart';
 import '../../ui/artwork.dart';
+import '../../ui/language_chips.dart';
 import '../../ui/nav.dart';
 import '../../ui/states.dart';
 import '../../ui/tiles.dart';
@@ -141,6 +142,10 @@ class HomeScreen extends ConsumerWidget {
                   ),
                 },
               ),
+            ),
+            const SliverPadding(
+              padding: EdgeInsets.only(top: HiveSpace.sm),
+              sliver: SliverToBoxAdapter(child: LanguageChips()),
             ),
             AsyncView<Home>(
               sliver: true,

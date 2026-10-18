@@ -195,7 +195,7 @@ jobs:
           mkdir -p "$DATA/music"
           (cd server && python -c "import sys; sys.path.insert(0, 'tests'); from pathlib import Path; from audio_fixtures import build_library; build_library(Path('$DATA/music'))")
           printf 'host = "127.0.0.1"\nport = 8555\nmusic_folders = ["%s"]\n' "$DATA/music" > "$DATA/hive.toml"
-          HIVE_DATA_DIR="$DATA" nohup python -m hive serve > "$DATA/server.log" 2>&1 &
+          HIVE_DATA_DIR="$DATA" HIVE_LOOKUP_ONLINE=false nohup python -m hive serve > "$DATA/server.log" 2>&1 &
           for i in $(seq 1 30); do curl -sf http://127.0.0.1:8555/api/v1/health >/dev/null && break; sleep 1; done
           echo "HIVE_LIVE_KEY=$(HIVE_DATA_DIR="$DATA" python -m hive info | awk '/development key/ {print $3}')" >> "$GITHUB_ENV"
       - name: Every app call against it

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive/app.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hive/core/home_connection.dart';
 import 'package:hive/player/player_controller.dart';
 
 import 'app_test.dart' show health, pumpHive;
@@ -109,6 +110,8 @@ void main() {
     await tester.tap(find.text('Play'));
     await tester.pumpAndSettle();
     // ⋯ on the last song → Play next.
+    await tester.ensureVisible(find.byTooltip('More').last);
+    await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('More').last);
     await tester.pumpAndSettle();
     await tester.tap(find.text('Play next'));
@@ -151,5 +154,42 @@ void main() {
     await tester.tap(find.text('Data saver'));
     await tester.pumpAndSettle();
     expect(find.text('Data saver'), findsOneWidget);
+  });
+
+  testWidgets('language chips filter Home, and the choice is remembered', (
+    tester,
+  ) async {
+    await pumpConnected(tester);
+    expect(find.text('All'), findsOneWidget);
+    expect(find.text('Malayalam'), findsOneWidget);
+    expect(find.text('New at home'), findsOneWidget);
+    expect(find.text('Premam'), findsWidgets);
+    await tester.tap(find.text('Hindi'));
+    await tester.pumpAndSettle();
+    expect(find.text('Premam'), findsNothing);
+    expect(find.text('लगान'), findsWidgets);
+    final prefs = containerOf(tester).read(sharedPreferencesProvider);
+    expect(prefs.getString('library.language'), 'hi');
+    await tester.tap(find.text('All'));
+    await tester.pumpAndSettle();
+    expect(find.text('Premam'), findsWidgets);
+    expect(prefs.getString('library.language'), isNull);
+  });
+
+  testWidgets('album pages show the film, cast and music, and open people', (
+    tester,
+  ) async {
+    await pumpConnected(tester);
+    await openLibraryAlbum(tester, 'Premam');
+    expect(find.text('FILM SOUNDTRACK'), findsOneWidget);
+    expect(find.textContaining('Malayalam'), findsWidgets);
+    expect(find.text('Directed by '), findsOneWidget);
+    expect(find.text('Alphonse Puthren'), findsOneWidget);
+    expect(find.text('Starring '), findsOneWidget);
+    expect(find.text('Lyrics by '), findsOneWidget);
+    await tester.tap(find.text('Nivin Pauly'));
+    await tester.pumpAndSettle();
+    expect(find.text('ACTOR'), findsOneWidget);
+    expect(find.text('Films'), findsOneWidget);
   });
 }

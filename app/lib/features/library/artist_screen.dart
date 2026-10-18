@@ -6,6 +6,7 @@ import '../../design/tokens.g.dart';
 import '../../library/library_providers.dart';
 import '../../player/player_controller.dart';
 import '../../ui/artwork.dart';
+import '../../ui/credits.dart';
 import '../../ui/nav.dart';
 import '../../ui/states.dart';
 import '../../ui/tiles.dart';
@@ -47,10 +48,11 @@ class _ArtistPage extends ConsumerWidget {
               round: true,
               pixels: 600,
             ),
-            kicker: 'Artist',
+            kicker: rolesLine(artist.roles).isEmpty
+                ? 'Artist'
+                : rolesLine(artist.roles),
             title: artist.name,
-            facts:
-                '${plural(artist.albumCount, 'album')} · ${plural(artist.trackCount, 'song')}',
+            facts: _facts(artist),
             buttons: PlayButtons(
               onPlay: top.isEmpty
                   ? null
@@ -72,31 +74,86 @@ class _ArtistPage extends ConsumerWidget {
             ),
           ),
         ],
-        if (artist.albums.isNotEmpty) ...[
-          const SliverToBoxAdapter(child: SectionHeader('Albums')),
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: HiveSpace.md),
-            sliver: SliverGrid.builder(
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: columns,
-                mainAxisSpacing: HiveSpace.md,
-                crossAxisSpacing: HiveSpace.sm,
-                childAspectRatio: 0.76,
+        ..._albumGrid(context, 'Albums', artist.albums, columns),
+        ..._albumGrid(
+          context,
+          'Music for',
+          artist.musicFor ?? const [],
+          columns,
+        ),
+        ..._albumGrid(context, 'Films', artist.films ?? const [], columns),
+        if (artist.lyricsFor?.isNotEmpty ?? false) ...[
+          const SliverToBoxAdapter(child: SectionHeader('Lyrics')),
+          SliverList.builder(
+            itemCount: artist.lyricsFor!.length.clamp(0, 10),
+            itemBuilder: (context, i) => TrackRow(
+              track: artist.lyricsFor![i],
+              showAlbum: true,
+              onTap: () => player.playTracks(
+                artist.lyricsFor!,
+                start: i,
+                source: PlaySource(
+                  kind: 'artist',
+                  id: artist.id,
+                  name: artist.name,
+                ),
               ),
-              itemCount: artist.albums.length,
-              itemBuilder: (context, i) {
-                final a = artist.albums[i];
-                return CoverTile(
-                  title: a.title,
-                  subtitle: a.year == null ? a.artistName : '${a.year}',
-                  art: Artwork(artworkId: a.artworkId, title: a.title),
-                  onTap: () => context.openAlbum(a.id),
-                );
-              },
             ),
           ),
         ],
       ],
     );
   }
+}
+
+List<Widget> _albumGrid(
+  BuildContext context,
+  String title,
+  List<AlbumSummary> albums,
+  int columns,
+) {
+  if (albums.isEmpty) return const [];
+  return [
+    SliverToBoxAdapter(child: SectionHeader(title)),
+    SliverPadding(
+      padding: const EdgeInsets.symmetric(horizontal: HiveSpace.md),
+      sliver: SliverGrid.builder(
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: columns,
+          mainAxisSpacing: HiveSpace.md,
+          crossAxisSpacing: HiveSpace.sm,
+          childAspectRatio: 0.76,
+        ),
+        itemCount: albums.length,
+        itemBuilder: (context, i) {
+          final a = albums[i];
+          return CoverTile(
+            title: a.title,
+            subtitle: [
+              if (a.year != null) '${a.year}',
+              if (a.kind == 'soundtrack') 'Film',
+            ].join(' · ').ifEmpty(a.artistName),
+            art: Artwork(artworkId: a.artworkId, title: a.title),
+            onTap: () => context.openAlbum(a.id),
+          );
+        },
+      ),
+    ),
+  ];
+}
+
+extension on String {
+  String ifEmpty(String other) => isEmpty ? other : this;
+}
+
+/// "2 albums · 14 songs", or for actors and music directors, their films.
+String _facts(Artist a) {
+  final films = a.films?.length ?? 0;
+  final musicFor = a.musicFor?.length ?? 0;
+  return [
+    if (a.albumCount > 0) plural(a.albumCount, 'album'),
+    if (a.trackCount > 0) plural(a.trackCount, 'song'),
+    if (films > 0) plural(films, 'film'),
+    if (musicFor > 0) 'music for ${plural(musicFor, 'album')}',
+  ].join(' · ');
 }

@@ -339,7 +339,24 @@ def get_artist(artistId: str, caller: CallerDep, s: SessionDep) -> dict[str, Any
             PlayCount,
             (PlayCount.track_id == Track.id) & (PlayCount.user_id == caller.user_id),
         )
-        .where(or_(Track.artist_id == artist.id, Album.artist_id == artist.id, Track.id.in_(sang)))
+        .where(
+            or_(
+                Track.artist_id == artist.id,
+                Album.artist_id == artist.id,
+                Track.id.in_(sang),
+                # Music directors, actors, directors and lyricists: their films' songs.
+                Track.album_id.in_(
+                    select(Credit.album_id).where(
+                        Credit.artist_id == artist.id, Credit.album_id.isnot(None)
+                    )
+                ),
+                Track.id.in_(
+                    select(Credit.track_id).where(
+                        Credit.artist_id == artist.id, Credit.track_id.isnot(None)
+                    )
+                ),
+            )
+        )
         .order_by(plays.desc(), Album.added_at.desc(), Track.disc_no, Track.track_no)
         .limit(10)
     ).all()

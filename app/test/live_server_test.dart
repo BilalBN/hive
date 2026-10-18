@@ -65,6 +65,17 @@ void main() {
       }
     }
 
+    // M1.5: languages, filters, credits.
+    final langs = await api.listLanguages();
+    expect(langs.items.map((l) => l.code), contains('ml'));
+    final ml = await api.listAlbums(language: 'ml', limit: 50);
+    expect(ml.items, isNotEmpty);
+    expect(ml.items.every((a) => a.language == 'ml'), isTrue);
+    await api.getHome(language: 'ml');
+    await api.listTracks(language: 'ml', limit: 10);
+    final roman = await api.search(q: 'malare', language: 'ml');
+    expect(roman.tracks, isNotEmpty);
+
     final artists = await api.listArtists(limit: 50);
     for (final s in artists.items) {
       final a = await api.getArtist(artistId: s.id);

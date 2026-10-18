@@ -10,6 +10,8 @@ import '../../design/tokens.g.dart';
 import '../../library/library_providers.dart';
 import '../../player/player_controller.dart';
 import '../../ui/artwork.dart';
+import '../../ui/credits.dart';
+import '../../ui/language_chips.dart';
 import '../../ui/nav.dart';
 import '../../ui/states.dart';
 import '../../ui/tiles.dart';
@@ -136,6 +138,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             padding: const EdgeInsets.symmetric(horizontal: HiveSpace.md),
             child: field,
           ),
+          const Padding(
+            padding: EdgeInsets.only(top: HiveSpace.xs),
+            child: LanguageChips(),
+          ),
           const SizedBox(height: HiveSpace.xs),
           Expanded(
             child: _query.isEmpty
@@ -228,10 +234,13 @@ class _Results extends ConsumerWidget {
             r.artists.isEmpty &&
             r.playlists.isEmpty;
         if (empty) {
+          final lang = ref.watch(activeLanguageProvider);
           return EmptyState(
             icon: HiveIcons.searchX,
             title: 'Nothing found for "$query"',
-            text: 'Try fewer words, or another spelling. Not at home yet? Ask whoever runs your home to add it.',
+            text: lang != null
+                ? 'Only ${languageName(ref, lang) ?? 'one language'} is shown. Choose All to search everything.'
+                : 'Try fewer words, or another spelling. Not at home yet? Ask whoever runs your home to add it.',
           );
         }
         final player = ref.read(playerProvider.notifier);

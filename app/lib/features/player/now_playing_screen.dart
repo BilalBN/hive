@@ -112,6 +112,16 @@ class NowPlayingScreen extends ConsumerWidget {
                   style: HiveType.body.copyWith(color: p.textSecondary),
                 ),
               ),
+              if (track.composer != null || track.lyricist != null)
+                Text(
+                  [
+                    if (track.composer != null) 'Music: ${track.composer}',
+                    if (track.lyricist != null) 'Lyrics: ${track.lyricist}',
+                  ].join(' · '),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: HiveType.caption.copyWith(color: p.textTertiary),
+                ),
             ],
           ),
         ),

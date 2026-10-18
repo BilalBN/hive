@@ -9,6 +9,7 @@ import '../../design/tokens.g.dart';
 import '../../library/library_providers.dart';
 import '../../player/player_controller.dart';
 import '../../ui/artwork.dart';
+import '../../ui/language_chips.dart';
 import '../../ui/nav.dart';
 import '../../ui/states.dart';
 import '../../ui/tiles.dart';
@@ -139,6 +140,11 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
               ],
             ),
           ),
+          if (_section == _Section.albums || _section == _Section.songs)
+            const Padding(
+              padding: EdgeInsets.only(top: HiveSpace.xs),
+              child: LanguageChips(),
+            ),
           const SizedBox(height: HiveSpace.xs),
           Expanded(child: body),
         ],

@@ -117,6 +117,15 @@ final Map<String, (Size, bool, Steps?)> _shots = {
       await t.pumpAndSettle();
     },
   ),
+  'phone-artist': (
+    const Size(390, 844),
+    true,
+    (t) async {
+      await openLibraryAlbum(t, 'Premam');
+      await t.tap(find.text('Nivin Pauly'));
+      await t.pumpAndSettle();
+    },
+  ),
   'phone-settings': (
     const Size(390, 844),
     true,

@@ -25,6 +25,28 @@ final premam = Album(
   tier: 'lossless',
   addedAt: DateTime.utc(2026, 10, 1),
   durationMs: 4 * 240000,
+  language: 'ml',
+  kind: 'soundtrack',
+  film: const Film(title: 'Premam', year: 2015, wikidataId: 'Q19893435'),
+  credits: const [
+    Credit(
+      role: 'musicDirector',
+      name: 'Rajesh Murugesan',
+      artistId: 'artist-rajesh',
+    ),
+    Credit(
+      role: 'director',
+      name: 'Alphonse Puthren',
+      artistId: 'artist-alphonse',
+    ),
+    Credit(role: 'actor', name: 'Nivin Pauly', artistId: 'artist-nivin'),
+    Credit(role: 'actor', name: 'Sai Pallavi', artistId: 'artist-sai'),
+    Credit(
+      role: 'lyricist',
+      name: 'Shabareesh Varma',
+      artistId: 'artist-shabareesh',
+    ),
+  ],
   tracks: [
     for (final (i, t) in [
       'മലരേ',
@@ -52,6 +74,7 @@ final lagaan = Album(
   tier: 'hires',
   addedAt: DateTime.utc(2026, 9, 20),
   durationMs: 2 * 300000,
+  language: 'hi',
   tracks: [
     track(
       'l1',
@@ -80,6 +103,9 @@ AlbumSummary summaryOf(Album a) => AlbumSummary(
   trackCount: a.trackCount,
   tier: a.tier,
   addedAt: a.addedAt,
+  language: a.language,
+  kind: a.kind,
+  filmTitle: a.film?.title,
 );
 
 final roadTrip = Playlist(
@@ -148,7 +174,11 @@ class FakeHomeAdapter implements HttpClientAdapter {
 
   Object? _route(RequestOptions o) {
     final path = o.uri.path;
-    final albums = [premam, lagaan];
+    final language = o.uri.queryParameters['language'];
+    final albums = [
+      for (final a in [premam, lagaan])
+        if (language == null || a.language == language) a,
+    ];
     final albumSummaries = albums.map(summaryOf).toList();
     final artists = [
       const ArtistSummary(
@@ -164,10 +194,28 @@ class FakeHomeAdapter implements HttpClientAdapter {
         trackCount: 2,
       ),
     ];
-    final allTracks = [...premam.tracks, ...lagaan.tracks];
+    final allTracks = [for (final a in albums) ...a.tracks];
+    if (path == '/api/v1/library/languages') {
+      return const LanguageList(
+        items: [
+          Language(
+            code: 'ml',
+            name: 'Malayalam',
+            nativeName: 'മലയാളം',
+            albumCount: 1,
+          ),
+          Language(
+            code: 'hi',
+            name: 'Hindi',
+            nativeName: 'हिन्दी',
+            albumCount: 1,
+          ),
+        ],
+      ).toJson();
+    }
     if (path == '/api/v1/library/home') {
       return Home(
-        jumpBackIn: empty
+        jumpBackIn: empty || language != null
             ? const []
             : [
                 const HomeTile(
@@ -208,7 +256,7 @@ class FakeHomeAdapter implements HttpClientAdapter {
     }
     if (path.startsWith('/api/v1/library/albums/')) {
       final id = Uri.decodeComponent(path.split('/').last);
-      return albums.firstWhere((a) => a.id == id).toJson();
+      return [premam, lagaan].firstWhere((a) => a.id == id).toJson();
     }
     if (path == '/api/v1/library/artists') {
       return ArtistPage(
@@ -219,6 +267,18 @@ class FakeHomeAdapter implements HttpClientAdapter {
     }
     if (path.startsWith('/api/v1/library/artists/')) {
       final id = Uri.decodeComponent(path.split('/').last);
+      if (id == 'artist-nivin') {
+        return Artist(
+          id: id,
+          name: 'Nivin Pauly',
+          albumCount: 0,
+          trackCount: 0,
+          albums: const [],
+          topTracks: const [],
+          roles: const ['actor'],
+          films: [summaryOf(premam)],
+        ).toJson();
+      }
       final a = artists.firstWhere((a) => a.id == id);
       final own = albums.where((x) => x.artistId == id).toList();
       return Artist(
