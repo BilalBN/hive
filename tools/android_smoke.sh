@@ -16,8 +16,12 @@ for _ in $(seq 1 30); do
 done
 
 LOG=$(adb logcat -d)
-if echo "$LOG" | grep -E "Hive startup failed|Hive error|FATAL EXCEPTION|NoSuchMethodError"; then
-  echo "::error::The release app failed on the emulator (log above)."
+# Our own failure lines, Java errors, and a crash of this app (not other system apps).
+PROBLEMS=$(echo "$LOG" | grep -E -A6 "Hive startup failed|Hive error|NoSuchMethodError|Process: $PKG" | head -40 || true)
+if [ -n "$PROBLEMS" ]; then
+  echo "$PROBLEMS"
+  # Also as an annotation, so it can be read without downloading the log.
+  echo "::error title=Release app failed on the emulator::$(echo "$PROBLEMS" | cut -c1-300 | sed ':a;N;$!ba;s/\n/%0A/g')"
   exit 1
 fi
 if ! echo "$LOG" | grep -q "Hive started"; then
