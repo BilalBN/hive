@@ -97,7 +97,7 @@ class Gen:
         required = set(schema.get("required", []))
         lines = []
         if schema.get("description"):
-            lines.append(f"/// {schema['description'].strip()}")
+            lines.append(f"/// {' '.join(schema['description'].split())}")
         lines.append(f"class {name} {{")
         ctor = [
             f"    {'required ' if p in required else ''}this.{p},"
@@ -105,9 +105,9 @@ class Gen:
         ]
         lines += [f"  const {name}({{", *ctor, "  });", ""]
         for p, s in props.items():
-            s = self.resolve(s) if "$ref" in s and not is_map_schema(self.resolve(s)) else s
-            if s.get("description"):
-                lines.append(f"  /// {s['description'].strip()}")
+            described = self.resolve(s) if "$ref" in s else s
+            if described.get("description"):
+                lines.append(f"  /// {' '.join(described['description'].split())}")
             opt = "" if p in required else "?"
             lines.append(f"  final {self.dart_type(s)}{opt} {p};")
         lines.append("")
@@ -149,6 +149,27 @@ class Gen:
             return ("binary", None)
         return ("void", None)
 
+    def query_arg(self, p: dict) -> tuple[str, str]:
+        """(Dart parameter, map entry) for an optional query parameter."""
+        schema = p.get("schema", {})
+        t = {"integer": "int", "number": "double", "boolean": "bool"}.get(schema.get("type"), "String")
+        name = p["name"]
+        if p.get("required"):
+            return f"required {t} {name}", f"'{name}': {name}"
+        return f"{t}? {name}", f"'{name}': ?{name}"
+
+    def body_type(self, op: dict) -> str | None:
+        """The Dart type of a JSON request body, or None when there is none."""
+        body = op.get("requestBody")
+        if not body:
+            return None
+        content = self.resolve(body).get("content", {})
+        if "application/json" not in content:
+            return None
+        schema = content["application/json"]["schema"]
+        t = self.dart_type(schema)
+        return t
+
     def operations(self) -> list[str]:
         out = []
         for path, item in self.spec["paths"].items():
@@ -157,27 +178,39 @@ class Gen:
                 if method not in item:
                     continue
                 op = item[method]
+                # The app never calls Hive Admin; the admin panel has its own client.
+                if "admin" in op.get("tags", []):
+                    continue
                 params = [self.resolve(p) for p in shared + op.get("parameters", [])]
                 path_params = [p["name"] for p in params if p["in"] == "path"]
-                has_body = "requestBody" in op
+                query = [self.query_arg(p) for p in params if p["in"] == "query"]
+                body_t = self.body_type(op)
                 kind, rtype = self.response_kind(op)
                 dart_path = re.sub(r"\{(\w+)\}", r"${Uri.encodeComponent(\1)}", path)
                 summary = op.get("summary", "").strip()
-                doc = [f"  /// {summary}", f"  ///", f"  /// `{method.upper()} {path}` · built in {op.get('x-milestone')}."]
+                doc = [f"  /// {summary}", "  ///", f"  /// `{method.upper()} {path}` · built in {op.get('x-milestone')}."]
                 args = [f"required String {p}" for p in path_params]
+                args += [a for a, _ in query]
+                qmap = "{" + ", ".join(e for _, e in query) + "}" if query else None
                 if kind == "binary":
-                    sig = ", ".join(args)
+                    sig = f"{{{', '.join(args)}}}" if args else ""
+                    base = f"Uri.parse(_dio.options.baseUrl).resolve('{dart_path}')"
+                    expr = f"_withQuery({base}, {qmap})" if qmap else base
                     out += doc + [
-                        f"  Uri {op['operationId']}Uri({{{sig}}}) =>",
-                        f"      Uri.parse(_dio.options.baseUrl).resolve('{dart_path}');",
+                        f"  Uri {op['operationId']}Uri({sig}) =>",
+                        f"      {expr};",
                         "",
                     ]
                     continue
-                if has_body:
-                    args.append("Map<String, dynamic>? body")
+                if body_t:
+                    args.insert(len(path_params), f"required {body_t} body")
                 sig = f"{{{', '.join(args)}}}" if args else ""
                 ret = "void" if kind == "void" else rtype
-                call = f"'{method.upper()}', '{dart_path}'" + (", data: body" if has_body else "")
+                call = f"'{method.upper()}', '{dart_path}'"
+                if body_t:
+                    call += ", data: body" if body_t.startswith("Map<") else ", data: body.toJson()"
+                if qmap:
+                    call += f", query: {qmap}"
                 out += doc + [f"  Future<{ret}> {op['operationId']}({sig}) async {{"]
                 if kind == "void":
                     out += [f"    await _send({call});", "  }", ""]
@@ -232,15 +265,25 @@ class Gen:
             "",
             "  final Dio _dio;",
             "",
-            "  Future<dynamic> _send(String method, String path, {Object? data}) async {",
+            "  Future<dynamic> _send(String method, String path, {Object? data, Map<String, Object?>? query}) async {",
             "    try {",
-            "      final response = await _dio.request<dynamic>(path, data: data, options: Options(method: method));",
+            "      final response = await _dio.request<dynamic>(",
+            "        path,",
+            "        data: data,",
+            "        queryParameters: query == null ? null : {for (final e in query.entries) if (e.value != null) e.key: e.value},",
+            "        options: Options(method: method),",
+            "      );",
             "      return response.data;",
             "    } on DioException catch (e) {",
             "      final body = e.response?.data;",
             "      final problem = body is Map ? Problem.fromJson(body.cast<String, dynamic>()) : null;",
             "      throw HiveApiException(e.response?.statusCode, problem, e);",
             "    }",
+            "  }",
+            "",
+            "  static Uri _withQuery(Uri uri, Map<String, Object?> query) {",
+            "    final present = {for (final e in query.entries) if (e.value != null) e.key: '${e.value}'};",
+            "    return present.isEmpty ? uri : uri.replace(queryParameters: present);",
             "  }",
             "",
             *self.operations(),

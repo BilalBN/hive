@@ -390,7 +390,13 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Get a short-lived signed URL for one song at a chosen quality. */
+        /**
+         * Get a short-lived signed URL for one song at a chosen quality.
+         * @description Lossless sends the original file untouched. High and Data saver are
+         *     Opus at 256 and 96 kbps, made once and cached; the first request for a
+         *     song may take a few seconds while it is made. Ask for the next song
+         *     ahead of time (purpose "prefetch") so gapless playback never waits.
+         */
         post: operations["createStreamTicket"];
         delete?: never;
         options?: never;
@@ -862,6 +868,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/development-key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The temporary key the apps use until M2 (shown on Overview). */
+        get: operations["adminGetDevelopmentKey"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/uploads": {
         parameters: {
             query?: never;
@@ -871,12 +894,41 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Start a resumable upload (tus protocol; chunks go to the returned location). */
+        /**
+         * Start a resumable upload (tus protocol; chunks go to the returned location).
+         * @description tus 1.0 creation. Send `Tus-Resumable: 1.0.0`, `Upload-Length` and
+         *     `Upload-Metadata` (base64 values: `filename`, optional `relativePath`
+         *     for files inside a dropped folder). The response's `Location` is where
+         *     chunks are sent with PATCH; HEAD there tells how much has arrived. When
+         *     the last byte lands the file moves into the incoming folder and is
+         *     scanned.
+         */
         post: operations["adminCreateUpload"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/uploads/{uploadId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                uploadId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Cancel an upload and discard what has arrived (tus termination). */
+        delete: operations["adminCancelUpload"];
+        options?: never;
+        /** How many bytes of an upload have arrived (tus). */
+        head: operations["adminGetUploadOffset"];
+        /** Send the next chunk of an upload (tus, application/offset+octet-stream). */
+        patch: operations["adminAppendUpload"];
         trace?: never;
     };
     "/api/v1/admin/song-requests": {
@@ -1044,12 +1096,355 @@ export interface components {
             /** @description For 501 responses, the milestone that builds this operation. */
             milestone?: string;
         };
+        /** @description What a file or stream is, and how the app labels it. */
+        AudioFormat: {
+            /** @enum {string} */
+            codec: "flac" | "alac" | "wav" | "aiff" | "mp3" | "aac" | "vorbis" | "opus";
+            lossless: boolean;
+            /**
+             * @example 44100
+             * @example 96000
+             */
+            sampleRate: number;
+            /**
+             * @description Lossless only.
+             * @example 16
+             * @example 24
+             */
+            bitDepth?: number;
+            /** @description Average bitrate. */
+            bitrateKbps?: number;
+            channels: number;
+            /**
+             * @description hires = lossless above 16-bit or above 48 kHz.
+             * @enum {string}
+             */
+            tier: "hires" | "lossless" | "lossy";
+            /**
+             * @description Short badge text.
+             * @example Hi-Res 24/96
+             * @example Lossless 16/44.1
+             * @example MP3 320
+             */
+            label: string;
+        };
+        TrackSummary: {
+            id: string;
+            title: string;
+            artistId?: string;
+            /** @description Everyone credited, as it should be shown ("Mithoon, Jeet Gannguli"). */
+            artistName: string;
+            albumId: string;
+            albumTitle: string;
+            trackNumber?: number;
+            discNumber?: number;
+            durationMs: number;
+            artworkId?: string;
+            format: components["schemas"]["AudioFormat"];
+            liked: boolean;
+            hasLyrics?: boolean;
+        };
+        AlbumSummary: {
+            id: string;
+            title: string;
+            artistId?: string;
+            artistName: string;
+            year?: number;
+            artworkId?: string;
+            trackCount: number;
+            /**
+             * @description The best quality on the album.
+             * @enum {string}
+             */
+            tier: "hires" | "lossless" | "lossy";
+            /** Format: date-time */
+            addedAt: string;
+        };
+        Album: {
+            id: string;
+            title: string;
+            artistId?: string;
+            artistName: string;
+            year?: number;
+            artworkId?: string;
+            trackCount: number;
+            /** @enum {string} */
+            tier: "hires" | "lossless" | "lossy";
+            /** Format: date-time */
+            addedAt: string;
+            durationMs: number;
+            genre?: string;
+            tracks: components["schemas"]["TrackSummary"][];
+        };
+        ArtistSummary: {
+            id: string;
+            name: string;
+            /** @description The cover of one of their albums. */
+            artworkId?: string;
+            albumCount: number;
+            trackCount: number;
+        };
+        Artist: {
+            id: string;
+            name: string;
+            artworkId?: string;
+            albumCount: number;
+            trackCount: number;
+            albums: components["schemas"]["AlbumSummary"][];
+            /** @description This person's most-played songs by the artist, then the rest by album order. */
+            topTracks: components["schemas"]["TrackSummary"][];
+        };
+        AlbumPage: {
+            items: components["schemas"]["AlbumSummary"][];
+            total: number;
+            offset: number;
+        };
+        ArtistPage: {
+            items: components["schemas"]["ArtistSummary"][];
+            total: number;
+            offset: number;
+        };
+        TrackPage: {
+            items: components["schemas"]["TrackSummary"][];
+            total: number;
+            offset: number;
+        };
+        /** @description A tile in "Jump back in". */
+        HomeTile: {
+            /** @enum {string} */
+            kind: "album" | "playlist" | "artist" | "liked";
+            /** @description The album */
+            id: string;
+            title: string;
+            subtitle?: string;
+            /** @description One cover, or up to four for a playlist mosaic. */
+            artworkIds?: string[];
+        };
+        Home: {
+            /** @description Up to 6 things this person played recently. */
+            jumpBackIn: components["schemas"]["HomeTile"][];
+            /** @description Albums added most recently. */
+            newAtHome: components["schemas"]["AlbumSummary"][];
+            playlists: components["schemas"]["PlaylistSummary"][];
+            /** @description Nothing has been added at home yet. */
+            libraryEmpty: boolean;
+        };
+        SearchResults: {
+            /** @description The single best match, when one stands out. */
+            top?: {
+                /** @enum {string} */
+                kind: "track" | "album" | "artist" | "playlist";
+                id: string;
+            };
+            tracks: components["schemas"]["TrackSummary"][];
+            albums: components["schemas"]["AlbumSummary"][];
+            artists: components["schemas"]["ArtistSummary"][];
+            playlists: components["schemas"]["PlaylistSummary"][];
+        };
+        PlaylistSummary: {
+            id: string;
+            name: string;
+            ownerName: string;
+            /** @description This person can edit and delete it. */
+            mine: boolean;
+            /** @description The whole family can see and play it. */
+            shared: boolean;
+            trackCount: number;
+            durationMs: number;
+            /** @description Covers of up to four different albums in it, for the mosaic. */
+            artworkIds: string[];
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        PlaylistItem: {
+            itemId: string;
+            track: components["schemas"]["TrackSummary"];
+            /** Format: date-time */
+            addedAt: string;
+        };
+        Playlist: {
+            id: string;
+            name: string;
+            ownerName: string;
+            mine: boolean;
+            shared: boolean;
+            trackCount: number;
+            durationMs: number;
+            artworkIds: string[];
+            /** Format: date-time */
+            updatedAt: string;
+            items: components["schemas"]["PlaylistItem"][];
+        };
+        PlaylistList: {
+            items: components["schemas"]["PlaylistSummary"][];
+        };
+        PlaylistCreate: {
+            name: string;
+            /** @default false */
+            shared: boolean;
+            /** @description Songs to start with, in order. */
+            trackIds?: string[];
+        };
+        PlaylistUpdate: {
+            name?: string;
+            shared?: boolean;
+        };
+        PlaylistItemsUpdate: {
+            /** @description The whole new order; a song may appear more than once. */
+            trackIds: string[];
+        };
+        StreamRequest: {
+            /**
+             * @description lossless = the original file; high = Opus 256 kbps; dataSaver = Opus 96 kbps. A lossy original is always sent as it is.
+             * @enum {string}
+             */
+            quality: "lossless" | "high" | "dataSaver";
+            /**
+             * @description Wrapper for Opus. Apple's player needs caf; everything else takes ogg.
+             * @default ogg
+             * @enum {string}
+             */
+            container: "ogg" | "caf";
+            /**
+             * @description play counts towards this person's recently played; prefetch doesn't.
+             * @default play
+             * @enum {string}
+             */
+            purpose: "play" | "prefetch";
+        };
+        /** @description EBU R128 measurement of the original, for volume levelling. */
+        Loudness: {
+            /** @example -9.4 */
+            integratedLufs: number;
+            /** @example 0.6 */
+            truePeakDbtp: number;
+            /** @description The whole album */
+            albumLufs?: number;
+        };
+        StreamTicket: {
+            /**
+             * @description Path on this server; fetch it with no auth header. Range requests work.
+             * @example /api/v1/media/stream/eyJ0Ijoi...
+             */
+            url: string;
+            /** Format: date-time */
+            expiresAt: string;
+            format: components["schemas"]["AudioFormat"];
+            source?: components["schemas"]["AudioFormat"];
+            /**
+             * @example audio/flac
+             * @example audio/ogg
+             */
+            mimeType: string;
+            sizeBytes?: number;
+            durationMs: number;
+            /** @description False when the original file is sent untouched. */
+            transcoded: boolean;
+            loudness?: components["schemas"]["Loudness"];
+        };
+        LyricsLine: {
+            /** @description Synced lyrics only. */
+            timeMs?: number;
+            text: string;
+        };
+        Lyrics: {
+            /** @enum {string} */
+            kind: "synced" | "plain" | "none";
+            lines: components["schemas"]["LyricsLine"][];
+        };
+        ImportItem: {
+            id: string;
+            /** @description Relative to its music folder. */
+            path: string;
+            /** @enum {string} */
+            status: "queued" | "working" | "done" | "failed";
+            /** @description Plain words */
+            problem?: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        MusicFolder: {
+            path: string;
+            exists: boolean;
+            trackCount: number;
+        };
+        LibraryStatus: {
+            tracks: number;
+            albums: number;
+            artists: number;
+            /** @description Original files on disk. */
+            sizeBytes: number;
+            hoursOfMusic?: number;
+            scanning: boolean;
+            queued: number;
+            /** Format: date-time */
+            lastScanAt?: string;
+            folders: components["schemas"]["MusicFolder"][];
+            /** @description Where browser uploads are saved. */
+            uploadFolder: string;
+            /** @description FFmpeg was found; without it High */
+            ffmpeg?: boolean;
+            /** @description Up to 50 files waiting or being read. */
+            queue: components["schemas"]["ImportItem"][];
+            needsAttention: components["schemas"]["ImportItem"][];
+            /** @description Up to 10 albums added most recently. */
+            recentlyAdded?: components["schemas"]["AlbumSummary"][];
+        };
+        DevelopmentKey: {
+            /** @example hive-dev-7k2q-9mxp-4c8a */
+            key: string;
+        };
         /** @description Placeholder until this operation's milestone defines the real shape. */
         Pending: {
             [key: string]: unknown;
         };
     };
     responses: {
+        /** @description Missing or wrong key (M1) or token (from M2). */
+        Unauthorized: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["Problem"];
+            };
+        };
+        /** @description Not allowed, for example someone else's playlist or an expired stream ticket. */
+        Forbidden: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["Problem"];
+            };
+        };
+        /** @description No such thing. */
+        NotFound: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["Problem"];
+            };
+        };
+        /** @description The request body or parameters are wrong. */
+        Invalid: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["Problem"];
+            };
+        };
+        /** @description Temporarily can't do it (for example FFmpeg is missing for a lossy quality). */
+        Unavailable: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["Problem"];
+            };
+        };
         /** @description Response defined by the operation's milestone. */
         Pending: {
             headers: {
@@ -1076,6 +1471,8 @@ export interface components {
         ArtistId: string;
         TrackId: string;
         PlaylistId: string;
+        Offset: number;
+        Limit: number;
     };
     requestBodies: {
         /** @description Body defined by the operation's milestone. */
@@ -1246,21 +1643,43 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            200: components["responses"]["Pending"];
-            501: components["responses"]["NotImplemented"];
+            /** @description The Home screen. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Home"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
         };
     };
     listAlbums: {
         parameters: {
-            query?: never;
+            query?: {
+                offset?: components["parameters"]["Offset"];
+                limit?: components["parameters"]["Limit"];
+                /** @description recent = newest additions first. */
+                sort?: "recent" | "title" | "artist" | "year";
+                artistId?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            200: components["responses"]["Pending"];
-            501: components["responses"]["NotImplemented"];
+            /** @description A page of albums. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AlbumPage"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
         };
     };
     getAlbum: {
@@ -1274,21 +1693,41 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            200: components["responses"]["Pending"];
-            501: components["responses"]["NotImplemented"];
+            /** @description The album. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Album"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
         };
     };
     listArtists: {
         parameters: {
-            query?: never;
+            query?: {
+                offset?: components["parameters"]["Offset"];
+                limit?: components["parameters"]["Limit"];
+            };
             header?: never;
             path?: never;
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            200: components["responses"]["Pending"];
-            501: components["responses"]["NotImplemented"];
+            /** @description A page of artists. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArtistPage"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
         };
     };
     getArtist: {
@@ -1302,34 +1741,70 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            200: components["responses"]["Pending"];
-            501: components["responses"]["NotImplemented"];
+            /** @description The artist. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Artist"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
         };
     };
     listTracks: {
         parameters: {
-            query?: never;
+            query?: {
+                offset?: components["parameters"]["Offset"];
+                limit?: components["parameters"]["Limit"];
+                sort?: "recent" | "title" | "artist";
+                /** @description Only the songs this person liked, most recently liked first. */
+                liked?: boolean;
+            };
             header?: never;
             path?: never;
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            200: components["responses"]["Pending"];
-            501: components["responses"]["NotImplemented"];
+            /** @description A page of songs. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrackPage"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
         };
     };
     search: {
         parameters: {
-            query?: never;
+            query: {
+                /** @description Words in any script; each word matches the start of a word (so "mal" finds "Malare"). */
+                q: string;
+                /** @description At most this many of each kind. */
+                limit?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            200: components["responses"]["Pending"];
-            501: components["responses"]["NotImplemented"];
+            /** @description Matches by kind. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SearchResults"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
         };
     };
     listPlaylists: {
@@ -1341,8 +1816,16 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            200: components["responses"]["Pending"];
-            501: components["responses"]["NotImplemented"];
+            /** @description Playlists, yours first. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlaylistList"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
         };
     };
     createPlaylist: {
@@ -1352,10 +1835,23 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: components["requestBodies"]["Pending"];
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlaylistCreate"];
+            };
+        };
         responses: {
-            200: components["responses"]["Pending"];
-            501: components["responses"]["NotImplemented"];
+            /** @description Created. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Playlist"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            422: components["responses"]["Invalid"];
         };
     };
     getPlaylist: {
@@ -1369,8 +1865,17 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            200: components["responses"]["Pending"];
-            501: components["responses"]["NotImplemented"];
+            /** @description The playlist. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Playlist"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
         };
     };
     deletePlaylist: {
@@ -1391,7 +1896,9 @@ export interface operations {
                 };
                 content?: never;
             };
-            501: components["responses"]["NotImplemented"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
         };
     };
     updatePlaylist: {
@@ -1403,10 +1910,24 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: components["requestBodies"]["Pending"];
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlaylistUpdate"];
+            };
+        };
         responses: {
-            200: components["responses"]["Pending"];
-            501: components["responses"]["NotImplemented"];
+            /** @description Updated. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Playlist"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
         };
     };
     setPlaylistItems: {
@@ -1418,10 +1939,25 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: components["requestBodies"]["Pending"];
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlaylistItemsUpdate"];
+            };
+        };
         responses: {
-            200: components["responses"]["Pending"];
-            501: components["responses"]["NotImplemented"];
+            /** @description The playlist with its new order. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Playlist"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Invalid"];
         };
     };
     likeTrack: {
@@ -1442,7 +1978,8 @@ export interface operations {
                 };
                 content?: never;
             };
-            501: components["responses"]["NotImplemented"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
         };
     };
     unlikeTrack: {
@@ -1463,7 +2000,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            501: components["responses"]["NotImplemented"];
+            401: components["responses"]["Unauthorized"];
         };
     };
     createStreamTicket: {
@@ -1475,10 +2012,24 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: components["requestBodies"]["Pending"];
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StreamRequest"];
+            };
+        };
         responses: {
-            200: components["responses"]["Pending"];
-            501: components["responses"]["NotImplemented"];
+            /** @description Where to fetch the audio. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StreamTicket"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            503: components["responses"]["Unavailable"];
         };
     };
     streamAudio: {
@@ -1510,12 +2061,22 @@ export interface operations {
                     "audio/*": string;
                 };
             };
-            501: components["responses"]["NotImplemented"];
+            403: components["responses"]["Forbidden"];
+            /** @description The requested range is outside the file. */
+            416: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
         };
     };
     getArtwork: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Longest side in pixels (never enlarged). */
+                size?: 96 | 192 | 300 | 600 | 1200;
+            };
             header?: never;
             path: {
                 artworkId: string;
@@ -1524,16 +2085,17 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Image bytes. */
+            /** @description JPEG image. */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "image/*": string;
+                    "image/jpeg": string;
                 };
             };
-            501: components["responses"]["NotImplemented"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
         };
     };
     getLyrics: {
@@ -1547,8 +2109,17 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            200: components["responses"]["Pending"];
-            501: components["responses"]["NotImplemented"];
+            /** @description The lyrics, or kind "none". */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Lyrics"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
         };
     };
     createDownloadTicket: {
@@ -1911,8 +2482,16 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            200: components["responses"]["Pending"];
-            501: components["responses"]["NotImplemented"];
+            /** @description Library status. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryStatus"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
         };
     };
     adminStartScan: {
@@ -1924,21 +2503,151 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            200: components["responses"]["Pending"];
-            501: components["responses"]["NotImplemented"];
+            /** @description Scan started (or already running). */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryStatus"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
         };
     };
-    adminCreateUpload: {
+    adminGetDevelopmentKey: {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        requestBody?: components["requestBodies"]["Pending"];
+        requestBody?: never;
         responses: {
-            201: components["responses"]["Pending"];
-            501: components["responses"]["NotImplemented"];
+            /** @description The key. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DevelopmentKey"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    adminCreateUpload: {
+        parameters: {
+            query?: never;
+            header: {
+                "Upload-Length": number;
+                "Upload-Metadata"?: string;
+                "Tus-Resumable": "1.0.0";
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Created; see the Location header. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            /** @description Larger than the upload limit. */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not an audio file Hive can play. */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    adminCancelUpload: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                uploadId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Cancelled. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    adminGetUploadOffset: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                uploadId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description See the Upload-Offset and Upload-Length headers. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    adminAppendUpload: {
+        parameters: {
+            query?: never;
+            header: {
+                "Upload-Offset": number;
+                "Tus-Resumable": "1.0.0";
+            };
+            path: {
+                uploadId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/offset+octet-stream": string;
+            };
+        };
+        responses: {
+            /** @description Chunk saved; see Upload-Offset. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: components["responses"]["NotFound"];
+            /** @description Upload-Offset doesn't match what has arrived. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
         };
     };
     adminListSongRequests: {

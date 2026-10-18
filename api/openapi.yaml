@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Hive API
-  version: 0.1.0
+  version: 0.2.0
   summary: The private family music server's API.
   description: |
     This file is the single source of truth for every endpoint. The server is
@@ -132,20 +132,37 @@ paths:
       responses: { "204": { description: Removed. }, "501": { $ref: "#/components/responses/NotImplemented" } }
 
   # ------------------------------------------------------------- library (M1)
+  # Until M2 every call here is authorised by the home's development key, sent
+  # as `Authorization: Bearer <key>` (see `hive info`). M2 replaces it with
+  # per-device tokens; the operations do not change.
   /api/v1/library/home:
     get:
       tags: [library]
       operationId: getHome
       summary: Shelves for the Home screen.
       x-milestone: M1
-      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+      responses:
+        "200": { description: The Home screen., content: { application/json: { schema: { $ref: "#/components/schemas/Home" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
   /api/v1/library/albums:
     get:
       tags: [library]
       operationId: listAlbums
       summary: Albums, paged, with sort and filters.
       x-milestone: M1
-      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+      parameters:
+        - $ref: "#/components/parameters/Offset"
+        - $ref: "#/components/parameters/Limit"
+        - name: sort
+          in: query
+          schema: { type: string, enum: [recent, title, artist, year], default: recent }
+          description: recent = newest additions first.
+        - name: artistId
+          in: query
+          schema: { type: string }
+      responses:
+        "200": { description: A page of albums., content: { application/json: { schema: { $ref: "#/components/schemas/AlbumPage" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
   /api/v1/library/albums/{albumId}:
     parameters: [{ $ref: "#/components/parameters/AlbumId" }]
     get:
@@ -153,14 +170,22 @@ paths:
       operationId: getAlbum
       summary: One album with its tracks.
       x-milestone: M1
-      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+      responses:
+        "200": { description: The album., content: { application/json: { schema: { $ref: "#/components/schemas/Album" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
   /api/v1/library/artists:
     get:
       tags: [library]
       operationId: listArtists
       summary: Artists, paged.
       x-milestone: M1
-      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+      parameters:
+        - $ref: "#/components/parameters/Offset"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200": { description: A page of artists., content: { application/json: { schema: { $ref: "#/components/schemas/ArtistPage" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
   /api/v1/library/artists/{artistId}:
     parameters: [{ $ref: "#/components/parameters/ArtistId" }]
     get:
@@ -168,35 +193,69 @@ paths:
       operationId: getArtist
       summary: One artist with albums and the person's most-played songs.
       x-milestone: M1
-      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+      responses:
+        "200": { description: The artist., content: { application/json: { schema: { $ref: "#/components/schemas/Artist" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
   /api/v1/library/tracks:
     get:
       tags: [library]
       operationId: listTracks
       summary: Songs, paged; also liked songs with a filter.
       x-milestone: M1
-      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+      parameters:
+        - $ref: "#/components/parameters/Offset"
+        - $ref: "#/components/parameters/Limit"
+        - name: sort
+          in: query
+          schema: { type: string, enum: [recent, title, artist], default: title }
+        - name: liked
+          in: query
+          schema: { type: boolean }
+          description: Only the songs this person liked, most recently liked first.
+      responses:
+        "200": { description: A page of songs., content: { application/json: { schema: { $ref: "#/components/schemas/TrackPage" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
   /api/v1/library/search:
     get:
       tags: [library]
       operationId: search
       summary: Instant search across songs, albums, artists and playlists.
       x-milestone: M1
-      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema: { type: string, minLength: 1, maxLength: 200 }
+          description: Words in any script; each word matches the start of a word (so "mal" finds "Malare").
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 50, default: 10 }
+          description: At most this many of each kind.
+      responses:
+        "200": { description: Matches by kind., content: { application/json: { schema: { $ref: "#/components/schemas/SearchResults" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
   /api/v1/library/playlists:
     get:
       tags: [library]
       operationId: listPlaylists
       summary: The person's playlists and the family's shared ones.
       x-milestone: M1
-      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+      responses:
+        "200": { description: "Playlists, yours first.", content: { application/json: { schema: { $ref: "#/components/schemas/PlaylistList" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
     post:
       tags: [library]
       operationId: createPlaylist
       summary: Create a playlist, private or shared with the family.
       x-milestone: M1
-      requestBody: { $ref: "#/components/requestBodies/Pending" }
-      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/PlaylistCreate" } } }
+      responses:
+        "201": { description: Created., content: { application/json: { schema: { $ref: "#/components/schemas/Playlist" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "422": { $ref: "#/components/responses/Invalid" }
   /api/v1/library/playlists/{playlistId}:
     parameters: [{ $ref: "#/components/parameters/PlaylistId" }]
     get:
@@ -204,20 +263,33 @@ paths:
       operationId: getPlaylist
       summary: One playlist with its songs.
       x-milestone: M1
-      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+      responses:
+        "200": { description: The playlist., content: { application/json: { schema: { $ref: "#/components/schemas/Playlist" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
     patch:
       tags: [library]
       operationId: updatePlaylist
       summary: Rename, change cover or sharing.
       x-milestone: M1
-      requestBody: { $ref: "#/components/requestBodies/Pending" }
-      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/PlaylistUpdate" } } }
+      responses:
+        "200": { description: Updated., content: { application/json: { schema: { $ref: "#/components/schemas/Playlist" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
     delete:
       tags: [library]
       operationId: deletePlaylist
       summary: Delete a playlist you own.
       x-milestone: M1
-      responses: { "204": { description: Deleted. }, "501": { $ref: "#/components/responses/NotImplemented" } }
+      responses:
+        "204": { description: Deleted. }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
   /api/v1/library/playlists/{playlistId}/items:
     parameters: [{ $ref: "#/components/parameters/PlaylistId" }]
     put:
@@ -225,8 +297,15 @@ paths:
       operationId: setPlaylistItems
       summary: Replace the playlist's song order (add, remove, reorder).
       x-milestone: M1
-      requestBody: { $ref: "#/components/requestBodies/Pending" }
-      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/PlaylistItemsUpdate" } } }
+      responses:
+        "200": { description: The playlist with its new order., content: { application/json: { schema: { $ref: "#/components/schemas/Playlist" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/Invalid" }
   /api/v1/library/likes/{trackId}:
     parameters: [{ $ref: "#/components/parameters/TrackId" }]
     put:
@@ -234,13 +313,18 @@ paths:
       operationId: likeTrack
       summary: Like a song.
       x-milestone: M1
-      responses: { "204": { description: Liked. }, "501": { $ref: "#/components/responses/NotImplemented" } }
+      responses:
+        "204": { description: Liked. }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
     delete:
       tags: [library]
       operationId: unlikeTrack
       summary: Remove a like.
       x-milestone: M1
-      responses: { "204": { description: Unliked. }, "501": { $ref: "#/components/responses/NotImplemented" } }
+      responses:
+        "204": { description: Unliked. }
+        "401": { $ref: "#/components/responses/Unauthorized" }
 
   # --------------------------------------------------------------- media (M1)
   /api/v1/media/tracks/{trackId}/stream:
@@ -249,9 +333,20 @@ paths:
       tags: [media]
       operationId: createStreamTicket
       summary: Get a short-lived signed URL for one song at a chosen quality.
+      description: |
+        Lossless sends the original file untouched. High and Data saver are
+        Opus at 256 and 96 kbps, made once and cached; the first request for a
+        song may take a few seconds while it is made. Ask for the next song
+        ahead of time (purpose "prefetch") so gapless playback never waits.
       x-milestone: M1
-      requestBody: { $ref: "#/components/requestBodies/Pending" }
-      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/StreamRequest" } } }
+      responses:
+        "200": { description: Where to fetch the audio., content: { application/json: { schema: { $ref: "#/components/schemas/StreamTicket" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "503": { $ref: "#/components/responses/Unavailable" }
   /api/v1/media/stream/{ticket}:
     parameters:
       - { name: ticket, in: path, required: true, schema: { type: string } }
@@ -264,7 +359,8 @@ paths:
       responses:
         "200": { description: Audio bytes., content: { audio/*: { schema: { type: string, format: binary } } } }
         "206": { description: Partial audio bytes., content: { audio/*: { schema: { type: string, format: binary } } } }
-        "501": { $ref: "#/components/responses/NotImplemented" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "416": { description: The requested range is outside the file. }
   /api/v1/media/artwork/{artworkId}:
     parameters:
       - { name: artworkId, in: path, required: true, schema: { type: string } }
@@ -273,9 +369,15 @@ paths:
       operationId: getArtwork
       summary: Cover art, resized.
       x-milestone: M1
+      parameters:
+        - name: size
+          in: query
+          schema: { type: integer, enum: [96, 192, 300, 600, 1200], default: 600 }
+          description: Longest side in pixels (never enlarged).
       responses:
-        "200": { description: Image bytes., content: { image/*: { schema: { type: string, format: binary } } } }
-        "501": { $ref: "#/components/responses/NotImplemented" }
+        "200": { description: JPEG image., content: { image/jpeg: { schema: { type: string, format: binary } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
   /api/v1/media/tracks/{trackId}/lyrics:
     parameters: [{ $ref: "#/components/parameters/TrackId" }]
     get:
@@ -283,7 +385,10 @@ paths:
       operationId: getLyrics
       summary: Synced or plain lyrics when the file has them.
       x-milestone: M1
-      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+      responses:
+        "200": { description: 'The lyrics, or kind "none".', content: { application/json: { schema: { $ref: "#/components/schemas/Lyrics" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
   /api/v1/media/tracks/{trackId}/download:
     parameters: [{ $ref: "#/components/parameters/TrackId" }]
     post:
@@ -490,22 +595,83 @@ paths:
       operationId: adminListImports
       summary: Import queue and files that need attention.
       x-milestone: M1
-      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+      responses:
+        "200": { description: Library status., content: { application/json: { schema: { $ref: "#/components/schemas/LibraryStatus" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
   /api/v1/admin/library/scan:
     post:
       tags: [admin]
       operationId: adminStartScan
       summary: Rescan the music folders now.
       x-milestone: M1
-      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+      responses:
+        "200": { description: Scan started (or already running)., content: { application/json: { schema: { $ref: "#/components/schemas/LibraryStatus" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /api/v1/admin/development-key:
+    get:
+      tags: [admin]
+      operationId: adminGetDevelopmentKey
+      summary: The temporary key the apps use until M2 (shown on Overview).
+      x-milestone: M1
+      responses:
+        "200": { description: The key., content: { application/json: { schema: { $ref: "#/components/schemas/DevelopmentKey" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
   /api/v1/admin/uploads:
     post:
       tags: [admin]
       operationId: adminCreateUpload
       summary: Start a resumable upload (tus protocol; chunks go to the returned location).
+      description: |
+        tus 1.0 creation. Send `Tus-Resumable: 1.0.0`, `Upload-Length` and
+        `Upload-Metadata` (base64 values: `filename`, optional `relativePath`
+        for files inside a dropped folder). The response's `Location` is where
+        chunks are sent with PATCH; HEAD there tells how much has arrived. When
+        the last byte lands the file moves into the incoming folder and is
+        scanned.
       x-milestone: M1
-      requestBody: { $ref: "#/components/requestBodies/Pending" }
-      responses: { "201": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+      parameters:
+        - { name: Upload-Length, in: header, required: true, schema: { type: integer, minimum: 1 } }
+        - { name: Upload-Metadata, in: header, schema: { type: string } }
+        - { name: Tus-Resumable, in: header, required: true, schema: { type: string, enum: ["1.0.0"] } }
+      responses:
+        "201": { description: Created; see the Location header. }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "413": { description: Larger than the upload limit. }
+        "415": { description: Not an audio file Hive can play. }
+  /api/v1/admin/uploads/{uploadId}:
+    parameters:
+      - { name: uploadId, in: path, required: true, schema: { type: string } }
+    head:
+      tags: [admin]
+      operationId: adminGetUploadOffset
+      summary: How many bytes of an upload have arrived (tus).
+      x-milestone: M1
+      responses:
+        "200": { description: See the Upload-Offset and Upload-Length headers. }
+        "404": { $ref: "#/components/responses/NotFound" }
+    patch:
+      tags: [admin]
+      operationId: adminAppendUpload
+      summary: Send the next chunk of an upload (tus, application/offset+octet-stream).
+      x-milestone: M1
+      parameters:
+        - { name: Upload-Offset, in: header, required: true, schema: { type: integer, minimum: 0 } }
+        - { name: Tus-Resumable, in: header, required: true, schema: { type: string, enum: ["1.0.0"] } }
+      requestBody:
+        required: true
+        content: { application/offset+octet-stream: { schema: { type: string, format: binary } } }
+      responses:
+        "204": { description: Chunk saved; see Upload-Offset. }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { description: Upload-Offset doesn't match what has arrived. }
+    delete:
+      tags: [admin]
+      operationId: adminCancelUpload
+      summary: Cancel an upload and discard what has arrived (tus termination).
+      x-milestone: M1
+      responses:
+        "204": { description: Cancelled. }
+        "404": { $ref: "#/components/responses/NotFound" }
   /api/v1/admin/song-requests:
     get:
       tags: [admin]
@@ -591,6 +757,8 @@ components:
     ArtistId: { name: artistId, in: path, required: true, schema: { type: string } }
     TrackId: { name: trackId, in: path, required: true, schema: { type: string } }
     PlaylistId: { name: playlistId, in: path, required: true, schema: { type: string } }
+    Offset: { name: offset, in: query, schema: { type: integer, minimum: 0, default: 0 } }
+    Limit: { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 500, default: 100 } }
 
   requestBodies:
     Pending:
@@ -601,6 +769,21 @@ components:
           schema: { $ref: "#/components/schemas/Pending" }
 
   responses:
+    Unauthorized:
+      description: Missing or wrong key (M1) or token (from M2).
+      content: { application/problem+json: { schema: { $ref: "#/components/schemas/Problem" } } }
+    Forbidden:
+      description: Not allowed, for example someone else's playlist or an expired stream ticket.
+      content: { application/problem+json: { schema: { $ref: "#/components/schemas/Problem" } } }
+    NotFound:
+      description: No such thing.
+      content: { application/problem+json: { schema: { $ref: "#/components/schemas/Problem" } } }
+    Invalid:
+      description: The request body or parameters are wrong.
+      content: { application/problem+json: { schema: { $ref: "#/components/schemas/Problem" } } }
+    Unavailable:
+      description: Temporarily can't do it (for example FFmpeg is missing for a lossy quality).
+      content: { application/problem+json: { schema: { $ref: "#/components/schemas/Problem" } } }
     Pending:
       description: Response defined by the operation's milestone.
       content:
@@ -652,6 +835,345 @@ components:
         milestone:
           type: string
           description: For 501 responses, the milestone that builds this operation.
+    # --------------------------------------------------------- library (M1)
+    AudioFormat:
+      type: object
+      description: What a file or stream is, and how the app labels it.
+      required: [codec, lossless, sampleRate, channels, tier, label]
+      properties:
+        codec:
+          type: string
+          enum: [flac, alac, wav, aiff, mp3, aac, vorbis, opus]
+        lossless: { type: boolean }
+        sampleRate: { type: integer, examples: [44100, 96000] }
+        bitDepth: { type: integer, description: Lossless only., examples: [16, 24] }
+        bitrateKbps: { type: integer, description: Average bitrate. }
+        channels: { type: integer }
+        tier:
+          type: string
+          enum: [hires, lossless, lossy]
+          description: hires = lossless above 16-bit or above 48 kHz.
+        label:
+          type: string
+          description: Short badge text.
+          examples: ["Hi-Res 24/96", "Lossless 16/44.1", "MP3 320"]
+    TrackSummary:
+      type: object
+      required: [id, title, artistName, albumId, albumTitle, durationMs, format, liked]
+      properties:
+        id: { type: string }
+        title: { type: string }
+        artistId: { type: string }
+        artistName:
+          type: string
+          description: Everyone credited, as it should be shown ("Mithoon, Jeet Gannguli").
+        albumId: { type: string }
+        albumTitle: { type: string }
+        trackNumber: { type: integer }
+        discNumber: { type: integer }
+        durationMs: { type: integer }
+        artworkId: { type: string }
+        format: { $ref: "#/components/schemas/AudioFormat" }
+        liked: { type: boolean }
+        hasLyrics: { type: boolean }
+    AlbumSummary:
+      type: object
+      required: [id, title, artistName, trackCount, tier, addedAt]
+      properties:
+        id: { type: string }
+        title: { type: string }
+        artistId: { type: string }
+        artistName: { type: string }
+        year: { type: integer }
+        artworkId: { type: string }
+        trackCount: { type: integer }
+        tier:
+          type: string
+          enum: [hires, lossless, lossy]
+          description: The best quality on the album.
+        addedAt: { type: string, format: date-time }
+    Album:
+      type: object
+      required: [id, title, artistName, trackCount, tier, addedAt, durationMs, tracks]
+      properties:
+        id: { type: string }
+        title: { type: string }
+        artistId: { type: string }
+        artistName: { type: string }
+        year: { type: integer }
+        artworkId: { type: string }
+        trackCount: { type: integer }
+        tier: { type: string, enum: [hires, lossless, lossy] }
+        addedAt: { type: string, format: date-time }
+        durationMs: { type: integer }
+        genre: { type: string }
+        tracks:
+          type: array
+          items: { $ref: "#/components/schemas/TrackSummary" }
+    ArtistSummary:
+      type: object
+      required: [id, name, albumCount, trackCount]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        artworkId: { type: string, description: The cover of one of their albums. }
+        albumCount: { type: integer }
+        trackCount: { type: integer }
+    Artist:
+      type: object
+      required: [id, name, albumCount, trackCount, albums, topTracks]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        artworkId: { type: string }
+        albumCount: { type: integer }
+        trackCount: { type: integer }
+        albums:
+          type: array
+          items: { $ref: "#/components/schemas/AlbumSummary" }
+        topTracks:
+          type: array
+          description: This person's most-played songs by the artist, then the rest by album order.
+          items: { $ref: "#/components/schemas/TrackSummary" }
+    AlbumPage:
+      type: object
+      required: [items, total, offset]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/AlbumSummary" } }
+        total: { type: integer }
+        offset: { type: integer }
+    ArtistPage:
+      type: object
+      required: [items, total, offset]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/ArtistSummary" } }
+        total: { type: integer }
+        offset: { type: integer }
+    TrackPage:
+      type: object
+      required: [items, total, offset]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/TrackSummary" } }
+        total: { type: integer }
+        offset: { type: integer }
+    HomeTile:
+      type: object
+      description: A tile in "Jump back in".
+      required: [kind, id, title]
+      properties:
+        kind: { type: string, enum: [album, playlist, artist, liked] }
+        id: { type: string, description: The album, playlist or artist; "liked" for liked songs. }
+        title: { type: string }
+        subtitle: { type: string }
+        artworkIds:
+          type: array
+          description: One cover, or up to four for a playlist mosaic.
+          items: { type: string }
+    Home:
+      type: object
+      required: [jumpBackIn, newAtHome, playlists, libraryEmpty]
+      properties:
+        jumpBackIn:
+          type: array
+          description: Up to 6 things this person played recently.
+          items: { $ref: "#/components/schemas/HomeTile" }
+        newAtHome:
+          type: array
+          description: Albums added most recently.
+          items: { $ref: "#/components/schemas/AlbumSummary" }
+        playlists:
+          type: array
+          items: { $ref: "#/components/schemas/PlaylistSummary" }
+        libraryEmpty:
+          type: boolean
+          description: Nothing has been added at home yet.
+    SearchResults:
+      type: object
+      required: [tracks, albums, artists, playlists]
+      properties:
+        top:
+          type: object
+          description: The single best match, when one stands out.
+          required: [kind, id]
+          properties:
+            kind: { type: string, enum: [track, album, artist, playlist] }
+            id: { type: string }
+        tracks: { type: array, items: { $ref: "#/components/schemas/TrackSummary" } }
+        albums: { type: array, items: { $ref: "#/components/schemas/AlbumSummary" } }
+        artists: { type: array, items: { $ref: "#/components/schemas/ArtistSummary" } }
+        playlists: { type: array, items: { $ref: "#/components/schemas/PlaylistSummary" } }
+    PlaylistSummary:
+      type: object
+      required: [id, name, ownerName, mine, shared, trackCount, durationMs, artworkIds, updatedAt]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        ownerName: { type: string }
+        mine: { type: boolean, description: This person can edit and delete it. }
+        shared: { type: boolean, description: The whole family can see and play it. }
+        trackCount: { type: integer }
+        durationMs: { type: integer }
+        artworkIds:
+          type: array
+          description: Covers of up to four different albums in it, for the mosaic.
+          items: { type: string }
+        updatedAt: { type: string, format: date-time }
+    PlaylistItem:
+      type: object
+      required: [itemId, track, addedAt]
+      properties:
+        itemId: { type: string }
+        track: { $ref: "#/components/schemas/TrackSummary" }
+        addedAt: { type: string, format: date-time }
+    Playlist:
+      type: object
+      required: [id, name, ownerName, mine, shared, trackCount, durationMs, artworkIds, updatedAt, items]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        ownerName: { type: string }
+        mine: { type: boolean }
+        shared: { type: boolean }
+        trackCount: { type: integer }
+        durationMs: { type: integer }
+        artworkIds: { type: array, items: { type: string } }
+        updatedAt: { type: string, format: date-time }
+        items: { type: array, items: { $ref: "#/components/schemas/PlaylistItem" } }
+    PlaylistList:
+      type: object
+      required: [items]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/PlaylistSummary" } }
+    PlaylistCreate:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 120 }
+        shared: { type: boolean, default: false }
+        trackIds:
+          type: array
+          description: Songs to start with, in order.
+          items: { type: string }
+    PlaylistUpdate:
+      type: object
+      properties:
+        name: { type: string, minLength: 1, maxLength: 120 }
+        shared: { type: boolean }
+    PlaylistItemsUpdate:
+      type: object
+      required: [trackIds]
+      properties:
+        trackIds:
+          type: array
+          description: The whole new order; a song may appear more than once.
+          maxItems: 5000
+          items: { type: string }
+
+    # ----------------------------------------------------------- media (M1)
+    StreamRequest:
+      type: object
+      required: [quality]
+      properties:
+        quality:
+          type: string
+          enum: [lossless, high, dataSaver]
+          description: lossless = the original file; high = Opus 256 kbps; dataSaver = Opus 96 kbps. A lossy original is always sent as it is.
+        container:
+          type: string
+          enum: [ogg, caf]
+          default: ogg
+          description: Wrapper for Opus. Apple's player needs caf; everything else takes ogg.
+        purpose:
+          type: string
+          enum: [play, prefetch]
+          default: play
+          description: play counts towards this person's recently played; prefetch doesn't.
+    Loudness:
+      type: object
+      description: EBU R128 measurement of the original, for volume levelling.
+      required: [integratedLufs, truePeakDbtp]
+      properties:
+        integratedLufs: { type: number, examples: [-9.4] }
+        truePeakDbtp: { type: number, examples: [0.6] }
+        albumLufs: { type: number, description: The whole album, for album-mode levelling. }
+    StreamTicket:
+      type: object
+      required: [url, expiresAt, format, mimeType, durationMs, transcoded]
+      properties:
+        url:
+          type: string
+          description: Path on this server; fetch it with no auth header. Range requests work.
+          examples: ["/api/v1/media/stream/eyJ0Ijoi..."]
+        expiresAt: { type: string, format: date-time }
+        format: { $ref: "#/components/schemas/AudioFormat" }
+        source:
+          $ref: "#/components/schemas/AudioFormat"
+        mimeType: { type: string, examples: ["audio/flac", "audio/ogg"] }
+        sizeBytes: { type: integer }
+        durationMs: { type: integer }
+        transcoded: { type: boolean, description: False when the original file is sent untouched. }
+        loudness: { $ref: "#/components/schemas/Loudness" }
+    LyricsLine:
+      type: object
+      required: [text]
+      properties:
+        timeMs: { type: integer, description: Synced lyrics only. }
+        text: { type: string }
+    Lyrics:
+      type: object
+      required: [kind, lines]
+      properties:
+        kind: { type: string, enum: [synced, plain, none] }
+        lines: { type: array, items: { $ref: "#/components/schemas/LyricsLine" } }
+
+    # ----------------------------------------------------------- admin (M1)
+    ImportItem:
+      type: object
+      required: [id, path, status, updatedAt]
+      properties:
+        id: { type: string }
+        path: { type: string, description: Relative to its music folder. }
+        status: { type: string, enum: [queued, working, done, failed] }
+        problem: { type: string, description: Plain words, for files that need attention. }
+        updatedAt: { type: string, format: date-time }
+    MusicFolder:
+      type: object
+      required: [path, exists, trackCount]
+      properties:
+        path: { type: string }
+        exists: { type: boolean }
+        trackCount: { type: integer }
+    LibraryStatus:
+      type: object
+      required: [tracks, albums, artists, sizeBytes, scanning, queued, folders, uploadFolder, queue, needsAttention]
+      properties:
+        tracks: { type: integer }
+        albums: { type: integer }
+        artists: { type: integer }
+        sizeBytes: { type: integer, description: Original files on disk. }
+        hoursOfMusic: { type: number }
+        scanning: { type: boolean }
+        queued: { type: integer }
+        lastScanAt: { type: string, format: date-time }
+        folders: { type: array, items: { $ref: "#/components/schemas/MusicFolder" } }
+        uploadFolder: { type: string, description: Where browser uploads are saved. }
+        ffmpeg: { type: boolean, description: FFmpeg was found; without it High, Data saver and loudness are unavailable. }
+        queue:
+          type: array
+          description: Up to 50 files waiting or being read.
+          items: { $ref: "#/components/schemas/ImportItem" }
+        needsAttention:
+          type: array
+          items: { $ref: "#/components/schemas/ImportItem" }
+        recentlyAdded:
+          type: array
+          description: Up to 10 albums added most recently.
+          items: { $ref: "#/components/schemas/AlbumSummary" }
+    DevelopmentKey:
+      type: object
+      required: [key]
+      properties:
+        key: { type: string, examples: ["hive-dev-7k2q-9mxp-4c8a"] }
     Pending:
       type: object
       description: Placeholder until this operation's milestone defines the real shape.
