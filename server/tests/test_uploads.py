@@ -80,7 +80,7 @@ def test_upload_in_chunks_resume_and_scan(home: Home) -> None:
     assert dest.read_bytes() == data
     home.wait()
     status = home.get("/api/v1/admin/library/imports").json()
-    dupes = [i for i in status["needsAttention"] if "Mental" in i["path"]]
+    dupes = [i for i in status["duplicates"] if "Mental" in i["path"]]
     # Same bytes as a song already in the library: skipped, and said so.
     assert dupes and dupes[0]["problem"].startswith("Same file as")
 

@@ -617,6 +617,38 @@ paths:
       responses:
         "200": { description: Library status., content: { application/json: { schema: { $ref: "#/components/schemas/LibraryStatus" } } } }
         "401": { $ref: "#/components/responses/Unauthorized" }
+  /api/v1/admin/library/imports/{importId}/ignore:
+    parameters: [{ $ref: "#/components/parameters/ImportId" }]
+    post:
+      tags: [admin]
+      operationId: adminIgnoreImport
+      summary: Take a file off Needs attention or Duplicate copies. It comes back if the file changes.
+      x-milestone: M1
+      responses:
+        "200": { description: Library status., content: { application/json: { schema: { $ref: "#/components/schemas/LibraryStatus" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /api/v1/admin/library/imports/{importId}/delete-copy:
+    parameters: [{ $ref: "#/components/parameters/ImportId" }]
+    post:
+      tags: [admin]
+      operationId: adminDeleteCopy
+      summary: Delete an exact copy of a song in the library from disk, after comparing the two files again.
+      x-milestone: M1
+      responses:
+        "200": { description: Library status., content: { application/json: { schema: { $ref: "#/components/schemas/LibraryStatus" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+  /api/v1/admin/library/imports/delete-copies:
+    post:
+      tags: [admin]
+      operationId: adminDeleteCopies
+      summary: Delete every exact copy listed under Duplicate copies, each compared again first.
+      x-milestone: M1
+      responses:
+        "200": { description: Library status., content: { application/json: { schema: { $ref: "#/components/schemas/LibraryStatus" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
   /api/v1/admin/library/scan:
     post:
       tags: [admin]
@@ -658,6 +690,15 @@ paths:
         content: { application/json: { schema: { $ref: "#/components/schemas/LookupRetry" } } }
       responses:
         "200": { description: Lookup status., content: { application/json: { schema: { $ref: "#/components/schemas/LookupStatus" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /api/v1/admin/library/lookup/test-acoustid:
+    post:
+      tags: [admin]
+      operationId: adminTestAcoustid
+      summary: Fingerprint one song and ask AcoustID about it, to show the key and fpcalc work.
+      x-milestone: M1.5
+      responses:
+        "200": { description: The result., content: { application/json: { schema: { $ref: "#/components/schemas/AcoustidTest" } } } }
         "401": { $ref: "#/components/responses/Unauthorized" }
   /api/v1/admin/library/albums:
     get:
@@ -888,6 +929,7 @@ components:
     AlbumId: { name: albumId, in: path, required: true, schema: { type: string } }
     ArtistId: { name: artistId, in: path, required: true, schema: { type: string } }
     TrackId: { name: trackId, in: path, required: true, schema: { type: string } }
+    ImportId: { name: importId, in: path, required: true, schema: { type: string } }
     PlaylistId: { name: playlistId, in: path, required: true, schema: { type: string } }
     Offset: { name: offset, in: query, schema: { type: integer, minimum: 0, default: 0 } }
     Limit: { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 500, default: 100 } }
@@ -912,6 +954,9 @@ components:
       content: { application/problem+json: { schema: { $ref: "#/components/schemas/Problem" } } }
     Invalid:
       description: The request body or parameters are wrong.
+      content: { application/problem+json: { schema: { $ref: "#/components/schemas/Problem" } } }
+    Conflict:
+      description: Can't be done in the current state; the detail says why.
       content: { application/problem+json: { schema: { $ref: "#/components/schemas/Problem" } } }
     Unavailable:
       description: Temporarily can't do it (for example FFmpeg is missing for a lossy quality).
@@ -1340,7 +1385,10 @@ components:
       properties:
         id: { type: string }
         path: { type: string, description: Relative to its music folder. }
-        status: { type: string, enum: [queued, working, done, failed] }
+        status:
+          type: string
+          enum: [queued, working, done, failed, duplicate, ignored]
+          description: duplicate = an exact copy of a song already in the library, so it was skipped.
         problem: { type: string, description: Plain words, for files that need attention. }
         updatedAt: { type: string, format: date-time }
     MusicFolder:
@@ -1371,6 +1419,10 @@ components:
           items: { $ref: "#/components/schemas/ImportItem" }
         needsAttention:
           type: array
+          items: { $ref: "#/components/schemas/ImportItem" }
+        duplicates:
+          type: array
+          description: Exact copies of songs already in the library (up to 500). Not a problem; they can be deleted.
           items: { $ref: "#/components/schemas/ImportItem" }
         recentlyAdded:
           type: array
@@ -1403,10 +1455,20 @@ components:
         review: { type: integer }
         failed: { type: integer }
         edited: { type: integer, description: Albums you corrected by hand. }
+        soundMatches: { type: integer, description: Albums recognised by the sound of their songs (AcoustID). }
+        acoustidProblem: { type: string, description: Why AcoustID turned Hive down last time, in plain words. }
+        acoustidUsedAt: { type: string, format: date-time, description: When AcoustID last answered. }
         lastError: { type: string, description: Why the last lookup failed, in plain words. }
         sends:
           type: string
           description: What leaves home, in plain words, for the admin panel to show.
+    AcoustidTest:
+      type: object
+      required: [ok, message, status]
+      properties:
+        ok: { type: boolean }
+        message: { type: string, description: What happened, in plain words. }
+        status: { $ref: "#/components/schemas/LookupStatus" }
     LookupState:
       type: string
       enum: ["off", waiting, working, found, review, notFound, failed, edited]

@@ -91,15 +91,85 @@ def test_problems_are_listed_not_hidden(home: Home) -> None:
     assert "damaged or not audio" in problems[os.path.join("Incoming", "broken.mp3")] or (
         "recognise" in problems[os.path.join("Incoming", "broken.mp3")]
     )
-    dupes = {path: p for path, p in problems.items() if p.startswith("Same file as")}
+    # Exact copies aren't problems: they're listed on their own.
+    assert not any(p.startswith("Same file as") for p in problems.values())
+    dupes = {i["path"]: i["problem"] for i in body["duplicates"]}
     # The copy is the one set aside, whichever was read first.
     copy = os.path.join("Incoming", "Copy of Dreams.flac")
     original = os.path.join("Fleetwood Mac", "Rumours", "02 Dreams.flac")
     assert list(dupes) == [copy]
     assert dupes[copy] == f"Same file as {original}, so it was skipped"
+    assert body["duplicates"][0]["status"] == "duplicate"
     assert body["tracks"] == 8
     assert body["queued"] == 0
     assert body["folders"][0]["trackCount"] == 8
+
+
+def _status(home: Home) -> dict:
+    body = home.get("/api/v1/admin/library/imports").json()
+    assert_matches(body, "LibraryStatus")
+    return body
+
+
+def test_deleting_a_copy_keeps_the_song(home: Home) -> None:
+    copy = home.paths["duplicate"]
+    item = _status(home)["duplicates"][0]
+    r = home.post(f"/api/v1/admin/library/imports/{item['id']}/delete-copy")
+    assert r.status_code == 200
+    assert_matches(r.json(), "LibraryStatus")
+    assert not copy.exists()
+    assert copy.parent.exists()  # broken.mp3 is still in Incoming
+    body = _status(home)
+    assert body["duplicates"] == [] and body["tracks"] == 8
+    assert home.track_id("Dreams")
+
+
+def test_delete_all_copies_and_empty_folders_go(home: Home) -> None:
+    copy = home.paths["duplicate"]
+    folder = copy.parent / "Again"
+    folder.mkdir()
+    second = folder / "Dreams again.flac"
+    second.write_bytes(copy.read_bytes())
+    (folder / ".DS_Store").write_bytes(b"\0")
+    home.client.app.state.library.enqueue(second)
+    home.wait()
+    assert len(_status(home)["duplicates"]) == 2
+    body = home.post("/api/v1/admin/library/imports/delete-copies").json()
+    assert body["duplicates"] == [] and body["tracks"] == 8
+    assert not folder.exists()  # held nothing else
+    assert copy.parent.exists()
+
+
+def test_a_copy_is_kept_when_the_original_changed(home: Home) -> None:
+    item = _status(home)["duplicates"][0]
+    original = home.paths["dreams"]
+    with original.open("ab") as f:
+        f.write(b"edited")
+    r = home.post(f"/api/v1/admin/library/imports/{item['id']}/delete-copy")
+    assert r.status_code == 409
+    assert home.paths["duplicate"].exists()
+
+
+def test_removing_the_original_brings_the_copy_in(home: Home) -> None:
+    library = home.client.app.state.library
+    original = home.paths["dreams"]
+    original.unlink()
+    library.forget(original)
+    home.wait()
+    body = _status(home)
+    assert body["duplicates"] == [] and body["tracks"] == 8
+    assert home.track_id("Dreams")
+
+
+def test_ignoring_a_problem(home: Home) -> None:
+    broken = next(i for i in _status(home)["needsAttention"] if "broken" in i["path"])
+    r = home.post(f"/api/v1/admin/library/imports/{broken['id']}/ignore")
+    assert r.status_code == 200
+    assert not any("broken" in i["path"] for i in r.json()["needsAttention"])
+    home.post("/api/v1/admin/library/scan")
+    home.wait()
+    assert not any("broken" in i["path"] for i in _status(home)["needsAttention"])
+    assert home.post("/api/v1/admin/library/imports/99999/ignore").status_code == 404
 
 
 def test_search_any_script_and_word_starts(home: Home) -> None:

@@ -1,7 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CircleAlert, FolderOpen, Loader, RefreshCw, TriangleAlert } from "lucide-react";
+import { Copy, CircleAlert, FolderOpen, Loader, RefreshCw, TriangleAlert } from "lucide-react";
 
-import { fetchLibrary, type ImportItem, type LibraryStatus, startScan } from "../api/client";
+import {
+  deleteAllCopies,
+  deleteCopy,
+  fetchLibrary,
+  ignoreImport,
+  type ImportItem,
+  type LibraryStatus,
+  startScan,
+} from "../api/client";
 import { Artwork } from "../components/Artwork";
 import { LookupPanel } from "../components/LookupPanel";
 import { QueryError } from "../components/QueryError";
@@ -40,7 +48,16 @@ function QueueRow({ item }: { item: ImportItem }) {
   );
 }
 
+function useLibraryAction<T>(fn: (arg: T) => Promise<LibraryStatus>) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: fn,
+    onSuccess: (status) => client.setQueryData(libraryQuery.queryKey, status),
+  });
+}
+
 function ProblemRow({ item }: { item: ImportItem }) {
+  const ignore = useLibraryAction(ignoreImport);
   return (
     <li className="row">
       <span className="row__icon row__icon--warning" aria-hidden>
@@ -49,8 +66,93 @@ function ProblemRow({ item }: { item: ImportItem }) {
       <div className="row__text">
         <p className="row__title mono">{item.path}</p>
         <p className="row__meta">{item.problem}</p>
+        {ignore.error && <p className="row__meta row__meta--error">{ignore.error.message}</p>}
+      </div>
+      <button
+        className="link-button"
+        type="button"
+        disabled={ignore.isPending}
+        onClick={() => ignore.mutate(item.id)}
+        aria-label={`Ignore ${item.path}`}
+      >
+        Ignore
+      </button>
+    </li>
+  );
+}
+
+function CopyRow({ item }: { item: ImportItem }) {
+  const remove = useLibraryAction(deleteCopy);
+  const keep = useLibraryAction(ignoreImport);
+  const error = remove.error ?? keep.error;
+  return (
+    <li className="row">
+      <span className="row__icon" aria-hidden>
+        <Copy size={16} />
+      </span>
+      <div className="row__text">
+        <p className="row__title mono">{item.path}</p>
+        <p className="row__meta">{item.problem}</p>
+        {error && <p className="row__meta row__meta--error">{error.message}</p>}
+      </div>
+      <div className="actions">
+        <button
+          className="link-button"
+          type="button"
+          disabled={remove.isPending || keep.isPending}
+          onClick={() => keep.mutate(item.id)}
+          aria-label={`Keep ${item.path}`}
+        >
+          Keep
+        </button>
+        <button
+          className="button button--secondary"
+          type="button"
+          disabled={remove.isPending || keep.isPending}
+          onClick={() => remove.mutate(item.id)}
+          aria-label={`Delete ${item.path}`}
+        >
+          Delete copy
+        </button>
       </div>
     </li>
+  );
+}
+
+function Duplicates({ items }: { items: ImportItem[] }) {
+  const removeAll = useLibraryAction(deleteAllCopies);
+  const n = items.length;
+  return (
+    <section className="panel" aria-labelledby="copies-h">
+      <div className="panel__head">
+        <h2 id="copies-h" className="panel__title">
+          Duplicate copies · {number.format(n)}
+        </h2>
+        <button
+          className="button button--secondary"
+          type="button"
+          disabled={removeAll.isPending}
+          onClick={() => {
+            const what = n === 1 ? "this copy" : `these ${number.format(n)} copies`;
+            if (window.confirm(`Delete ${what} from the home computer? The songs stay in Hive.`)) {
+              removeAll.mutate(undefined);
+            }
+          }}
+        >
+          {removeAll.isPending ? "Deleting…" : n === 1 ? "Delete copy" : "Delete all copies"}
+        </button>
+      </div>
+      <p className="note">
+        These files are exact copies of songs already in Hive, so they were skipped and nothing is missing. Deleting a copy
+        removes only that file (Hive compares the two again first). Keep hides it from this list.
+      </p>
+      {removeAll.error && <p className="note note--error">{removeAll.error.message}</p>}
+      <ul className="rows">
+        {items.map((item) => (
+          <CopyRow key={item.id} item={item} />
+        ))}
+      </ul>
+    </section>
   );
 }
 
@@ -120,7 +222,13 @@ export function LibraryPage() {
             <article className="card">
               <h2 className="card__label">Needs attention</h2>
               <p className="card__value">{number.format(data.needsAttention.length)}</p>
-              <p className="card__meta">{data.needsAttention.length ? "Listed below" : "Every file was read"}</p>
+              <p className="card__meta">
+                {data.needsAttention.length
+                  ? "Listed below"
+                  : data.duplicates?.length
+                    ? `Every file was read · ${number.format(data.duplicates.length)} duplicate ${data.duplicates.length === 1 ? "copy" : "copies"}`
+                    : "Every file was read"}
+              </p>
             </article>
           </div>
 
@@ -181,6 +289,8 @@ export function LibraryPage() {
               <p className="note">Nothing. Every file in the music folders was read.</p>
             )}
           </section>
+
+          {data.duplicates && data.duplicates.length > 0 && <Duplicates items={data.duplicates} />}
 
           {data.recentlyAdded && data.recentlyAdded.length > 0 && (
             <section className="panel" aria-labelledby="recent-h">

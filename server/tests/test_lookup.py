@@ -167,6 +167,7 @@ class FakeInternet:
     def __init__(self) -> None:
         self.requests: list[str] = []
         self.down = False
+        self.archive_broken = False
 
     def __call__(self, request: httpx.Request) -> httpx.Response:
         url = urlsplit(str(request.url))
@@ -191,7 +192,18 @@ class FakeInternet:
                 return httpx.Response(200, json={"relations": [{"type": "wikidata",
                     "url": {"resource": "https://www.wikidata.org/wiki/Q100"}}]})  # fmt: skip
             return httpx.Response(200, json={"relations": []})
+        if url.hostname == "api.acoustid.org":
+            form = parse_qs(request.content.decode())
+            if form["client"][0] != "good-key":
+                return httpx.Response(
+                    400,
+                    json={"status": "error", "error": {"code": 4, "message": "invalid API key"}},
+                )
+            return httpx.Response(200, json={"status": "ok", "results": [{"score": 0.95,
+                "recordings": [{"id": "rec-1", "releases": [{"id": "rel-kob"}]}]}]})  # fmt: skip
         if url.hostname == "coverartarchive.org":
+            if self.archive_broken:
+                return httpx.Response(500)
             if "rel-kn" in url.path or "rel-kob" in url.path:
                 return httpx.Response(
                     200, content=cover_png((10, 200, 30)), headers={"content-type": "image/png"}
@@ -370,6 +382,62 @@ def test_fpcalc_installed_while_running_is_found(
     # brew install chromaprint, with Hive still running:
     monkeypatch.setattr(sources, "find_fpcalc", lambda: "/opt/homebrew/bin/fpcalc")
     assert _lookup(looked_home)["fingerprinting"] is True
+
+
+@pytest.fixture
+def fake_fpcalc(monkeypatch: pytest.MonkeyPatch) -> None:
+    from hive.library.lookup import sources
+
+    monkeypatch.setattr(sources, "find_fpcalc", lambda: "/usr/bin/fpcalc")
+    monkeypatch.setattr(sources, "fingerprint", lambda fpcalc, path: (180, "AQADtEmUaEkS"))
+
+
+@needs_ffmpeg
+def test_acoustid_test_shows_whether_it_works(looked_home: Home, fake_fpcalc) -> None:
+    home = looked_home
+    home.client.app.state.lookup.fpcalc = None  # found again through the fake
+    r = home.post("/api/v1/admin/library/lookup/test-acoustid").json()
+    assert_matches(r, "AcoustidTest")
+    assert r["ok"] is False and "key" in r["message"]
+
+    home.patch("/api/v1/admin/library/lookup", json={"acoustidKey": "typo-key"})
+    r = home.post("/api/v1/admin/library/lookup/test-acoustid").json()
+    assert r["ok"] is False and "doesn't recognise this key" in r["message"]
+    assert "doesn't recognise" in r["status"]["acoustidProblem"]
+
+    home.patch("/api/v1/admin/library/lookup", json={"acoustidKey": "good-key"})
+    status = _lookup(home)
+    assert "acoustidProblem" not in status  # a new key clears it
+    r = home.post("/api/v1/admin/library/lookup/test-acoustid").json()
+    assert r["ok"] is True and r["message"].startswith("Working")
+    assert "acoustidUsedAt" in r["status"]
+
+
+@needs_ffmpeg
+def test_albums_recognised_by_sound_are_counted(looked_home: Home, fake_fpcalc) -> None:
+    from hive.library.lookup import match as M
+
+    service = looked_home.client.app.state.lookup
+    service.fpcalc = None
+    service.configure(acoustid_key="good-key")
+    track = M.HomeTrack("Track 01", 120_000, 1, 1, "Unknown artist")
+    home_album = M.HomeAlbum("x", "Unknown album", "Unknown artist", None, None, False, [track])
+    release, _score, via = service._find_release(home_album, None, ["/music/Track 01.mp3"])
+    assert release is not None and release.id == "rel-kob" and via == "fingerprint"
+    assert service.status()["soundMatches"] == 1
+
+
+@needs_ffmpeg
+def test_a_broken_cover_does_not_stop_the_lookup(
+    looked_home: Home, internet: FakeInternet, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import time as _time
+
+    monkeypatch.setattr(_time, "sleep", lambda s: None)
+    internet.archive_broken = True
+    status = _lookup(looked_home)
+    assert status["found"] + status["review"] >= 1  # details still applied
+    assert "lastError" not in status
 
 
 @needs_ffmpeg

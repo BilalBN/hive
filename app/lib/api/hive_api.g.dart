@@ -1113,6 +1113,7 @@ class ImportItem {
   final String id;
   /// Relative to its music folder.
   final String path;
+  /// duplicate = an exact copy of a song already in the library, so it was skipped.
   final String status;
   /// Plain words
   final String? problem;
@@ -1174,6 +1175,7 @@ class LibraryStatus {
     this.ffmpeg,
     required this.queue,
     required this.needsAttention,
+    this.duplicates,
     this.recentlyAdded,
   });
 
@@ -1194,6 +1196,8 @@ class LibraryStatus {
   /// Up to 50 files waiting or being read.
   final List<ImportItem> queue;
   final List<ImportItem> needsAttention;
+  /// Exact copies of songs already in the library (up to 500). Not a problem; they can be deleted.
+  final List<ImportItem>? duplicates;
   /// Up to 10 albums added most recently.
   final List<AlbumSummary>? recentlyAdded;
 
@@ -1211,6 +1215,7 @@ class LibraryStatus {
         ffmpeg: json['ffmpeg'] == null ? null : json['ffmpeg'] as bool,
         queue: (json['queue'] as List<dynamic>).map((e) => ImportItem.fromJson((e as Map).cast<String, dynamic>())).toList(),
         needsAttention: (json['needsAttention'] as List<dynamic>).map((e) => ImportItem.fromJson((e as Map).cast<String, dynamic>())).toList(),
+        duplicates: json['duplicates'] == null ? null : (json['duplicates'] as List<dynamic>).map((e) => ImportItem.fromJson((e as Map).cast<String, dynamic>())).toList(),
         recentlyAdded: json['recentlyAdded'] == null ? null : (json['recentlyAdded'] as List<dynamic>).map((e) => AlbumSummary.fromJson((e as Map).cast<String, dynamic>())).toList(),
       );
 
@@ -1228,6 +1233,7 @@ class LibraryStatus {
         'ffmpeg': ?ffmpeg,
         'queue': queue.map((e) => e.toJson()).toList(),
         'needsAttention': needsAttention.map((e) => e.toJson()).toList(),
+        'duplicates': ?duplicates?.map((e) => e.toJson()).toList(),
         'recentlyAdded': ?recentlyAdded?.map((e) => e.toJson()).toList(),
       };
 }
@@ -1287,6 +1293,9 @@ class LookupStatus {
     required this.review,
     required this.failed,
     required this.edited,
+    this.soundMatches,
+    this.acoustidProblem,
+    this.acoustidUsedAt,
     this.lastError,
     this.sends,
   });
@@ -1304,6 +1313,12 @@ class LookupStatus {
   final int failed;
   /// Albums you corrected by hand.
   final int edited;
+  /// Albums recognised by the sound of their songs (AcoustID).
+  final int? soundMatches;
+  /// Why AcoustID turned Hive down last time
+  final String? acoustidProblem;
+  /// When AcoustID last answered.
+  final DateTime? acoustidUsedAt;
   /// Why the last lookup failed
   final String? lastError;
   /// What leaves home, in plain words, for the admin panel to show.
@@ -1320,6 +1335,9 @@ class LookupStatus {
         review: json['review'] as int,
         failed: json['failed'] as int,
         edited: json['edited'] as int,
+        soundMatches: json['soundMatches'] == null ? null : json['soundMatches'] as int,
+        acoustidProblem: json['acoustidProblem'] == null ? null : json['acoustidProblem'] as String,
+        acoustidUsedAt: json['acoustidUsedAt'] == null ? null : DateTime.parse(json['acoustidUsedAt'] as String),
         lastError: json['lastError'] == null ? null : json['lastError'] as String,
         sends: json['sends'] == null ? null : json['sends'] as String,
       );
@@ -1335,8 +1353,36 @@ class LookupStatus {
         'review': review,
         'failed': failed,
         'edited': edited,
+        'soundMatches': ?soundMatches,
+        'acoustidProblem': ?acoustidProblem,
+        'acoustidUsedAt': ?acoustidUsedAt?.toUtc().toIso8601String(),
         'lastError': ?lastError,
         'sends': ?sends,
+      };
+}
+
+class AcoustidTest {
+  const AcoustidTest({
+    required this.ok,
+    required this.message,
+    required this.status,
+  });
+
+  final bool ok;
+  /// What happened
+  final String message;
+  final LookupStatus status;
+
+  factory AcoustidTest.fromJson(Map<String, dynamic> json) => AcoustidTest(
+        ok: json['ok'] as bool,
+        message: json['message'] as String,
+        status: LookupStatus.fromJson((json['status'] as Map).cast<String, dynamic>()),
+      );
+
+  Map<String, dynamic> toJson() => {
+        'ok': ok,
+        'message': message,
+        'status': status.toJson(),
       };
 }
 

@@ -71,6 +71,12 @@ def library_status(request: Request, s) -> dict[str, Any]:
         .order_by(ImportItem.updated_at.desc())
         .limit(200)
     ).all()
+    duplicates = s.scalars(
+        select(ImportItem)
+        .where(ImportItem.status == "duplicate")
+        .order_by(ImportItem.path)
+        .limit(500)
+    ).all()
     recent = s.scalars(select(Album).order_by(Album.added_at.desc()).limit(10)).all()
     body: dict[str, Any] = {
         "tracks": tracks,
@@ -88,6 +94,7 @@ def library_status(request: Request, s) -> dict[str, Any]:
         "ffmpeg": library.ffmpeg is not None,
         "queue": [_item(i) for i in queue],
         "needsAttention": [_item(i) for i in failed],
+        "duplicates": [_item(i) for i in duplicates],
         "recentlyAdded": album_summaries(s, recent),
     }
     if library.last_scan_at is not None:
@@ -103,6 +110,50 @@ def admin_list_imports(request: Request, caller: CallerDep, s: SessionDep) -> di
 @router.post("/library/scan")
 def admin_start_scan(request: Request, caller: CallerDep, s: SessionDep) -> dict[str, Any]:
     request.app.state.library.scan_in_background()
+    return library_status(request, s)
+
+
+def _import_id(import_id: str) -> int:
+    if not import_id.isdigit():
+        raise HTTPException(404, "No such file in the import list")
+    return int(import_id)
+
+
+@router.post("/library/imports/{importId}/ignore")
+def admin_ignore_import(
+    importId: str,
+    request: Request,
+    caller: CallerDep,
+    s: SessionDep,  # noqa: N803
+) -> dict[str, Any]:
+    if not request.app.state.library.ignore(_import_id(importId)):
+        raise HTTPException(404, "That file isn't in Needs attention any more")
+    return library_status(request, s)
+
+
+@router.post("/library/imports/{importId}/delete-copy")
+def admin_delete_copy(
+    importId: str,
+    request: Request,
+    caller: CallerDep,
+    s: SessionDep,  # noqa: N803
+) -> dict[str, Any]:
+    if request.app.state.library.delete_copy(_import_id(importId)) is None:
+        raise HTTPException(
+            409,
+            "Hive couldn't confirm the song in the library is still the same file, "
+            "so the copy was kept",
+        )
+    return library_status(request, s)
+
+
+@router.post("/library/imports/delete-copies")
+def admin_delete_copies(request: Request, caller: CallerDep, s: SessionDep) -> dict[str, Any]:
+    library = request.app.state.library
+    ids = s.scalars(select(ImportItem.id).where(ImportItem.status == "duplicate")).all()
+    for i in ids:
+        library.delete_copy(i)
+    s.expire_all()
     return library_status(request, s)
 
 
@@ -166,6 +217,12 @@ def admin_update_lookup(
 def admin_retry_lookup(request: Request, body: LookupRetryBody, caller: CallerDep) -> dict:
     _lookup(request).retry(body.albumIds, bool(body.all))
     return _lookup(request).status()
+
+
+@router.post("/library/lookup/test-acoustid")
+def admin_test_acoustid(request: Request, caller: CallerDep) -> dict[str, Any]:
+    ok, message = _lookup(request).test_acoustid()
+    return {"ok": ok, "message": message, "status": _lookup(request).status()}
 
 
 FILTERS = {

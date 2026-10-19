@@ -56,6 +56,30 @@ export async function startScan(): Promise<LibraryStatus> {
   return data;
 }
 
+/** Take a file off Needs attention or Duplicate copies (it comes back if the file changes). */
+export async function ignoreImport(importId: string): Promise<LibraryStatus> {
+  const { data, error, response } = await api.POST("/api/v1/admin/library/imports/{importId}/ignore", {
+    params: { path: { importId } },
+  });
+  if (!data) fail(response, error);
+  return data;
+}
+
+/** Delete one exact copy from disk; the server compares both files again first. */
+export async function deleteCopy(importId: string): Promise<LibraryStatus> {
+  const { data, error, response } = await api.POST("/api/v1/admin/library/imports/{importId}/delete-copy", {
+    params: { path: { importId } },
+  });
+  if (!data) fail(response, error);
+  return data;
+}
+
+export async function deleteAllCopies(): Promise<LibraryStatus> {
+  const { data, error, response } = await api.POST("/api/v1/admin/library/imports/delete-copies");
+  if (!data) fail(response, error);
+  return data;
+}
+
 export async function fetchDevelopmentKey(): Promise<string> {
   const { data, error, response } = await api.GET("/api/v1/admin/development-key");
   if (!data) fail(response, error);
@@ -92,6 +116,14 @@ export async function updateLookup(body: { enabled?: boolean; acoustidKey?: stri
 
 export async function retryLookup(body: { albumIds?: string[]; all?: boolean }): Promise<LookupStatus> {
   const { data, error, response } = await api.POST("/api/v1/admin/library/lookup/retry", { body });
+  if (!data) fail(response, error);
+  return data;
+}
+
+export type AcoustidTest = components["schemas"]["AcoustidTest"];
+
+export async function testAcoustid(): Promise<AcoustidTest> {
+  const { data, error, response } = await api.POST("/api/v1/admin/library/lookup/test-acoustid");
   if (!data) fail(response, error);
   return data;
 }

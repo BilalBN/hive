@@ -868,6 +868,61 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/library/imports/{importId}/ignore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                importId: components["parameters"]["ImportId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Take a file off Needs attention or Duplicate copies. It comes back if the file changes. */
+        post: operations["adminIgnoreImport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/library/imports/{importId}/delete-copy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                importId: components["parameters"]["ImportId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Delete an exact copy of a song in the library from disk, after comparing the two files again. */
+        post: operations["adminDeleteCopy"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/library/imports/delete-copies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Delete every exact copy listed under Duplicate copies, each compared again first. */
+        post: operations["adminDeleteCopies"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/library/scan": {
         parameters: {
             query?: never;
@@ -914,6 +969,23 @@ export interface paths {
         put?: never;
         /** Look albums up again (the ones named, or every one that found nothing or failed). */
         post: operations["adminRetryLookup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/library/lookup/test-acoustid": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Fingerprint one song and ask AcoustID about it, to show the key and fpcalc work. */
+        post: operations["adminTestAcoustid"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1545,8 +1617,11 @@ export interface components {
             id: string;
             /** @description Relative to its music folder. */
             path: string;
-            /** @enum {string} */
-            status: "queued" | "working" | "done" | "failed";
+            /**
+             * @description duplicate = an exact copy of a song already in the library, so it was skipped.
+             * @enum {string}
+             */
+            status: "queued" | "working" | "done" | "failed" | "duplicate" | "ignored";
             /** @description Plain words */
             problem?: string;
             /** Format: date-time */
@@ -1576,6 +1651,8 @@ export interface components {
             /** @description Up to 50 files waiting or being read. */
             queue: components["schemas"]["ImportItem"][];
             needsAttention: components["schemas"]["ImportItem"][];
+            /** @description Exact copies of songs already in the library (up to 500). Not a problem; they can be deleted. */
+            duplicates?: components["schemas"]["ImportItem"][];
             /** @description Up to 10 albums added most recently. */
             recentlyAdded?: components["schemas"]["AlbumSummary"][];
         };
@@ -1604,10 +1681,25 @@ export interface components {
             failed: number;
             /** @description Albums you corrected by hand. */
             edited: number;
+            /** @description Albums recognised by the sound of their songs (AcoustID). */
+            soundMatches?: number;
+            /** @description Why AcoustID turned Hive down last time */
+            acoustidProblem?: string;
+            /**
+             * Format: date-time
+             * @description When AcoustID last answered.
+             */
+            acoustidUsedAt?: string;
             /** @description Why the last lookup failed */
             lastError?: string;
             /** @description What leaves home, in plain words, for the admin panel to show. */
             sends?: string;
+        };
+        AcoustidTest: {
+            ok: boolean;
+            /** @description What happened */
+            message: string;
+            status: components["schemas"]["LookupStatus"];
         };
         /** @enum {string} */
         LookupState: "off" | "waiting" | "working" | "found" | "review" | "notFound" | "failed" | "edited";
@@ -1714,6 +1806,15 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
+        /** @description Can't be done in the current state; the detail says why. */
+        Conflict: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["Problem"];
+            };
+        };
         /** @description Temporarily can't do it (for example FFmpeg is missing for a lossy quality). */
         Unavailable: {
             headers: {
@@ -1750,6 +1851,7 @@ export interface components {
         AlbumId: string;
         ArtistId: string;
         TrackId: string;
+        ImportId: string;
         PlaylistId: string;
         Offset: number;
         Limit: number;
@@ -2810,6 +2912,76 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
         };
     };
+    adminIgnoreImport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                importId: components["parameters"]["ImportId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Library status. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryStatus"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    adminDeleteCopy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                importId: components["parameters"]["ImportId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Library status. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryStatus"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    adminDeleteCopies: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Library status. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryStatus"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
     adminStartScan: {
         parameters: {
             query?: never;
@@ -2898,6 +3070,27 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LookupStatus"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    adminTestAcoustid: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The result. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcoustidTest"];
                 };
             };
             401: components["responses"]["Unauthorized"];

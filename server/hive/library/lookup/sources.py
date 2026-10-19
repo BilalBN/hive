@@ -22,7 +22,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from hive.library.lookup.http import Http
+from hive.library.lookup.http import Http, Offline
 
 log = logging.getLogger("hive.lookup")
 
@@ -214,7 +214,14 @@ def cover_art(http: Http, release_id: str, release_group_id: str | None) -> byte
     ):
         if not path:
             continue
-        r = http.request("GET", f"{CAA}/{path}", headers={"Accept": "image/*"})
+        try:
+            r = http.request("GET", f"{CAA}/{path}", headers={"Accept": "image/*"})
+        except Offline as e:
+            # The images live on archive.org, whose servers sometimes fail one
+            # file for hours. The album's other details still count; "Look up
+            # again" fetches the cover later.
+            log.info("cover not downloaded: %s", e)
+            return None
         if r is not None and r.headers.get("content-type", "").startswith("image/"):
             return r.content
     return None
@@ -341,11 +348,15 @@ def fingerprint(fpcalc: str, path: Path) -> tuple[int, str] | None:
         return None
 
 
-def acoustid_releases(http: Http, key: str, duration: int, fp: str) -> list[tuple[str, float]]:
-    """(release id, score) for the recordings this fingerprint matches."""
+class AcoustIdRefused(Exception):
+    """AcoustID answered with an error, such as a key it doesn't know."""
+
+
+def _acoustid(http: Http, key: str, duration: int, fp: str) -> dict[str, Any]:
     r = http.request(
         "POST",
         ACOUSTID,
+        keep_errors=True,
         data={
             "client": key,
             "duration": str(duration),
@@ -354,11 +365,26 @@ def acoustid_releases(http: Http, key: str, duration: int, fp: str) -> list[tupl
         },
     )
     if r is None:
-        return []
+        raise AcoustIdRefused("AcoustID didn't answer")
     try:
         data = r.json()
     except ValueError:
-        return []
+        raise AcoustIdRefused(f"AcoustID answered HTTP {r.status_code}") from None
+    if data.get("status") != "ok":
+        err = data.get("error") or {}
+        if err.get("code") == 4:
+            raise AcoustIdRefused(
+                "AcoustID doesn't recognise this key. Copy the API key of your "
+                "application from acoustid.org/my-applications"
+            )
+        raise AcoustIdRefused(f"AcoustID said: {err.get('message') or 'error'}")
+    return data
+
+
+def acoustid_releases(http: Http, key: str, duration: int, fp: str) -> list[tuple[str, float]]:
+    """(release id, score) for the recordings this fingerprint matches.
+    AcoustIdRefused when AcoustID turns the request down."""
+    data = _acoustid(http, key, duration, fp)
     out: list[tuple[str, float]] = []
     for res in data.get("results", []) or []:
         score = float(res.get("score", 0))

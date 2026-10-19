@@ -693,6 +693,15 @@ code {
   color: var(--hv-warning);
 }
 
+.note--error,
+.row__meta--error {
+  color: var(--hv-danger);
+}
+
+.row .actions {
+  flex: none;
+}
+
 .switch {
   display: inline-flex;
   align-items: center;

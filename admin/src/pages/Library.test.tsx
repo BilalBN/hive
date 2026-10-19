@@ -1,7 +1,7 @@
 import { fireEvent, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { library, mockApi } from "../test/mockApi";
+import { library, lookup, mockApi } from "../test/mockApi";
 import { renderAt } from "../test/render";
 
 afterEach(() => vi.unstubAllGlobals());
@@ -45,6 +45,57 @@ describe("Library page", () => {
     expect(screen.getByText("Reading")).toBeInTheDocument();
     expect(screen.getByText(/2 files to go/)).toBeInTheDocument();
     expect(fetchMock.mock.calls.some(([r]) => (r as Request).method === "POST")).toBe(true);
+  });
+
+  it("lists duplicate copies apart and deletes them", async () => {
+    const copy = {
+      id: "9",
+      path: "Uploads/English/New/Perfect.mp3",
+      status: "duplicate" as const,
+      problem: "Same file as Uploads/English/Perfect.mp3, so it was skipped",
+      updatedAt: "2026-10-18T06:00:00Z",
+    };
+    const withCopies = { ...library, duplicates: [copy, { ...copy, id: "10", path: "Uploads/English/New/Kiss me.mp3" }] };
+    const cleaned = { ...library, duplicates: [] };
+    const fetchMock = mockApi({
+      "GET /api/v1/admin/library/imports": { body: withCopies },
+      "POST /api/v1/admin/library/imports/delete-copies": { body: cleaned },
+      "POST /api/v1/admin/library/imports/7/ignore": { body: { ...withCopies, needsAttention: [] } },
+    });
+    vi.stubGlobal("confirm", () => true);
+    renderAt("/library");
+    expect(await screen.findByText("Duplicate copies · 2")).toBeInTheDocument();
+    expect(screen.getByText("Uploads/English/New/Perfect.mp3")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Ignore Incoming/broken.mp3" }));
+    expect(await screen.findByText(/Nothing. Every file/)).toBeInTheDocument();
+    expect(screen.getByText(/2 duplicate copies/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Delete all copies" }));
+    await vi.waitFor(() => expect(screen.queryByText(/Duplicate copies/)).not.toBeInTheDocument());
+    const posts = fetchMock.mock.calls.map(([r]) => r as Request).filter((r) => r.method === "POST");
+    expect(posts.map((r) => new URL(r.url).pathname)).toEqual([
+      "/api/v1/admin/library/imports/7/ignore",
+      "/api/v1/admin/library/imports/delete-copies",
+    ]);
+  });
+
+  it("tests the AcoustID key and says what's wrong", async () => {
+    const ready = { ...lookup, acoustidKey: true, fingerprinting: true };
+    mockApi({
+      "GET /api/v1/admin/library/lookup": { body: ready },
+      "POST /api/v1/admin/library/lookup/test-acoustid": {
+        body: {
+          ok: false,
+          message: "AcoustID doesn't recognise this key. Copy the API key of your application from acoustid.org/my-applications",
+          status: ready,
+        },
+      },
+    });
+    renderAt("/library");
+    expect(await screen.findByText("Recognising songs with no useful tags by their sound: on")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Test it" }));
+    expect(await screen.findByText(/doesn't recognise this key/)).toBeInTheDocument();
   });
 
   it("explains that Hive Admin opens on the home computer for now", async () => {

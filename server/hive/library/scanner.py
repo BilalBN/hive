@@ -127,6 +127,13 @@ class Library:
         """When this version reads more from files than the last one did (M1.5:
         composers, lyricists, language, folder grouping), read every file again."""
         with Session(self.db.engine) as s:
+            # Hive 0.1 listed exact copies with the problems.
+            s.execute(
+                update(ImportItem)
+                .where(ImportItem.status == "failed", ImportItem.problem.like("Same file as %"))
+                .values(status="duplicate")
+            )
+            s.commit()
             meta = s.get(ServerMeta, "library_version")
             if meta is not None and meta.value.isdigit() and int(meta.value) >= LIBRARY_VERSION:
                 return
@@ -194,7 +201,7 @@ class Library:
                 return False
             elif (
                 not force
-                and item.status == "failed"
+                and item.status in ("failed", "duplicate", "ignored")
                 and item.size == st.st_size
                 and item.mtime == st.st_mtime
             ):
@@ -220,9 +227,58 @@ class Library:
         key = str(path)
         with self._write_lock, Session(self.db.engine) as s:
             s.execute(delete(ImportItem).where(ImportItem.path == key))
-            s.execute(delete(Track).where(Track.path == key))
+            gone = s.execute(delete(Track).where(Track.path == key)).rowcount
             _prune(s)
             s.commit()
+        if gone:
+            self._requeue_copies()
+
+    def _requeue_copies(self) -> None:
+        """A song's file went away: a copy of it, skipped until now, takes its
+        place (read again, the first copy becomes the song)."""
+        with Session(self.db.engine) as s:
+            copies = s.scalars(
+                select(ImportItem.path).where(ImportItem.status == "duplicate")
+            ).all()
+        for p in copies:
+            if Path(p).exists():
+                self.enqueue(Path(p), force=True)
+
+    # ------------------------------------------------------- needs attention
+    def ignore(self, item_id: int) -> bool:
+        """Leave a problem file alone; it comes back if the file changes."""
+        with self._write_lock, Session(self.db.engine) as s:
+            item = s.get(ImportItem, item_id)
+            if item is None or item.status not in ("failed", "duplicate"):
+                return False
+            item.status = "ignored"
+            s.commit()
+        return True
+
+    def delete_copy(self, item_id: int) -> str | None:
+        """Delete an exact copy of a song that's in the library. The bytes are
+        compared again first, so nothing is lost. The copy's path, or None."""
+        with Session(self.db.engine) as s:
+            item = s.get(ImportItem, item_id)
+            if item is None or item.status != "duplicate":
+                return None
+            path, folder = Path(item.path), Path(item.folder)
+        if not path.is_file():
+            return None
+        digest = sha256_of(path)
+        with Session(self.db.engine) as s:
+            twins = s.scalars(
+                select(Track.path).where(Track.sha256 == digest, Track.path != str(path))
+            ).all()
+        # The song in the library must still be on disk with the same bytes.
+        if not any(Path(t).is_file() and sha256_of(Path(t)) == digest for t in twins):
+            return None
+        rel = _relative(path, self.folders)
+        path.unlink()
+        self.forget(path)
+        _remove_empty_folders(path.parent, folder)
+        log.info("deleted a copy of a song in the library")
+        return rel
 
     def scan_in_background(self) -> None:
         with self._scan_lock:
@@ -278,6 +334,7 @@ class Library:
                 s.commit()
             if gone:
                 log.info("removed %d songs whose files are gone", len(gone))
+                self._requeue_copies()
             log.info("scan finished: %d files to read", queued)
         finally:
             self.scanning = False
@@ -388,7 +445,8 @@ class Library:
             return None, twin
 
         def skip(reason: str) -> None:
-            self._finish(item.id, "failed", reason, size=st.st_size, mtime=st.st_mtime)
+            # Only exact copies reach here: they're listed apart from problems.
+            self._finish(item.id, "duplicate", reason, size=st.st_size, mtime=st.st_mtime)
 
         # A first look before the slow work (loudness), so copies cost nothing.
         with Session(self.db.engine) as s:
@@ -437,7 +495,7 @@ class Library:
                 update(ImportItem)
                 .where(ImportItem.path == copy_path)
                 .values(
-                    status="failed",
+                    status="duplicate",
                     problem=f"Same file as {rel}, so it was skipped",
                     track_id=None,
                     updated_at=_now(),
@@ -457,6 +515,26 @@ class Library:
             )
         )
         s.commit()
+
+
+# Files an OS leaves in a folder; a folder holding only these counts as empty.
+_LITTER = {".DS_Store", "Thumbs.db", "desktop.ini"}
+
+
+def _remove_empty_folders(folder: Path, root: Path) -> None:
+    """Remove [folder] and its parents up to (not including) the music folder,
+    while they hold nothing but OS litter."""
+    while folder != root and root in folder.parents:
+        try:
+            entries = list(folder.iterdir())
+            if any(e.name not in _LITTER or e.is_dir() for e in entries):
+                return
+            for e in entries:
+                e.unlink()
+            folder.rmdir()
+        except OSError:
+            return
+        folder = folder.parent
 
 
 def _relative(path: Path, folders: list[Path]) -> str:

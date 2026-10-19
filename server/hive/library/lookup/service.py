@@ -16,6 +16,7 @@ from __future__ import annotations
 import json
 import logging
 import threading
+import time
 from dataclasses import asdict
 from datetime import UTC, datetime
 from pathlib import Path
@@ -114,6 +115,7 @@ class LookupService:
             self._set_meta("lookup_enabled", "1" if enabled else "0")
         if acoustid_key is not None:
             self._set_meta("acoustid_key", acoustid_key.strip() or None)
+            self._set_meta("acoustid_problem", None)
         self.last_error = None
         self.wake()
 
@@ -166,6 +168,7 @@ class LookupService:
     def _run(self) -> None:
         done = 0
         announced = False
+        stuck: str | None = None  # the album that last hit "can't be reached"
         while not self._stop.is_set():
             if not self.enabled:
                 self._sleep(30)
@@ -180,15 +183,26 @@ class LookupService:
             if not announced:
                 log.info("lookup started: finding covers and film details online")
                 announced = True
+            started = time.monotonic()
             try:
                 self.working = True
                 self.look_up(album_id)
                 self.last_error = None
+                stuck = None
                 done += 1
                 if done % 25 == 0:
                     self._progress(done, finished=False)
             except Offline as e:
                 self.last_error = str(e)
+                if album_id == stuck and self.http.answered_since(started):
+                    # The same album failed after the pause too, while other
+                    # requests got answers: something about this album (one
+                    # broken file on a source), not the internet. Set it
+                    # aside so the rest carry on.
+                    self._set_state(album_id, "failed", f"{e}. Try Look up again later.")
+                    stuck = None
+                    continue
+                stuck = album_id
                 self._set_state(album_id, "waiting", None)
                 log.info("lookup paused: %s", e)
                 self._sleep(self.pause_seconds)
@@ -333,7 +347,14 @@ class LookupService:
             fp = S.fingerprint(self.fpcalc, Path(p))
             if fp is None:
                 continue
-            for rid, score in S.acoustid_releases(self.http, self.acoustid_key, *fp):
+            try:
+                hits = S.acoustid_releases(self.http, self.acoustid_key, *fp)
+            except S.AcoustIdRefused as e:
+                log.info("recognition by sound stopped: %s", e)
+                self._set_meta("acoustid_problem", str(e))
+                break
+            self._acoustid_worked()
+            for rid, score in hits:
                 votes[rid] = votes.get(rid, 0.0) + score
         for rid, _ in sorted(votes.items(), key=lambda kv: -kv[1])[:2]:
             full = S.mb_release(self.http, rid)
@@ -343,7 +364,44 @@ class LookupService:
             sc = max(M.release_score(home, full), 0.6 + 0.4 * paired)
             if sc > best[1]:
                 best = (full, sc)
-        return best[0], best[1], "fingerprint" if best[0] and best[0].id in votes else "name"
+        if best[0] is not None and best[0].id in votes:
+            self._set_meta("sound_matches", str(int(self._meta("sound_matches") or 0) + 1))
+            return best[0], best[1], "fingerprint"
+        return best[0], best[1], "name"
+
+    def _acoustid_worked(self) -> None:
+        self._set_meta("acoustid_problem", None)
+        self._set_meta("acoustid_used_at", _now().isoformat())
+
+    def test_acoustid(self) -> tuple[bool, str]:
+        """Fingerprint one song and ask AcoustID about it: proves fpcalc and the key."""
+        if not self.acoustid_key:
+            return False, "Add an AcoustID key first."
+        if not self.fpcalc:
+            return False, (
+                "fpcalc wasn't found on the home computer. Install Chromaprint "
+                "(brew install chromaprint on a Mac)."
+            )
+        with Session(self.db.engine) as s:
+            paths = s.scalars(select(Track.path).order_by(Track.added_at).limit(20)).all()
+        fp = None
+        for p in paths:
+            if Path(p).exists() and (fp := S.fingerprint(self.fpcalc, Path(p))):
+                break
+        if fp is None:
+            return False, "fpcalc couldn't read any of your songs. Add a song and try again."
+        try:
+            hits = S.acoustid_releases(self.http, self.acoustid_key, *fp)
+        except S.AcoustIdRefused as e:
+            self._set_meta("acoustid_problem", str(e))
+            return False, str(e)
+        except Offline as e:
+            return False, f"{e}. Check the internet connection and try again."
+        self._acoustid_worked()
+        known = "and recognised it" if hits else "and checked it (that song isn't in AcoustID)"
+        return True, (
+            f"Working: fpcalc fingerprinted one of your songs, AcoustID accepted the key {known}."
+        )
 
     def _find_film(
         self, home: M.HomeAlbum, release: S.MbRelease | None
@@ -487,6 +545,7 @@ class LookupService:
             "review": counts.get("review", 0),
             "failed": counts.get("failed", 0),
             "edited": edited or 0,
+            "soundMatches": int(self._meta("sound_matches") or 0),
             "sends": SENDS.format(
                 fp=", and fingerprints of songs with no useful tags go to AcoustID"
                 if key and self.fpcalc
@@ -495,6 +554,10 @@ class LookupService:
         }
         if self.last_error:
             body["lastError"] = self.last_error
+        if problem := self._meta("acoustid_problem"):
+            body["acoustidProblem"] = problem
+        if used := self._meta("acoustid_used_at"):
+            body["acoustidUsedAt"] = used
         return body
 
 

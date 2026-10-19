@@ -3,7 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { Globe, Loader } from "lucide-react";
 import { useId, useState } from "react";
 
-import { fetchLookup, type LookupStatus, retryLookup, updateLookup } from "../api/client";
+import { type AcoustidTest, fetchLookup, type LookupStatus, retryLookup, testAcoustid, updateLookup } from "../api/client";
 import { QueryError } from "./QueryError";
 
 export const lookupQuery = {
@@ -18,6 +18,7 @@ const number = new Intl.NumberFormat();
 function summary(s: LookupStatus): string {
   if (!s.enabled) return "Off. Albums show what their files say, and nothing is looked up.";
   const parts = [`${number.format(s.found)} filled in`];
+  if (s.soundMatches) parts.push(`${number.format(s.soundMatches)} recognised by sound`);
   if (s.review) parts.push(`${number.format(s.review)} to check`);
   if (s.notFound) parts.push(`${number.format(s.notFound)} not found`);
   if (s.failed) parts.push(`${number.format(s.failed)} couldn't be looked up`);
@@ -33,11 +34,22 @@ export function LookupPanel() {
   const keyId = useId();
   const save = (status: LookupStatus) => client.setQueryData(lookupQuery.queryKey, status);
   const toggle = useMutation({ mutationFn: (enabled: boolean) => updateLookup({ enabled }), onSuccess: save });
+  const [tested, setTested] = useState<AcoustidTest | null>(null);
+  const test = useMutation({
+    mutationFn: testAcoustid,
+    onSuccess: (r) => {
+      setTested(r);
+      save(r.status);
+    },
+  });
   const setAcoustid = useMutation({
     mutationFn: (acoustidKey: string) => updateLookup({ acoustidKey }),
-    onSuccess: (s) => {
+    onSuccess: (s, acoustidKey) => {
       save(s);
       setKey("");
+      setTested(null);
+      // A new key is tried straight away, so a typo shows now rather than later.
+      if (acoustidKey && s.fingerprinting) test.mutate();
     },
   });
   const retry = useMutation({ mutationFn: () => retryLookup({ all: true }), onSuccess: save });
@@ -113,6 +125,31 @@ export function LookupPanel() {
                   ? " fpcalc is installed; add the key below."
                   : " fpcalc wasn't found on the home computer yet."}
             </p>
+            {data.acoustidKey && data.fingerprinting && (
+              <div className="actions">
+                <button
+                  className="button button--secondary"
+                  type="button"
+                  disabled={test.isPending}
+                  onClick={() => test.mutate()}
+                >
+                  {test.isPending ? "Testing…" : "Test it"}
+                </button>
+                <span
+                  className={(tested ? !tested.ok : !!data.acoustidProblem) ? "note note--error" : "note"}
+                  role="status"
+                >
+                  {tested
+                    ? tested.message
+                    : data.acoustidProblem
+                      ? data.acoustidProblem
+                      : data.acoustidUsedAt
+                        ? `Working. AcoustID last answered ${new Date(data.acoustidUsedAt).toLocaleString()}.`
+                        : "Not used yet. Test it to check the key and fpcalc together."}
+                </span>
+              </div>
+            )}
+            {test.error && <QueryError error={test.error} retry={() => test.mutate()} />}
             <form
               className="key-form"
               onSubmit={(e) => {

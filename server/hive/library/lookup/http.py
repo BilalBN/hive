@@ -44,6 +44,7 @@ class Http:
         )
         self._last: dict[str, float] = {}
         self._lock = threading.Lock()
+        self._answered_at = 0.0
         # Tests turn the waiting off.
         self.spacing = dict(SPACING)
 
@@ -57,8 +58,11 @@ class Http:
                 time.sleep(wait)
             self._last[host] = time.monotonic()
 
-    def request(self, method: str, url: str, **kw: Any) -> httpx.Response | None:
-        """The response, None for 404, or Offline when the source can't answer."""
+    def request(
+        self, method: str, url: str, *, keep_errors: bool = False, **kw: Any
+    ) -> httpx.Response | None:
+        """The response, None for 404 (and other refusals unless [keep_errors]),
+        or Offline when the source can't answer."""
         for attempt in range(3):
             self._wait_turn(url)
             try:
@@ -69,18 +73,24 @@ class Http:
                     raise Offline(f"{host} can't be reached ({type(e).__name__})") from e
                 time.sleep(2 * (attempt + 1))
                 continue
-            if r.status_code == 404:
-                return None
             if r.status_code in (429, 500, 502, 503, 504):
                 if attempt == 2:
                     raise Offline(f"{urlsplit(url).hostname} is busy (HTTP {r.status_code})")
                 time.sleep(float(r.headers.get("Retry-After", "") or 2 * (attempt + 1)))
                 continue
-            if r.status_code >= 400:
-                log.info("%s answered %s for %s", urlsplit(url).hostname, r.status_code, url)
+            self._answered_at = time.monotonic()
+            if r.status_code == 404:
+                return None
+            if r.status_code >= 400 and not keep_errors:
+                # Not the URL: it carries album names.
+                log.info("%s answered HTTP %s", urlsplit(url).hostname, r.status_code)
                 return None
             return r
         return None
+
+    def answered_since(self, t: float) -> bool:
+        """Some source answered after monotonic time [t]: the internet works."""
+        return self._answered_at > t
 
     def json(self, url: str, **params: Any) -> Any:
         r = self.request("GET", url, params=params)
