@@ -87,7 +87,7 @@ describe("Library page", () => {
       "POST /api/v1/admin/library/lookup/test-acoustid": {
         body: {
           ok: false,
-          message: "AcoustID doesn't recognise this key. Copy the API key of your application from acoustid.org/my-applications",
+          message: "AcoustID doesn't accept this key. Hive needs an application key, not the key for your own account",
           status: ready,
         },
       },
@@ -95,7 +95,7 @@ describe("Library page", () => {
     renderAt("/library");
     expect(await screen.findByText("Recognising songs with no useful tags by their sound: on")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Test it" }));
-    expect(await screen.findByText(/doesn't recognise this key/)).toBeInTheDocument();
+    expect(await screen.findByText(/doesn't accept this key/)).toBeInTheDocument();
   });
 
   it("explains that Hive Admin opens on the home computer for now", async () => {

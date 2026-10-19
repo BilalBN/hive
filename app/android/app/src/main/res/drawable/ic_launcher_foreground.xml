@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The Hive hexagon (admin/public/favicon.svg) placed in the 72dp safe zone
+     of a 108dp adaptive icon: the favicon's 32-unit box scaled by 2.25. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:translateX="18"
+        android:translateY="18"
+        android:scaleX="2.25"
+        android:scaleY="2.25">
+        <path
+            android:fillColor="#00000000"
+            android:strokeColor="#FF1C1208"
+            android:strokeWidth="2.4"
+            android:strokeLineJoin="round"
+            android:pathData="M16,7 L23.8,11.5 L23.8,20.5 L16,25 L8.2,20.5 L8.2,11.5 Z" />
+    </group>
+</vector>

@@ -118,7 +118,8 @@ export function LookupPanel() {
             <p className="note">
               With a free AcoustID application key and Chromaprint's <code>fpcalc</code> on the home computer (
               <code>brew install chromaprint</code>), Hive can recognise songs named "Track 01" by a fingerprint of their
-              sound. Get a key at <span className="mono">acoustid.org/new-application</span>.
+              sound. Register an application at <span className="mono">acoustid.org/new-application</span> (any name, such
+              as Hive) and paste the API key shown for that application, not the key for your own account.
               {data.acoustidKey && data.fingerprinting
                 ? " Both are in place. It's used only for albums whose names alone weren't enough."
                 : data.fingerprinting

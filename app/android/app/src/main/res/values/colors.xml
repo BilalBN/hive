@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Hive accent, behind the launcher hexagon. -->
+    <color name="ic_launcher_background">#F2994A</color>
+    <!-- The app's background while it starts (design/tokens.json bg). -->
+    <color name="splash_background">#FAF8F5</color>
+</resources>

@@ -339,7 +339,9 @@ class LookupService:
             sc = M.release_score(home, full)
             if sc > best[1]:
                 best = (full, sc)
-        if best[1] >= M.FOUND or not self.acoustid_key or not self.fpcalc:
+        # A key AcoustID turned down isn't tried again until it's changed.
+        refused = self._meta("acoustid_problem") is not None
+        if best[1] >= M.FOUND or not self.acoustid_key or not self.fpcalc or refused:
             return best[0], best[1], "name"
         # Recognise the songs by their sound.
         votes: dict[str, float] = {}

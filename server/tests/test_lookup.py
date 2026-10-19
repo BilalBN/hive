@@ -402,8 +402,8 @@ def test_acoustid_test_shows_whether_it_works(looked_home: Home, fake_fpcalc) ->
 
     home.patch("/api/v1/admin/library/lookup", json={"acoustidKey": "typo-key"})
     r = home.post("/api/v1/admin/library/lookup/test-acoustid").json()
-    assert r["ok"] is False and "doesn't recognise this key" in r["message"]
-    assert "doesn't recognise" in r["status"]["acoustidProblem"]
+    assert r["ok"] is False and "doesn't accept this key" in r["message"]
+    assert "application key" in r["status"]["acoustidProblem"]
 
     home.patch("/api/v1/admin/library/lookup", json={"acoustidKey": "good-key"})
     status = _lookup(home)
@@ -414,7 +414,9 @@ def test_acoustid_test_shows_whether_it_works(looked_home: Home, fake_fpcalc) ->
 
 
 @needs_ffmpeg
-def test_albums_recognised_by_sound_are_counted(looked_home: Home, fake_fpcalc) -> None:
+def test_albums_recognised_by_sound_are_counted(
+    looked_home: Home, internet: FakeInternet, fake_fpcalc
+) -> None:
     from hive.library.lookup import match as M
 
     service = looked_home.client.app.state.lookup
@@ -425,6 +427,14 @@ def test_albums_recognised_by_sound_are_counted(looked_home: Home, fake_fpcalc) 
     release, _score, via = service._find_release(home_album, None, ["/music/Track 01.mp3"])
     assert release is not None and release.id == "rel-kob" and via == "fingerprint"
     assert service.status()["soundMatches"] == 1
+
+    # A key AcoustID turned down isn't sent again for every album.
+    service.configure(acoustid_key="typo-key")
+    service._find_release(home_album, None, ["/music/Track 01.mp3"])
+    asked = len([r for r in internet.requests if r.startswith("api.acoustid.org")])
+    _release, _score, via = service._find_release(home_album, None, ["/music/Track 01.mp3"])
+    assert via == "name"
+    assert len([r for r in internet.requests if r.startswith("api.acoustid.org")]) == asked
 
 
 @needs_ffmpeg

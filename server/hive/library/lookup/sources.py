@@ -374,8 +374,10 @@ def _acoustid(http: Http, key: str, duration: int, fp: str) -> dict[str, Any]:
         err = data.get("error") or {}
         if err.get("code") == 4:
             raise AcoustIdRefused(
-                "AcoustID doesn't recognise this key. Copy the API key of your "
-                "application from acoustid.org/my-applications"
+                "AcoustID doesn't accept this key. Hive needs an application key, "
+                "not the key for your own account: register an application at "
+                "acoustid.org/new-application (any name, such as Hive) and paste "
+                "the API key it shows for that application"
             )
         raise AcoustIdRefused(f"AcoustID said: {err.get('message') or 'error'}")
     return data
