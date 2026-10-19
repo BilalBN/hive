@@ -245,6 +245,18 @@ class FakeHomeAdapter implements HttpClientAdapter {
         newAtHome: empty ? const [] : albumSummaries,
         playlists: empty ? const [] : [playlistSummary(roadTrip)],
         libraryEmpty: empty,
+        recentlyPlayed: empty || language != null
+            ? const []
+            : [premam.tracks[0], lagaan.tracks[1]],
+        onRepeat: const [],
+        forYou: empty ? const [] : albumSummaries.reversed.toList(),
+        films: empty
+            ? const []
+            : [
+                for (final a in albums)
+                  if (a.film != null) summaryOf(a),
+              ],
+        artists: empty ? const [] : artists,
       ).toJson();
     }
     if (path == '/api/v1/library/albums') {

@@ -30,6 +30,7 @@ MB = "https://musicbrainz.org/ws/2"
 CAA = "https://coverartarchive.org"
 WIKIDATA = "https://www.wikidata.org/w/api.php"
 ACOUSTID = "https://api.acoustid.org/v2/lookup"
+LRCLIB = "https://lrclib.net/api"
 
 FILM_TYPES = {"Q11424", "Q24869", "Q202866", "Q506240", "Q229390", "Q24862", "Q93204"}
 
@@ -395,3 +396,111 @@ def acoustid_releases(http: Http, key: str, duration: int, fp: str) -> list[tupl
                 if rel.get("id"):
                     out.append((rel["id"], score))
     return out
+
+
+# ------------------------------------------------------------------ songs
+
+
+@dataclass
+class MbSongRelease:
+    id: str
+    title: str
+    artist: str | None
+    year: int | None
+    status: str | None
+    release_group_id: str | None
+    primary_type: str | None
+    secondary_types: list[str]
+
+
+@dataclass
+class MbSong:
+    """A MusicBrainz recording: one song, and the releases it's on."""
+
+    id: str
+    title: str
+    artist: str
+    length_ms: int | None
+    score: int  # MusicBrainz's search score, 0-100 (100 for a direct lookup)
+    releases: list[MbSongRelease] = field(default_factory=list)
+
+
+def _song(r: dict[str, Any], score: int | None = None) -> MbSong:
+    releases = []
+    for rel in r.get("releases") or []:
+        rg = rel.get("release-group") or {}
+        releases.append(
+            MbSongRelease(
+                id=rel["id"],
+                title=rel.get("title", ""),
+                artist=_credit_name(rel.get("artist-credit")) or None,
+                year=_year(rel.get("date")),
+                status=rel.get("status"),
+                release_group_id=rg.get("id"),
+                primary_type=rg.get("primary-type"),
+                secondary_types=list(rg.get("secondary-types") or []),
+            )
+        )
+    return MbSong(
+        id=r["id"],
+        title=r.get("title", ""),
+        artist=_credit_name(r.get("artist-credit")),
+        length_ms=r.get("length"),
+        score=int(r.get("score", 0) if score is None else score),
+        releases=releases,
+    )
+
+
+def mb_recordings(http: Http, title: str, artist: str | None, limit: int = 8) -> list[MbSong]:
+    """Songs called [title] (by [artist]), with the releases each is on."""
+    q = f'recording:"{_lucene(title)}"'
+    if artist:
+        q += f' AND artist:"{_lucene(artist)}"'
+    data = http.json(f"{MB}/recording/", query=q, fmt="json", limit=limit)
+    return [_song(r) for r in (data or {}).get("recordings", []) if r.get("id")]
+
+
+def mb_recording(http: Http, recording_id: str) -> MbSong | None:
+    data = http.json(
+        f"{MB}/recording/{recording_id}", inc="releases+artist-credits+release-groups", fmt="json"
+    )
+    return _song(data, score=100) if data and data.get("id") else None
+
+
+def acoustid_recordings(http: Http, key: str, duration: int, fp: str) -> list[tuple[str, float]]:
+    """(recording id, score) for the songs this fingerprint matches.
+    AcoustIdRefused when AcoustID turns the request down."""
+    data = _acoustid(http, key, duration, fp)
+    out: list[tuple[str, float]] = []
+    for res in data.get("results", []) or []:
+        score = float(res.get("score", 0))
+        for rec in res.get("recordings", []) or []:
+            if rec.get("id"):
+                out.append((rec["id"], score))
+    return out
+
+
+# ------------------------------------------------------------------ LRCLIB
+
+
+def lrclib_lyrics(
+    http: Http, title: str, artist: str, album: str | None, duration_s: int
+) -> str | None:
+    """Lyrics from LRCLIB (an open, free lyrics database): timed when it has
+    them. None when it doesn't know the song or it's an instrumental."""
+    params: dict[str, Any] = {"track_name": title, "artist_name": artist, "duration": duration_s}
+    if album:
+        params["album_name"] = album
+    data = http.json(f"{LRCLIB}/get", **params)
+    if not data:
+        # Looser: any version of the song within a few seconds of this one.
+        hits = http.json(f"{LRCLIB}/search", track_name=title, artist_name=artist) or []
+        close = [
+            h
+            for h in hits
+            if isinstance(h, dict) and abs(float(h.get("duration") or 0) - duration_s) <= 3
+        ]
+        data = close[0] if close else None
+    if not data or data.get("instrumental"):
+        return None
+    return (data.get("syncedLyrics") or data.get("plainLyrics") or "").strip() or None

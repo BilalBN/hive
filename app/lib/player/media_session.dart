@@ -44,7 +44,7 @@ class HiveAudioHandler extends BaseAudioHandler with SeekHandler {
             artUri: t.artworkId == null || config == null
                 ? null
                 : config.address.resolve(
-                    '/api/v1/media/artwork/${t.artworkId}?size=600',
+                    '/api/v1/media/artwork/${t.artworkId}?size=300',
                   ),
             artHeaders: config?.authHeaders,
           ),
@@ -144,6 +144,12 @@ Future<void> initAudio(ProviderContainer container) async {
         androidNotificationChannelName: 'Playback',
         androidNotificationIcon: 'drawable/ic_stat_hive',
         androidStopForegroundOnPause: true,
+        // Android passes the cover to the lock screen and notification as a
+        // bitmap, twice, in one message limited to about 1 MB. A 600 px cover
+        // is 1.4 MB per copy, so the system closed the app the moment a song
+        // with a cover started. 256 px keeps both copies well under the limit.
+        artDownscaleWidth: 256,
+        artDownscaleHeight: 256,
       ),
     );
   } catch (e) {

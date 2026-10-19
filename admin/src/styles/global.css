@@ -949,3 +949,42 @@ code {
   font: var(--hv-type-body);
   font-weight: 600;
 }
+
+/* ---------------------------------------------------------------- lyrics */
+.row--stack {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.row__line {
+  display: flex;
+  align-items: center;
+  gap: var(--hv-space-sm);
+  min-width: 0;
+}
+
+.lyrics-editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hv-space-xs);
+  padding: var(--hv-space-sm) 0 var(--hv-space-sm) 40px;
+}
+
+.lyrics-editor__label {
+  font: var(--hv-type-callout);
+  font-weight: 600;
+}
+
+.lyrics-editor__text {
+  width: 100%;
+  min-height: 12rem;
+  resize: vertical;
+  font-family: inherit;
+  line-height: 1.5;
+}
+
+@media (max-width: 640px) {
+  .lyrics-editor {
+    padding-left: 0;
+  }
+}

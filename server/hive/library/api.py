@@ -95,7 +95,105 @@ def get_home(caller: CallerDep, s: SessionDep, language: LanguageQ = None) -> di
         "newAtHome": album_summaries(s, newest),
         "playlists": playlist_summaries(s, caller, s.scalars(playlists).all()),
         "libraryEmpty": s.scalar(select(func.count()).select_from(Track)) == 0,
+        **_home_rows(s, caller, language),
     }
+
+
+def _daily_order(caller: Caller, salt: str):
+    """A fresh order each day, different for each person, steady within a day."""
+    import hashlib
+
+    day = _now().date().isoformat()
+
+    def key(item_id: str) -> str:
+        return hashlib.sha1(f"{day}:{caller.user_id}:{salt}:{item_id}".encode()).hexdigest()
+
+    return key
+
+
+def _home_rows(s: Session, caller: Caller, language: str | None) -> dict[str, Any]:
+    """Home's rows beyond Jump back in: what you played, picks for you, films
+    and artists, so Home has something to offer from the first day."""
+    mine = (PlayCount.track_id == Track.id) & (PlayCount.user_id == caller.user_id)
+    plays = select(Track, PlayCount.count, PlayCount.last_played_at).join(PlayCount, mine)
+    if language:
+        plays = plays.where(_tracks_in_language(language))
+    by_time = plays.order_by(PlayCount.last_played_at.desc()).limit(12)
+    recent = [t for t, _n, _at in s.execute(by_time)]
+    on_repeat = [
+        t
+        for t, _n, _at in s.execute(
+            plays.where(PlayCount.count >= 3).order_by(PlayCount.count.desc()).limit(12)
+        )
+    ]
+
+    albums_q = select(Album)
+    if language:
+        albums_q = albums_q.where(_in_language(language))
+    albums = s.scalars(albums_q).all()
+    # Picks: albums by the singers and in the languages you play, that you
+    # haven't played lately; the rest of the library fills in, a new mix daily.
+    played = s.execute(
+        select(Track.album_id, Album.artist_id, Album.language, PlayCount.last_played_at)
+        .join(PlayCount, mine)
+        .join(Album, Album.id == Track.album_id)
+    ).all()
+    fresh = _now().timestamp() - 14 * 86400
+    recently_played_albums = {
+        a for a, _ar, _l, at in played if at and _aware(at).timestamp() > fresh
+    }
+    liked_artists = {ar for _a, ar, _l, _at in played if ar}
+    liked_languages = {lang for _a, _ar, lang, _at in played if lang}
+    order = _daily_order(caller, "picks")
+
+    def pick_rank(a: Album) -> tuple:
+        affinity = (a.artist_id in liked_artists) + (a.language in liked_languages)
+        return (a.id in recently_played_albums, -affinity, order(a.id))
+
+    picks = sorted(albums, key=pick_rank)[:12]
+    film_order = _daily_order(caller, "films")
+    films = sorted((a for a in albums if a.film_title), key=lambda a: film_order(a.id))[:12]
+
+    top_artist_ids = [
+        artist_id
+        for artist_id, _n in s.execute(
+            select(Track.artist_id, func.sum(PlayCount.count).label("n"))
+            .join(PlayCount, mine)
+            .where(Track.artist_id.is_not(None))
+            .group_by(Track.artist_id)
+            .order_by(func.sum(PlayCount.count).desc())
+            .limit(12)
+        )
+    ]
+    if len(top_artist_ids) < 12:
+        # Then the artists with the most albums at home.
+        busiest = s.execute(
+            select(Album.artist_id)
+            .where(Album.artist_id.is_not(None), Album.artist_key != "various artists")
+            .group_by(Album.artist_id)
+            .order_by(func.count(Album.id).desc())
+            .limit(24)
+        ).scalars()
+        for artist_id in busiest:
+            if artist_id not in top_artist_ids and len(top_artist_ids) < 12:
+                top_artist_ids.append(artist_id)
+    artists = [a for a in (s.get(Artist, i) for i in top_artist_ids) if a is not None]
+    if language:
+        in_lang = set(s.scalars(select(Album.artist_id).where(_in_language(language))))
+        artists = [a for a in artists if a.id in in_lang]
+
+    return {
+        "recentlyPlayed": track_summaries(s, caller, recent),
+        "onRepeat": track_summaries(s, caller, on_repeat),
+        "forYou": album_summaries(s, picks),
+        "films": album_summaries(s, films),
+        "artists": artist_summaries(s, artists),
+    }
+
+
+def _aware(dt: datetime) -> datetime:
+    """SQLite hands back naive times; they're UTC."""
+    return dt if dt.tzinfo else dt.replace(tzinfo=UTC)
 
 
 def _tile(s: Session, caller: Caller, kind: str, ref_id: str) -> dict[str, Any] | None:

@@ -48,6 +48,7 @@ def create_app(settings: Settings | None = None, lookup_http: Http | None = None
             app.state.library.artwork,
             app.state.library._write_lock,
             http=lookup_http,
+            requeue=lambda path: app.state.library.enqueue(path, force=True),
         )
         if settings.lookup_worker:
             app.state.lookup.start()

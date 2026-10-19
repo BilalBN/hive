@@ -27,6 +27,7 @@ SPACING = {
     "coverartarchive.org": 0.5,
     "www.wikidata.org": 0.3,
     "api.acoustid.org": 0.4,
+    "lrclib.net": 0.5,
 }
 
 

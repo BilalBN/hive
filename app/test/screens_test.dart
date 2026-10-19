@@ -44,6 +44,39 @@ void main() {
     expect(find.text('Road trip'), findsWidgets);
   });
 
+  testWidgets('Home is never bare: songs you played, picks, films, artists', (
+    tester,
+  ) async {
+    await pumpConnected(tester);
+    expect(find.text('Recently played'), findsOneWidget);
+    expect(find.text('Picked for you'), findsOneWidget);
+    final home = find
+        .descendant(
+          of: find.byType(CustomScrollView),
+          matching: find.byType(Scrollable),
+        )
+        .first;
+    await tester.scrollUntilVisible(
+      find.text('Artists'),
+      300,
+      scrollable: home,
+    );
+    expect(find.text('From the movies'), findsOneWidget);
+    expect(find.text('Artists'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('Recently played'),
+      -300,
+      scrollable: home,
+    );
+    // A recently played song plays from Home, with the rest of the row next.
+    await tester.tap(find.bySemanticsLabel(RegExp('^Song: മലരേ')));
+    await tester.pumpAndSettle();
+    expect(find.bySemanticsLabel(RegExp('^Now playing: മലരേ')), findsOneWidget);
+    final s = containerOf(tester).read(playerProvider);
+    expect(s.upNext.map((e) => e.track.title), ['मितवा']);
+    expect(s.source!.name, 'Recently played');
+  });
+
   testWidgets('search finds a Malayalam song and plays it', (tester) async {
     await pumpConnected(tester);
     await tester.tap(find.bySemanticsLabel('Search'));
@@ -162,7 +195,7 @@ void main() {
     await pumpConnected(tester);
     expect(find.text('All'), findsOneWidget);
     expect(find.text('Malayalam'), findsOneWidget);
-    expect(find.text('New at home'), findsOneWidget);
+    expect(find.text('Picked for you'), findsOneWidget);
     expect(find.text('Premam'), findsWidgets);
     await tester.tap(find.text('Hindi'));
     await tester.pumpAndSettle();

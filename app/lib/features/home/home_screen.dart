@@ -26,7 +26,8 @@ String greeting(DateTime now) {
 }
 
 /// Home (design 1a): a quick-pick grid of what you played recently, then
-/// "New at home" and the family's playlists.
+/// rows of songs you played, picks for you, new albums, films, artists and
+/// the family's playlists, so there's always something to start from.
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
@@ -177,6 +178,12 @@ class HomeScreen extends ConsumerWidget {
         ),
       ];
     }
+    final size = wide ? 168.0 : 144.0;
+    final recent = home.recentlyPlayed ?? const <TrackSummary>[];
+    final onRepeat = home.onRepeat ?? const <TrackSummary>[];
+    final forYou = home.forYou ?? const <AlbumSummary>[];
+    final films = home.films ?? const <AlbumSummary>[];
+    final artists = home.artists ?? const <ArtistSummary>[];
     return [
       if (home.jumpBackIn.isNotEmpty) ...[
         const SizedBox(height: HiveSpace.md),
@@ -185,13 +192,33 @@ class HomeScreen extends ConsumerWidget {
           child: _QuickPicks(tiles: home.jumpBackIn, columns: wide ? 3 : 2),
         ),
       ],
+      if (recent.isNotEmpty) ...[
+        const SectionHeader('Recently played'),
+        _SongRow(songs: recent, size: size, from: 'Recently played'),
+      ],
+      if (forYou.isNotEmpty) ...[
+        const SectionHeader('Picked for you'),
+        _AlbumRow(albums: forYou, size: size),
+      ],
       if (home.newAtHome.isNotEmpty) ...[
         const SectionHeader('New at home'),
-        _AlbumRow(albums: home.newAtHome, size: wide ? 168 : 144),
+        _AlbumRow(albums: home.newAtHome, size: size),
+      ],
+      if (onRepeat.isNotEmpty) ...[
+        const SectionHeader('On repeat'),
+        _SongRow(songs: onRepeat, size: size, from: 'On repeat'),
+      ],
+      if (films.isNotEmpty) ...[
+        const SectionHeader('From the movies'),
+        _AlbumRow(albums: films, size: size, films: true),
+      ],
+      if (artists.isNotEmpty) ...[
+        const SectionHeader('Artists'),
+        _ArtistRow(artists: artists, size: wide ? 136 : 112),
       ],
       if (home.playlists.isNotEmpty) ...[
         const SectionHeader('Playlists'),
-        _PlaylistRow(playlists: home.playlists, size: wide ? 168 : 144),
+        _PlaylistRow(playlists: home.playlists, size: size),
       ],
     ];
   }
@@ -307,10 +334,100 @@ class _QuickPick extends StatelessWidget {
   }
 }
 
+/// Songs as cover tiles; a tap plays the row from that song.
+class _SongRow extends ConsumerWidget {
+  const _SongRow({required this.songs, required this.size, required this.from});
+  final List<TrackSummary> songs;
+  final double size;
+  final String from;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return SizedBox(
+      height: size + 52,
+      child: ScrollConfiguration(
+        behavior: const DragScrollBehavior(),
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: HiveSpace.md),
+          itemCount: songs.length,
+          separatorBuilder: (_, _) => const SizedBox(width: HiveSpace.sm),
+          itemBuilder: (context, i) {
+            final t = songs[i];
+            return CoverTile(
+              width: size,
+              semanticsKind: 'Song',
+              title: t.title,
+              subtitle: t.artistName,
+              art: Artwork(
+                artworkId: t.artworkId,
+                title: t.albumTitle,
+                size: size,
+              ),
+              onTap: () => ref
+                  .read(playerProvider.notifier)
+                  .playTracks(
+                    songs,
+                    start: i,
+                    source: PlaySource(kind: 'songs', id: from, name: from),
+                  ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _ArtistRow extends StatelessWidget {
+  const _ArtistRow({required this.artists, required this.size});
+  final List<ArtistSummary> artists;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: size + 52,
+      child: ScrollConfiguration(
+        behavior: const DragScrollBehavior(),
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: HiveSpace.md),
+          itemCount: artists.length,
+          separatorBuilder: (_, _) => const SizedBox(width: HiveSpace.sm),
+          itemBuilder: (context, i) {
+            final a = artists[i];
+            return CoverTile(
+              width: size,
+              semanticsKind: 'Artist',
+              title: a.name,
+              subtitle: plural(a.trackCount, 'song'),
+              art: Artwork(
+                artworkId: a.artworkId,
+                title: a.name,
+                size: size,
+                round: true,
+              ),
+              onTap: () => context.openArtist(a.id),
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
 class _AlbumRow extends StatelessWidget {
-  const _AlbumRow({required this.albums, required this.size});
+  const _AlbumRow({
+    required this.albums,
+    required this.size,
+    this.films = false,
+  });
   final List<AlbumSummary> albums;
   final double size;
+
+  /// Captioned with the film and its year rather than the album artist.
+  final bool films;
 
   @override
   Widget build(BuildContext context) {
@@ -327,8 +444,10 @@ class _AlbumRow extends StatelessWidget {
             final a = albums[i];
             return CoverTile(
               width: size,
-              title: a.title,
-              subtitle: a.artistName,
+              title: films ? (a.filmTitle ?? a.title) : a.title,
+              subtitle: films
+                  ? [a.artistName, if (a.year != null) '${a.year}'].join(' · ')
+                  : a.artistName,
               art: Artwork(artworkId: a.artworkId, title: a.title, size: size),
               onTap: () => context.openAlbum(a.id),
             );

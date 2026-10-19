@@ -67,6 +67,35 @@ void main() {
     );
   });
 
+  test(
+    'choosing a song while the next one takes over keeps the chosen song',
+    () async {
+      final (c, engine, _) = await setUpPlayer();
+      final p = c.read(playerProvider.notifier);
+      await p.playTracks(album);
+      // The engine moves on to t2 by itself, and in the same moment a song is
+      // tapped in a list: the tapped one must play, and stay loaded.
+      final choosing = p.playTracks([track('x1'), track('x2')]);
+      await engine.advance();
+      await choosing;
+      await pump();
+      expect(c.read(playerProvider).track!.id, 'x1');
+      expect(engine.loaded, ['x1', 'x2']);
+    },
+  );
+
+  test('switching songs quickly lands on the last one chosen', () async {
+    final (c, engine, _) = await setUpPlayer();
+    final p = c.read(playerProvider.notifier);
+    await p.playTracks(album);
+    final first = p.playTracks(album, start: 2);
+    final second = p.playTracks(album, start: 4);
+    await Future.wait([first, second]);
+    await pump();
+    expect(c.read(playerProvider).track!.id, 't5');
+    expect(engine.loaded, ['t5']);
+  });
+
   test('next, previous and the 3-second rule', () async {
     final (c, engine, _) = await setUpPlayer();
     final p = c.read(playerProvider.notifier);

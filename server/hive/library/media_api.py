@@ -17,6 +17,7 @@ from hive.auth import CallerDep, read_ticket, sign_ticket
 from hive.library import audio as A
 from hive.library.api import SessionDep
 from hive.library.artwork import SIZES
+from hive.library.lyrics import choose as choose_lyrics
 from hive.library.lyrics import parse as parse_lyrics
 from hive.library.tags import UnreadableFile, read_file
 from hive.library.views import audio_format, iso, track_format
@@ -213,13 +214,14 @@ async def get_lyrics(trackId: str, caller: CallerDep, s: SessionDep) -> dict[str
     t = s.get(Track, trackId)
     if t is None:
         raise HTTPException(404, "No such song")
-    raw = None
-    if t.has_lyrics:
+    file_text = None
+    if t.has_lyrics and t.lyrics_source != "admin":
         try:
             info = await run_in_threadpool(read_file, Path(t.path), Path(t.folder))
-            raw = info.lyrics
+            file_text = info.lyrics
         except (UnreadableFile, OSError):
-            raw = None
+            file_text = None
+    raw, _source = choose_lyrics(file_text, t.lyrics, t.lyrics_source)
     kind, lines = parse_lyrics(raw)
     return {
         "kind": kind,

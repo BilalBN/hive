@@ -16,6 +16,10 @@ from hive.auth import CallerDep
 from hive.library import catalog as C
 from hive.library import text as T
 from hive.library.api import SessionDep, _like_all, album_body
+from hive.library.lookup.http import Offline
+from hive.library.lyrics import choose as choose_lyrics
+from hive.library.lyrics import parse as parse_lyrics
+from hive.library.tags import UnreadableFile, read_file
 from hive.library.views import album_summaries, iso
 from hive.models import Album, Artist, ImportItem, Track
 
@@ -417,3 +421,90 @@ def admin_decide_match(
         raise HTTPException(409, "Nothing is waiting for review on this album")
     s.expire_all()
     return _admin_album(request, s, caller, _album_or_404(s, albumId))
+
+
+# ------------------------------------------------------------------ lyrics
+
+
+class LyricsEditBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    text: str = Field(max_length=100_000)
+
+
+def _lyrics_body(t: Track) -> dict[str, Any]:
+    file_text = None
+    try:
+        file_text = read_file(Path(t.path), Path(t.folder)).lyrics
+    except (UnreadableFile, OSError):
+        file_text = None
+    text, source = choose_lyrics(file_text, t.lyrics, t.lyrics_source)
+    kind, _lines = parse_lyrics(text)
+    return {
+        "text": text or "",
+        "source": source,
+        "kind": kind,
+        "fileHasLyrics": bool(file_text and file_text.strip()),
+    }
+
+
+def _track(s: Session, track_id: str) -> Track:
+    t = s.get(Track, track_id)
+    if t is None:
+        raise HTTPException(404, "No such song")
+    return t
+
+
+@router.get("/library/tracks/{trackId}/lyrics")
+def admin_get_lyrics(trackId: str, caller: CallerDep, s: SessionDep) -> dict[str, Any]:  # noqa: N803
+    return _lyrics_body(_track(s, trackId))
+
+
+@router.put("/library/tracks/{trackId}/lyrics")
+def admin_set_lyrics(
+    trackId: str,  # noqa: N803
+    body: LyricsEditBody,
+    request: Request,
+    caller: CallerDep,
+    s: SessionDep,
+) -> dict[str, Any]:
+    """Lyrics typed or pasted in Hive Admin (plain, or timed LRC). Empty goes
+    back to the file's own lyrics, or ones found online."""
+    with request.app.state.library._write_lock:
+        t = _track(s, trackId)
+        text = body.text.strip()
+        if text:
+            t.lyrics, t.lyrics_source = text, "admin"
+        elif t.lyrics_source == "admin":
+            t.lyrics, t.lyrics_source = None, None
+            t.lyrics_checked_at = None  # may be found online again
+        try:
+            file_text = read_file(Path(t.path), Path(t.folder)).lyrics
+        except (UnreadableFile, OSError):
+            file_text = None
+        t.has_lyrics = bool(t.lyrics) or bool(file_text and file_text.strip())
+        s.commit()
+    return _lyrics_body(t)
+
+
+@router.post("/library/tracks/{trackId}/lyrics/find")
+def admin_find_lyrics(
+    trackId: str,  # noqa: N803
+    request: Request,
+    caller: CallerDep,
+    s: SessionDep,
+) -> dict[str, Any]:
+    """Ask LRCLIB for this song's lyrics. Nothing is saved: Hive Admin shows
+    them for checking first."""
+    t = _track(s, trackId)
+    album = s.get(Album, t.album_id)
+    try:
+        text = request.app.state.lookup.find_lyrics(
+            t.title, t.artist_name, album.title if album else None, t.duration_ms
+        )
+    except Offline as e:
+        return {"found": False, "message": f"{e}. Check the internet connection and try again."}
+    if not text:
+        return {"found": False, "message": "LRCLIB doesn't have lyrics for this song."}
+    kind, _lines = parse_lyrics(text)
+    timed = "Timed lyrics" if kind == "synced" else "Lyrics"
+    return {"found": True, "text": text, "kind": kind, "message": f"{timed} from LRCLIB."}

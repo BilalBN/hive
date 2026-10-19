@@ -17,6 +17,7 @@ import json
 import logging
 import threading
 import time
+from collections.abc import Callable
 from dataclasses import asdict
 from datetime import UTC, datetime
 from pathlib import Path
@@ -32,8 +33,10 @@ from hive.library import languages as L
 from hive.library import text as T
 from hive.library.artwork import ArtworkStore
 from hive.library.lookup import match as M
+from hive.library.lookup import songs as SG
 from hive.library.lookup import sources as S
 from hive.library.lookup.http import Http, Offline
+from hive.library.tags import UnreadableFile, read_file
 from hive.models import Album, Credit, ServerMeta, Track
 
 log = logging.getLogger("hive.lookup")
@@ -41,7 +44,8 @@ log = logging.getLogger("hive.lookup")
 INDIAN = {"ml", "hi", "ta", "te", "kn", "bn", "pa", "gu", "mr", "ur"}
 SENDS = (
     "Album and artist names, song titles and lengths go to MusicBrainz, Cover Art "
-    "Archive and Wikidata{fp}. Never the music itself, and nothing about who listens."
+    "Archive and Wikidata, and to LRCLIB for lyrics{fp}. Never the music itself, and "
+    "nothing about who listens."
 )
 
 
@@ -57,12 +61,16 @@ class LookupService:
         artwork: ArtworkStore,
         library_lock: threading.Lock,
         http: Http | None = None,
+        requeue: Callable[[Path], object] | None = None,
     ) -> None:
         self.settings = settings
         self.db = db
         self.artwork = artwork
         self.lock = library_lock  # the scanner's write lock: one writer at a time
         self.http = http or Http()
+        # Reads a song's file again (the scanner's enqueue with force), so a
+        # song looked up on its own moves to its real album.
+        self.requeue = requeue or (lambda path: None)
         self._fpcalc = S.find_fpcalc()
         self._wake = threading.Event()
         self._stop = threading.Event()
@@ -178,7 +186,23 @@ class LookupService:
                 if done:
                     self._progress(done, finished=True)
                 done, announced = 0, False
-                self._sleep(10)
+                # Albums first; then lyrics for songs that have none.
+                lyrics_for = self._next_lyrics()
+                if lyrics_for is None:
+                    self._sleep(10)
+                    continue
+                try:
+                    self.working = True
+                    self.fetch_lyrics(lyrics_for)
+                except Offline as e:
+                    self.last_error = str(e)
+                    log.info("lyrics paused: %s", e)
+                    self._sleep(self.pause_seconds)
+                except Exception:  # noqa: BLE001 - one odd song must not stop the rest
+                    log.exception("lyrics lookup failed for a song")
+                    self._mark_lyrics_checked(lyrics_for)
+                finally:
+                    self.working = False
                 continue
             if not announced:
                 log.info("lookup started: finding covers and film details online")
@@ -212,6 +236,21 @@ class LookupService:
                 self._set_state(album_id, "failed", note)
             finally:
                 self.working = False
+
+    def _mark_lyrics_checked(self, track_id: str) -> None:
+        with self.lock, Session(self.db.engine) as s:
+            t = s.get(Track, track_id)
+            if t is not None:
+                t.lyrics_checked_at = _now()
+                s.commit()
+
+    def run_lyrics_until_idle(self, limit: int = 100) -> int:
+        """For tests: look up lyrics for every song waiting for them."""
+        n = 0
+        while n < limit and (track_id := self._next_lyrics()):
+            self.fetch_lyrics(track_id)
+            n += 1
+        return n
 
     def run_until_idle(self, limit: int = 100) -> int:
         """For tests and the CLI: look up every waiting album now."""
@@ -262,9 +301,25 @@ class LookupService:
             home = self._home_album(s, album)
             mbid = album.mbid_release
             paths = [p for p in s.scalars(select(Track.path).where(Track.album_id == album.id))][:3]
+            # No song names its album: the album is just the folder's name.
+            loose = not s.scalar(
+                select(func.count())
+                .select_from(Track)
+                .where(Track.album_id == album.id, Track.album_tagged.is_(True))
+            )
         self._set_state(album_id, "working", None)
 
         release, rscore, via = self._find_release(home, mbid, paths)
+        if loose and not (release is not None and rscore >= M.FOUND):
+            # A folder of loose songs ("English", "New"): not an album at all.
+            # Each song is found on its own and moves to its real album.
+            found, total = self._look_up_songs(album_id)
+            if found:
+                note = (
+                    f"Looked up song by song: {found} of {total} found, and moved to their albums."
+                )
+                self._set_state(album_id, "found" if found == total else "notFound", note)
+                return
         film, fscore = self._find_film(home, release)
 
         sure_release = release is not None and rscore >= M.FOUND
@@ -312,6 +367,119 @@ class LookupService:
             a.lookup_candidate = None
             a.lookup_at = _now()
             s.commit()
+
+    # ------------------------------------------------------------ lyrics
+    def find_lyrics(
+        self, title: str, artist: str, album: str | None, duration_ms: int
+    ) -> str | None:
+        """Lyrics from LRCLIB for one song, timed when it has them."""
+        clean = SG.tidy(title)
+        album_name = None if album in (None, "Unknown album") else album
+        return S.lrclib_lyrics(self.http, clean, artist, album_name, round(duration_ms / 1000))
+
+    def _next_lyrics(self) -> str | None:
+        """A song with no lyrics that hasn't been checked online yet, once its
+        album's details have settled (so its name is the right one)."""
+        with Session(self.db.engine) as s:
+            return s.scalar(
+                select(Track.id)
+                .join(Album, Album.id == Track.album_id)
+                .where(
+                    Track.has_lyrics.is_(False),
+                    Track.lyrics_checked_at.is_(None),
+                    Album.lookup_state.not_in(("waiting", "working")),
+                )
+                .order_by(Track.added_at)
+                .limit(1)
+            )
+
+    def fetch_lyrics(self, track_id: str) -> bool:
+        """Look one song's lyrics up online and keep them. True when found."""
+        with Session(self.db.engine) as s:
+            t = s.get(Track, track_id)
+            if t is None:
+                return False
+            album = s.get(Album, t.album_id)
+            args = (t.title, t.artist_name, album.title if album else None, t.duration_ms)
+        text = self.find_lyrics(*args)
+        with self.lock, Session(self.db.engine) as s:
+            t = s.get(Track, track_id)
+            if t is None:
+                return False
+            t.lyrics_checked_at = _now()
+            if text and not t.has_lyrics:
+                t.lyrics, t.lyrics_source, t.has_lyrics = text, "online", True
+            s.commit()
+        return bool(text)
+
+    # ------------------------------------------------------------ one song
+    def _look_up_songs(self, album_id: str) -> tuple[int, int]:
+        """Find each loose song of [album_id] on MusicBrainz (by its cleaned
+        name, or by its sound). (songs found, songs tried)."""
+        with Session(self.db.engine) as s:
+            rows = s.execute(
+                select(
+                    Track.id, Track.path, Track.folder, Track.duration_ms, Track.lookup_state
+                ).where(Track.album_id == album_id)
+            ).all()
+        found = 0
+        for track_id, path, folder, duration_ms, state in rows:
+            if state == "found":
+                found += 1
+                continue
+            result = self._look_up_song(Path(path), Path(folder), duration_ms)
+            with self.lock, Session(self.db.engine) as s:
+                t = s.get(Track, track_id)
+                if t is None:
+                    continue
+                t.lookup_state = "found" if result else "notFound"
+                if result:
+                    t.lookup = json.dumps(result)
+                s.commit()
+            if result:
+                found += 1
+                self.requeue(Path(path))
+        return found, len(rows)
+
+    def _look_up_song(self, path: Path, root: Path, duration_ms: int) -> dict | None:
+        try:
+            raw = read_file(path, root)
+        except (UnreadableFile, OSError):
+            return None
+        rel = path.relative_to(root).parent.parts if root in path.parents else ()
+        hints = list(reversed(rel))  # the nearest folder first
+        artist = None if raw.artist_from_folder else raw.artist
+        best: tuple[S.MbSong | None, float] = (None, 0.0)
+        for q in SG.queries(raw.title or path.stem, artist, hints):
+            for song in S.mb_recordings(self.http, q.title, q.artist, limit=5):
+                sc = SG.song_score(q, duration_ms, song)
+                if sc > best[1]:
+                    best = (song, sc)
+            if best[1] >= 0.95:
+                break
+        song, score = best
+        refused = self._meta("acoustid_problem") is not None
+        if score < SG.SURE and self.acoustid_key and self.fpcalc and not refused:
+            fp = S.fingerprint(self.fpcalc, path)
+            hits: list[tuple[str, float]] = []
+            if fp is not None:
+                try:
+                    hits = S.acoustid_recordings(self.http, self.acoustid_key, *fp)
+                    self._acoustid_worked()
+                except S.AcoustIdRefused as e:
+                    log.info("recognition by sound stopped: %s", e)
+                    self._set_meta("acoustid_problem", str(e))
+            for rid, sound_score in hits[:2]:
+                if sound_score < 0.85:
+                    continue
+                heard = S.mb_recording(self.http, rid)
+                if heard is not None:
+                    song, score = heard, max(score, sound_score)
+                    self._set_meta("sound_matches", str(int(self._meta("sound_matches") or 0) + 1))
+                    break
+        if song is None or score < SG.SURE:
+            return None
+        return SG.found_record(song, SG.best_release(song))
 
     def _find_release(
         self, home: M.HomeAlbum, mbid: str | None, paths: list[str]

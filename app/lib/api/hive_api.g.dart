@@ -665,6 +665,11 @@ class Home {
     required this.newAtHome,
     required this.playlists,
     required this.libraryEmpty,
+    this.recentlyPlayed,
+    this.onRepeat,
+    this.forYou,
+    this.films,
+    this.artists,
   });
 
   /// Up to 6 things this person played recently.
@@ -674,12 +679,27 @@ class Home {
   final List<PlaylistSummary> playlists;
   /// Nothing has been added at home yet.
   final bool libraryEmpty;
+  /// Up to 12 songs this person played, newest first.
+  final List<TrackSummary>? recentlyPlayed;
+  /// Up to 12 songs this person plays most (three plays or more).
+  final List<TrackSummary>? onRepeat;
+  /// Up to 12 albums picked for this person (their singers and languages first, not played lately); a new mix each day.
+  final List<AlbumSummary>? forYou;
+  /// Up to 12 film soundtracks, a new mix each day.
+  final List<AlbumSummary>? films;
+  /// Up to 12 artists, the ones this person plays most first.
+  final List<ArtistSummary>? artists;
 
   factory Home.fromJson(Map<String, dynamic> json) => Home(
         jumpBackIn: (json['jumpBackIn'] as List<dynamic>).map((e) => HomeTile.fromJson((e as Map).cast<String, dynamic>())).toList(),
         newAtHome: (json['newAtHome'] as List<dynamic>).map((e) => AlbumSummary.fromJson((e as Map).cast<String, dynamic>())).toList(),
         playlists: (json['playlists'] as List<dynamic>).map((e) => PlaylistSummary.fromJson((e as Map).cast<String, dynamic>())).toList(),
         libraryEmpty: json['libraryEmpty'] as bool,
+        recentlyPlayed: json['recentlyPlayed'] == null ? null : (json['recentlyPlayed'] as List<dynamic>).map((e) => TrackSummary.fromJson((e as Map).cast<String, dynamic>())).toList(),
+        onRepeat: json['onRepeat'] == null ? null : (json['onRepeat'] as List<dynamic>).map((e) => TrackSummary.fromJson((e as Map).cast<String, dynamic>())).toList(),
+        forYou: json['forYou'] == null ? null : (json['forYou'] as List<dynamic>).map((e) => AlbumSummary.fromJson((e as Map).cast<String, dynamic>())).toList(),
+        films: json['films'] == null ? null : (json['films'] as List<dynamic>).map((e) => AlbumSummary.fromJson((e as Map).cast<String, dynamic>())).toList(),
+        artists: json['artists'] == null ? null : (json['artists'] as List<dynamic>).map((e) => ArtistSummary.fromJson((e as Map).cast<String, dynamic>())).toList(),
       );
 
   Map<String, dynamic> toJson() => {
@@ -687,6 +707,11 @@ class Home {
         'newAtHome': newAtHome.map((e) => e.toJson()).toList(),
         'playlists': playlists.map((e) => e.toJson()).toList(),
         'libraryEmpty': libraryEmpty,
+        'recentlyPlayed': ?recentlyPlayed?.map((e) => e.toJson()).toList(),
+        'onRepeat': ?onRepeat?.map((e) => e.toJson()).toList(),
+        'forYou': ?forYou?.map((e) => e.toJson()).toList(),
+        'films': ?films?.map((e) => e.toJson()).toList(),
+        'artists': ?artists?.map((e) => e.toJson()).toList(),
       };
 }
 
@@ -1358,6 +1383,83 @@ class LookupStatus {
         'acoustidUsedAt': ?acoustidUsedAt?.toUtc().toIso8601String(),
         'lastError': ?lastError,
         'sends': ?sends,
+      };
+}
+
+class AdminLyrics {
+  const AdminLyrics({
+    required this.text,
+    required this.source,
+    required this.kind,
+    required this.fileHasLyrics,
+  });
+
+  /// The lyrics as Hive shows them (LRC when timed); empty when there are none.
+  final String text;
+  /// admin = set in Hive Admin; file = the song's tags or .lrc file; online = found on LRCLIB.
+  final String source;
+  final String kind;
+  /// The file has lyrics of its own (shown again if the admin's are removed).
+  final bool fileHasLyrics;
+
+  factory AdminLyrics.fromJson(Map<String, dynamic> json) => AdminLyrics(
+        text: json['text'] as String,
+        source: json['source'] as String,
+        kind: json['kind'] as String,
+        fileHasLyrics: json['fileHasLyrics'] as bool,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'text': text,
+        'source': source,
+        'kind': kind,
+        'fileHasLyrics': fileHasLyrics,
+      };
+}
+
+class LyricsEdit {
+  const LyricsEdit({
+    required this.text,
+  });
+
+  /// Plain lines, or timed LRC such as "[01:23.45] a line". Empty removes the lyrics set in Hive Admin.
+  final String text;
+
+  factory LyricsEdit.fromJson(Map<String, dynamic> json) => LyricsEdit(
+        text: json['text'] as String,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'text': text,
+      };
+}
+
+class LyricsFound {
+  const LyricsFound({
+    required this.found,
+    this.text,
+    this.kind,
+    required this.message,
+  });
+
+  final bool found;
+  final String? text;
+  final String? kind;
+  /// What happened
+  final String message;
+
+  factory LyricsFound.fromJson(Map<String, dynamic> json) => LyricsFound(
+        found: json['found'] as bool,
+        text: json['text'] == null ? null : json['text'] as String,
+        kind: json['kind'] == null ? null : json['kind'] as String,
+        message: json['message'] as String,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'found': found,
+        'text': ?text,
+        'kind': ?kind,
+        'message': message,
       };
 }
 

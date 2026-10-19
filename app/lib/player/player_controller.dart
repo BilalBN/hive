@@ -523,6 +523,9 @@ class PlayerController extends Notifier<PlayerState> {
   /// The engine moved on by itself (gapless): slot 1 is now playing.
   Future<void> _onEngineIndex(int? engineIndex) async {
     if (engineIndex == null || engineIndex == 0 || _slot1 == null) return;
+    // A song chosen meanwhile replaces the engine's list; then slot 0 is no
+    // longer the finished song and must not be removed.
+    final gen = _generation;
     final playingId = _slot1!;
     final i = state.queue.indexWhere((e) => e.id == playingId);
     if (i < 0) return;
@@ -538,6 +541,7 @@ class PlayerController extends Notifier<PlayerState> {
           : Duration(milliseconds: ticket.durationMs),
     );
     await _applyVolume();
+    if (gen != _generation) return;
     // Count it as played (the stream was fetched ahead as a prefetch).
     unawaited(
       _fetch(
@@ -547,8 +551,11 @@ class PlayerController extends Notifier<PlayerState> {
         context: state.source?.context,
       ).then((t) => _tickets[playingId] = t, onError: (_) => null),
     );
-    final gen = _generation;
-    await _engine.removeAt(0);
+    try {
+      await _engine.removeAt(0);
+    } catch (_) {
+      return; // the list was replaced under us
+    }
     if (gen != _generation) return;
     await _refillNext();
   }
@@ -571,7 +578,12 @@ class PlayerController extends Notifier<PlayerState> {
         : state.queue[n];
     if (wanted?.id == _slot1 && !force) return;
     if (_slot1 != null && _engine.length > 1) {
-      await _engine.removeAt(1);
+      try {
+        await _engine.removeAt(1);
+      } catch (_) {
+        return; // the list was replaced under us
+      }
+      if (gen != _generation) return;
       _slot1 = null;
     }
     if (wanted == null) return;

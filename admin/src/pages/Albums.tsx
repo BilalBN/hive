@@ -16,6 +16,7 @@ import {
   updateAlbum,
 } from "../api/client";
 import { Artwork } from "../components/Artwork";
+import { LyricsEditor } from "../components/LyricsEditor";
 import { lookupQuery } from "../components/LookupPanel";
 import { QueryError } from "../components/QueryError";
 import { LANGUAGES, languageName } from "../languages";
@@ -161,6 +162,7 @@ function AlbumEditor({ albumId }: { albumId: string }) {
   const key = ["admin-album", albumId];
   const { data, error, refetch, isFetching } = useQuery({ queryKey: key, queryFn: () => fetchAdminAlbum(albumId) });
   const [form, setForm] = useState<Record<Field, string> | null>(null);
+  const [lyricsFor, setLyricsFor] = useState<string | null>(null);
   useEffect(() => {
     if (data) setForm(initial(data));
   }, [data]);
@@ -337,17 +339,35 @@ function AlbumEditor({ albumId }: { albumId: string }) {
         <h2 className="panel__title">Songs</h2>
         <ol className="rows">
           {a.tracks.map((t) => (
-            <li key={t.id} className="row">
-              <span className="row__icon mono">{t.trackNumber ?? ""}</span>
-              <div className="row__text">
-                <p className="row__title">{t.title}</p>
-                <p className="row__meta">
-                  {[t.artistName, t.composer && `Music: ${t.composer}`, t.lyricist && `Lyrics: ${t.lyricist}`]
-                    .filter(Boolean)
-                    .join(" · ")}
-                </p>
+            <li key={t.id} className="row row--stack">
+              <div className="row__line">
+                <span className="row__icon mono">{t.trackNumber ?? ""}</span>
+                <div className="row__text">
+                  <p className="row__title">{t.title}</p>
+                  <p className="row__meta">
+                    {[t.artistName, t.composer && `Music: ${t.composer}`, t.lyricist && `Lyrics: ${t.lyricist}`]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </p>
+                </div>
+                <button
+                  className="link-button"
+                  type="button"
+                  aria-expanded={lyricsFor === t.id}
+                  aria-label={`Lyrics for ${t.title}`}
+                  onClick={() => setLyricsFor(lyricsFor === t.id ? null : t.id)}
+                >
+                  {t.hasLyrics ? "Lyrics ✓" : "Add lyrics"}
+                </button>
+                <span className={`quality quality--${t.format.tier}`}>{t.format.label}</span>
               </div>
-              <span className={`quality quality--${t.format.tier}`}>{t.format.label}</span>
+              {lyricsFor === t.id && (
+                <LyricsEditor
+                  trackId={t.id}
+                  title={t.title}
+                  onSaved={() => client.invalidateQueries({ queryKey: ["admin-album", albumId] })}
+                />
+              )}
             </li>
           ))}
         </ol>

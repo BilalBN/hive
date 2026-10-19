@@ -88,6 +88,13 @@ def alive() -> None:
         raise AssertionError("The app closed.")
 
 
+def hide_keyboard() -> None:
+    shown = adb("shell", "dumpsys", "input_method", check=False)
+    if "mInputShown=true" in shown or "isInputViewShown=true" in shown:
+        key("KEYCODE_BACK")
+        time.sleep(0.7)
+
+
 def key(code: str) -> None:
     adb("shell", "input", "keyevent", code)
 
@@ -99,13 +106,17 @@ def main(apk: str, address: str, dev_key: str) -> None:
     adb("shell", "am", "start", "-W", "-n", f"{PKG}/.MainActivity")
 
     find(r"Connect to home", 60)
-    fields = edit_fields()
-    assert len(fields) >= 2, f"expected the address and key fields, found {fields}"
-    tap(fields[0])
-    adb("shell", "input", "text", address)
-    tap(fields[1])
-    adb("shell", "input", "text", dev_key)
+    # The on-screen keyboard covers the lower field and its toolbar catches
+    # taps meant for the app, so it's put away before each tap.
+    for i, text in enumerate((address, dev_key)):
+        hide_keyboard()
+        fields = edit_fields()
+        assert len(fields) >= 2, f"expected the address and key fields, found {fields}"
+        tap(fields[i])
+        time.sleep(0.5)
+        adb("shell", "input", "text", text)
     key("KEYCODE_ENTER")
+    hide_keyboard()
     print("connected")
 
     # The test library has Rumours (Fleetwood Mac) and Premam, among others.

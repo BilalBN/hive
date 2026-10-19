@@ -62,6 +62,10 @@ class FileInfo:
     mb_recording_id: str | None = None
     picture: bytes | None = None
     picture_from_folder: bool = False
+    # No album tag: the album is the folder's name (or "Unknown album").
+    album_from_folder: bool = False
+    # No artist tag: the singer is a folder's name (or "Unknown artist").
+    artist_from_folder: bool = False
     lyrics: str | None = None
     extra: dict[str, str] = field(default_factory=dict)
 
@@ -296,7 +300,9 @@ def _fill_from_names(path: Path, info: FileInfo, root: Path | None) -> None:
         info.title = stem.replace("_", " ").strip() or path.stem
     if not info.album:
         info.album = (album_dir.name if album_dir is not None else "") or "Unknown album"
+        info.album_from_folder = True
     if not info.artist:
+        info.artist_from_folder = not info.album_artist
         info.artist = info.album_artist or (
             (artist_dir.name if artist_dir is not None else "") or "Unknown artist"
         )

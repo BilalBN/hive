@@ -173,3 +173,35 @@ export async function setAlbumArtwork(albumId: string, file: Blob): Promise<Admi
   if (!response.ok) throw new ApiError(response.status, body as Problem | undefined);
   return body as AdminAlbum;
 }
+
+// ---------------------------------------------------------------- lyrics
+
+export type AdminLyrics = components["schemas"]["AdminLyrics"];
+export type LyricsFound = components["schemas"]["LyricsFound"];
+
+export async function fetchLyrics(trackId: string): Promise<AdminLyrics> {
+  const { data, error, response } = await api.GET("/api/v1/admin/library/tracks/{trackId}/lyrics", {
+    params: { path: { trackId } },
+  });
+  if (!data) fail(response, error);
+  return data;
+}
+
+/** Plain lines or timed LRC; empty removes the lyrics set here. */
+export async function saveLyrics(trackId: string, text: string): Promise<AdminLyrics> {
+  const { data, error, response } = await api.PUT("/api/v1/admin/library/tracks/{trackId}/lyrics", {
+    params: { path: { trackId } },
+    body: { text },
+  });
+  if (!data) fail(response, error);
+  return data;
+}
+
+/** Ask LRCLIB; nothing is saved. */
+export async function findLyrics(trackId: string): Promise<LyricsFound> {
+  const { data, error, response } = await api.POST("/api/v1/admin/library/tracks/{trackId}/lyrics/find", {
+    params: { path: { trackId } },
+  });
+  if (!data) fail(response, error);
+  return data;
+}

@@ -992,6 +992,45 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/library/tracks/{trackId}/lyrics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                trackId: components["parameters"]["TrackId"];
+            };
+            cookie?: never;
+        };
+        /** A song's lyrics as Hive shows them, and where they come from. */
+        get: operations["adminGetLyrics"];
+        /** Set a song's lyrics (plain, or timed LRC). They win over the file's own; empty goes back to them. */
+        put: operations["adminSetLyrics"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/library/tracks/{trackId}/lyrics/find": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                trackId: components["parameters"]["TrackId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ask LRCLIB for a song's lyrics, to check before saving. Nothing is saved. */
+        post: operations["adminFindLyrics"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/library/albums": {
         parameters: {
             query?: never;
@@ -1478,6 +1517,16 @@ export interface components {
             playlists: components["schemas"]["PlaylistSummary"][];
             /** @description Nothing has been added at home yet. */
             libraryEmpty: boolean;
+            /** @description Up to 12 songs this person played, newest first. */
+            recentlyPlayed?: components["schemas"]["TrackSummary"][];
+            /** @description Up to 12 songs this person plays most (three plays or more). */
+            onRepeat?: components["schemas"]["TrackSummary"][];
+            /** @description Up to 12 albums picked for this person (their singers and languages first, not played lately); a new mix each day. */
+            forYou?: components["schemas"]["AlbumSummary"][];
+            /** @description Up to 12 film soundtracks, a new mix each day. */
+            films?: components["schemas"]["AlbumSummary"][];
+            /** @description Up to 12 artists, the ones this person plays most first. */
+            artists?: components["schemas"]["ArtistSummary"][];
         };
         SearchResults: {
             /** @description The single best match, when one stands out. */
@@ -1694,6 +1743,31 @@ export interface components {
             lastError?: string;
             /** @description What leaves home, in plain words, for the admin panel to show. */
             sends?: string;
+        };
+        AdminLyrics: {
+            /** @description The lyrics as Hive shows them (LRC when timed); empty when there are none. */
+            text: string;
+            /**
+             * @description admin = set in Hive Admin; file = the song's tags or .lrc file; online = found on LRCLIB.
+             * @enum {string}
+             */
+            source: "admin" | "file" | "online" | "none";
+            /** @enum {string} */
+            kind: "synced" | "plain" | "none";
+            /** @description The file has lyrics of its own (shown again if the admin's are removed). */
+            fileHasLyrics: boolean;
+        };
+        LyricsEdit: {
+            /** @description Plain lines, or timed LRC such as "[01:23.45] a line". Empty removes the lyrics set in Hive Admin. */
+            text: string;
+        };
+        LyricsFound: {
+            found: boolean;
+            text?: string;
+            /** @enum {string} */
+            kind?: "synced" | "plain";
+            /** @description What happened */
+            message: string;
         };
         AcoustidTest: {
             ok: boolean;
@@ -3094,6 +3168,83 @@ export interface operations {
                 };
             };
             401: components["responses"]["Unauthorized"];
+        };
+    };
+    adminGetLyrics: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                trackId: components["parameters"]["TrackId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The lyrics. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminLyrics"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    adminSetLyrics: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                trackId: components["parameters"]["TrackId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LyricsEdit"];
+            };
+        };
+        responses: {
+            /** @description The lyrics. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminLyrics"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Invalid"];
+        };
+    };
+    adminFindLyrics: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                trackId: components["parameters"]["TrackId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description What was found. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LyricsFound"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
         };
     };
     adminListAlbums: {

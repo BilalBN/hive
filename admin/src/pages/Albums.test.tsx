@@ -95,4 +95,30 @@ describe("Albums page", () => {
     expect(await screen.findByText("Set by you")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Undo/ })).toBeInTheDocument();
   });
+
+  it("finds lyrics online, then saves them", async () => {
+    const lrc = "[00:12.00]Cherathukal\n[00:15.50]Ninnil";
+    const fetchMock = mockApi({
+      "GET /api/v1/admin/library/albums/kn": { body: kumbalangi },
+      "GET /api/v1/admin/library/tracks/t1/lyrics": {
+        body: { text: "", source: "none", kind: "none", fileHasLyrics: false },
+      },
+      "POST /api/v1/admin/library/tracks/t1/lyrics/find": {
+        body: { found: true, text: lrc, kind: "synced", message: "Timed lyrics from LRCLIB." },
+      },
+      "PUT /api/v1/admin/library/tracks/t1/lyrics": {
+        body: { text: lrc, source: "admin", kind: "synced", fileHasLyrics: false },
+      },
+    });
+    renderAt("/albums?album=kn");
+    fireEvent.click(await screen.findByRole("button", { name: "Lyrics for ചെരാതുകൾ" }));
+    expect(await screen.findByText("No lyrics yet.")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Find online/ }));
+    expect(await screen.findByText(/Timed lyrics from LRCLIB. Check them, then Save./)).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Lyrics for ചെരാതുകൾ" })).toHaveValue(lrc.replace("\\n", "\n"));
+    fireEvent.click(screen.getByRole("button", { name: "Save lyrics" }));
+    expect(await screen.findByText("Saved. The app shows these now.")).toBeInTheDocument();
+    const put = fetchMock.mock.calls.map(([r]) => r as Request).find((r) => r.method === "PUT")!;
+    expect(await put.clone().json()).toEqual({ text: lrc });
+  });
 });

@@ -117,6 +117,18 @@ class Track(Base):
     composer: Mapped[str | None] = mapped_column(String(512))
     lyricist: Mapped[str | None] = mapped_column(String(512))
     mbid_recording: Mapped[str | None] = mapped_column(String(36))
+    # Lyrics kept by Hive rather than the file: typed in Hive Admin ("admin")
+    # or found online ("online"). Admin lyrics win over the file's own.
+    lyrics: Mapped[str | None] = mapped_column(Text)
+    lyrics_source: Mapped[str | None] = mapped_column(String(8))
+    lyrics_checked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), index=True)
+    # False when the file has no album tag and Hive used its folder's name.
+    album_tagged: Mapped[bool] = mapped_column(Boolean, default=True)
+    # A song-by-song lookup's result (JSON: title, artist, album, albumArtist,
+    # year, release, releaseGroup, recording), used over the file's tags.
+    lookup: Mapped[str | None] = mapped_column(Text)
+    # waiting | found | notFound, or None when the album is looked up whole.
+    lookup_state: Mapped[str | None] = mapped_column(String(16))
     lufs: Mapped[float | None] = mapped_column(Float)
     true_peak: Mapped[float | None] = mapped_column(Float)
     search_text: Mapped[str] = mapped_column(Text, default="")

@@ -14,6 +14,7 @@ reason, instead of disappearing.
 from __future__ import annotations
 
 import hashlib
+import json
 import logging
 import os
 import secrets
@@ -32,14 +33,14 @@ from hive.library import catalog as C
 from hive.library import languages as L
 from hive.library import text as T
 from hive.library.artwork import ArtworkStore
-from hive.library.audio import Transcoder, find_ffmpeg, measure_loudness
+from hive.library.audio import Loudness, Transcoder, find_ffmpeg, measure_loudness
 from hive.library.tags import FileInfo, UnreadableFile, is_audio, read_file
 from hive.models import Album, Artist, ImportItem, ServerMeta, Track
 
 log = logging.getLogger("hive.scanner")
 
 # Bump when files should be read again after an upgrade.
-LIBRARY_VERSION = 2
+LIBRARY_VERSION = 3
 SETTLE_SECONDS = 2.0  # a file must be unchanged this long before it's read
 VARIOUS = C.VARIOUS
 
@@ -456,7 +457,17 @@ class Library:
             return
 
         loudness = None
-        if self.ffmpeg is not None:
+        with Session(self.db.engine) as s:
+            # Same bytes as last time (a re-read for a newer Hive): the
+            # loudness is the same too, and measuring is the slow part.
+            known = s.execute(
+                select(Track.lufs, Track.true_peak).where(
+                    Track.path == str(path), Track.sha256 == digest, Track.lufs.is_not(None)
+                )
+            ).first()
+        if known is not None:
+            loudness = Loudness(integrated_lufs=known[0], true_peak_dbtp=known[1])
+        elif self.ffmpeg is not None:
             loudness = measure_loudness(self.ffmpeg, path, info.duration_ms / 1000)
         artwork_id = self.artwork.save(info.picture) if info.picture else None
 
@@ -550,7 +561,23 @@ def _artist(s: Session, name: str) -> Artist:
     return C.artist_row(s, name)
 
 
+def _apply_song_lookup(info: FileInfo, found: dict) -> None:
+    """A song with no album tag that was looked up on its own: what was found
+    (its real title, singer and album) stands in for the file names."""
+    info.title = found.get("title") or info.title
+    info.artist = found.get("artist") or info.artist
+    info.album = found.get("album") or info.album
+    info.album_artist = found.get("albumArtist") or info.album_artist
+    info.year = info.year or found.get("year")
+    info.mb_recording_id = info.mb_recording_id or found.get("recording")
+    info.mb_album_id = info.mb_album_id or found.get("release")
+    info.mb_release_group_id = info.mb_release_group_id or found.get("releaseGroup")
+
+
 def _upsert(s, path, root, st, digest, info: FileInfo, loudness, artwork_id) -> str:
+    track = s.scalar(select(Track).where(Track.path == str(path)))
+    if track is not None and track.lookup and info.album_from_folder:
+        _apply_song_lookup(info, json.loads(track.lookup))
     credit = info.artist or "Unknown artist"
     album_title = info.album or "Unknown album"
     title_key = T.name_key(album_title)
@@ -604,11 +631,13 @@ def _upsert(s, path, root, st, digest, info: FileInfo, loudness, artwork_id) -> 
             album.artwork_id = artwork_id
             C.set_source(album, "artwork", "folder" if info.picture_from_folder else "tags")
 
-    track = s.scalar(select(Track).where(Track.path == str(path)))
     if track is None:
         track = Track(id=new_id(), path=str(path))
         s.add(track)
-    track.title = info.title or path.stem
+    new_title = info.title or path.stem
+    if track.title is not None and (track.title, track.artist_name) != (new_title, credit):
+        track.lyrics_checked_at = None  # a new name may find lyrics online
+    track.title = new_title
     track.album_id = album.id
     track.artist_id = track_artist_row.id
     track.artist_name = credit
@@ -618,7 +647,9 @@ def _upsert(s, path, root, st, digest, info: FileInfo, loudness, artwork_id) -> 
     track.genre = info.genre
     track.year = info.year
     track.artwork_id = artwork_id or album.artwork_id
-    track.has_lyrics = bool(info.lyrics and info.lyrics.strip())
+    # Lyrics Hive keeps itself (typed in Hive Admin, or found online) count too.
+    track.has_lyrics = bool(info.lyrics and info.lyrics.strip()) or bool(track.lyrics)
+    track.album_tagged = not info.album_from_folder
     track.lufs = loudness.integrated_lufs if loudness else None
     track.true_peak = loudness.true_peak_dbtp if loudness else None
     track.language = L.from_tag(info.language)

@@ -1,4 +1,8 @@
-"""Lyrics from tags or a .lrc file next to the song, synced when timestamped."""
+"""Lyrics from tags or a .lrc file next to the song, synced when timestamped.
+
+Hive can also keep lyrics itself (Track.lyrics): typed in Hive Admin, which
+win over the file's, or found online, used when the file has none.
+"""
 
 from __future__ import annotations
 
@@ -47,3 +51,16 @@ def parse(raw: str | None) -> tuple[str, list[Line]]:
     while plain and not plain[-1].text:
         plain.pop()
     return ("plain", plain) if plain else ("none", [])
+
+
+def choose(
+    file_text: str | None, kept: str | None, kept_source: str | None
+) -> tuple[str | None, str]:
+    """(lyrics, where from): admin lyrics, else the file's, else found online."""
+    if kept and kept_source == "admin":
+        return kept, "admin"
+    if file_text and file_text.strip():
+        return file_text, "file"
+    if kept:
+        return kept, kept_source or "online"
+    return None, "none"

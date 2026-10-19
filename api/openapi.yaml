@@ -700,6 +700,41 @@ paths:
       responses:
         "200": { description: The result., content: { application/json: { schema: { $ref: "#/components/schemas/AcoustidTest" } } } }
         "401": { $ref: "#/components/responses/Unauthorized" }
+  /api/v1/admin/library/tracks/{trackId}/lyrics:
+    parameters: [{ $ref: "#/components/parameters/TrackId" }]
+    get:
+      tags: [admin]
+      operationId: adminGetLyrics
+      summary: A song's lyrics as Hive shows them, and where they come from.
+      x-milestone: M1.5
+      responses:
+        "200": { description: The lyrics., content: { application/json: { schema: { $ref: "#/components/schemas/AdminLyrics" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    put:
+      tags: [admin]
+      operationId: adminSetLyrics
+      summary: Set a song's lyrics (plain, or timed LRC). They win over the file's own; empty goes back to them.
+      x-milestone: M1.5
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/LyricsEdit" } } }
+      responses:
+        "200": { description: The lyrics., content: { application/json: { schema: { $ref: "#/components/schemas/AdminLyrics" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/Invalid" }
+  /api/v1/admin/library/tracks/{trackId}/lyrics/find:
+    parameters: [{ $ref: "#/components/parameters/TrackId" }]
+    post:
+      tags: [admin]
+      operationId: adminFindLyrics
+      summary: Ask LRCLIB for a song's lyrics, to check before saving. Nothing is saved.
+      x-milestone: M1.5
+      responses:
+        "200": { description: What was found., content: { application/json: { schema: { $ref: "#/components/schemas/LyricsFound" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
   /api/v1/admin/library/albums:
     get:
       tags: [admin]
@@ -1226,6 +1261,26 @@ components:
         libraryEmpty:
           type: boolean
           description: Nothing has been added at home yet.
+        recentlyPlayed:
+          type: array
+          description: Up to 12 songs this person played, newest first.
+          items: { $ref: "#/components/schemas/TrackSummary" }
+        onRepeat:
+          type: array
+          description: Up to 12 songs this person plays most (three plays or more).
+          items: { $ref: "#/components/schemas/TrackSummary" }
+        forYou:
+          type: array
+          description: Up to 12 albums picked for this person (their singers and languages first, not played lately); a new mix each day.
+          items: { $ref: "#/components/schemas/AlbumSummary" }
+        films:
+          type: array
+          description: Up to 12 film soundtracks, a new mix each day.
+          items: { $ref: "#/components/schemas/AlbumSummary" }
+        artists:
+          type: array
+          description: Up to 12 artists, the ones this person plays most first.
+          items: { $ref: "#/components/schemas/ArtistSummary" }
     SearchResults:
       type: object
       required: [tracks, albums, artists, playlists]
@@ -1462,6 +1517,33 @@ components:
         sends:
           type: string
           description: What leaves home, in plain words, for the admin panel to show.
+    AdminLyrics:
+      type: object
+      required: [text, source, kind, fileHasLyrics]
+      properties:
+        text: { type: string, description: The lyrics as Hive shows them (LRC when timed); empty when there are none. }
+        source:
+          type: string
+          enum: [admin, file, online, none]
+          description: admin = set in Hive Admin; file = the song's tags or .lrc file; online = found on LRCLIB.
+        kind: { type: string, enum: [synced, plain, none] }
+        fileHasLyrics: { type: boolean, description: The file has lyrics of its own (shown again if the admin's are removed). }
+    LyricsEdit:
+      type: object
+      required: [text]
+      properties:
+        text:
+          type: string
+          maxLength: 100000
+          description: 'Plain lines, or timed LRC such as "[01:23.45] a line". Empty removes the lyrics set in Hive Admin.'
+    LyricsFound:
+      type: object
+      required: [found, message]
+      properties:
+        found: { type: boolean }
+        text: { type: string }
+        kind: { type: string, enum: [synced, plain] }
+        message: { type: string, description: What happened, in plain words. }
     AcoustidTest:
       type: object
       required: [ok, message, status]
