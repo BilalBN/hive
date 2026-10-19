@@ -76,7 +76,11 @@ jobs:
           case "$RUNNER_OS" in
             Linux) sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg ;;
             macOS) brew install ffmpeg ;;
-            Windows) choco install ffmpeg -y --no-progress ;;
+            # Chocolatey's download sometimes fails; try again before giving up.
+            Windows) for i in 1 2 3; do
+                       choco install ffmpeg -y --no-progress && command -v ffmpeg && break
+                       echo "FFmpeg install failed (try $i); retrying"; sleep 20
+                     done ;;
           esac
           ffmpeg -version | head -1
       - run: pip install -e ".[dev]"
@@ -289,6 +293,13 @@ jobs:
       - name: Server log
         if: failure()
         run: tail -100 "$RUNNER_TEMP/hive-phone/server.log"
+      - name: Keep the emulator's screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: emulator-screenshots
+          path: emulator-*.png
+          if-no-files-found: ignore
 
   build-windows:
     name: Build Windows

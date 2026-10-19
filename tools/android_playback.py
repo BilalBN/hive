@@ -72,6 +72,12 @@ def tap(xy: tuple[int, int]) -> None:
     adb("shell", "input", "tap", str(xy[0]), str(xy[1]))
 
 
+def screenshot(name: str) -> None:
+    """Save what the emulator shows, for the job's artifacts."""
+    with open(f"emulator-{name}.png", "wb") as f:
+        subprocess.run(["adb", "exec-out", "screencap", "-p"], stdout=f, check=False, timeout=60)
+
+
 def edit_fields() -> list[tuple[int, int]]:
     adb("shell", "uiautomator", "dump", "/sdcard/ui.xml", check=False)
     xml = adb("shell", "cat", "/sdcard/ui.xml")
@@ -164,7 +170,8 @@ def main(apk: str, address: str, dev_key: str) -> None:
     rows = []
     for title in (r"^Malare|മലരേ", r"^Aluva Puzha"):
         rows.append(find(title, 30))
-    step("album open")
+    screenshot("album")
+    step(f"album open, rows at {rows}")
 
     tap(rows[0])  # play the first song
     time.sleep(4)
@@ -252,6 +259,7 @@ def into_view(pattern: str, limit: float = 0.5) -> tuple[int, int]:
     xy = find(pattern, 30)
     for _ in range(5):
         if xy[1] <= h * limit:
+            step(f"{pattern} at y={xy[1]} of {h}")
             return xy
         start = int(h * 0.75)
         distance = xy[1] - int(h * 0.35)
@@ -267,7 +275,8 @@ def into_view(pattern: str, limit: float = 0.5) -> tuple[int, int]:
         )
         time.sleep(1.5)
         xy = find(pattern, 30)
-    return xy
+    screenshot("not-in-view")
+    raise AssertionError(f"Couldn't scroll {pattern!r} into view: y={xy[1]} of {h}")
 
 
 def open_album(name: str, first_song: str) -> None:
@@ -314,6 +323,7 @@ if __name__ == "__main__":
             )
         ]
         if failure:
+            screenshot("failure")
             annotate(
                 "Playback test on the emulator",
                 f"{failure}\nSteps: {' | '.join(STEPS)}\nFocus now: {in_front()}",
