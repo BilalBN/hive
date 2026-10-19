@@ -642,6 +642,56 @@ def search(
     return body
 
 
+@router.get("/suggest")
+def suggest(
+    caller: CallerDep,
+    s: SessionDep,
+    q: Annotated[str, Query(min_length=1, max_length=100)],
+    language: LanguageQ = None,
+) -> dict[str, Any]:
+    """Names to finish what's being typed: songs, artists and albums whose own
+    name has a word starting with it (in any script, by English spelling or by
+    sound), best first."""
+    words = T.query_words(q)
+    if not words:
+        return {"items": []}
+    from hive.library.translit import romanise
+
+    def score(name: str) -> float:
+        # Typed in English, a Malayalam or Hindi name matches by its spelling.
+        return max(_score(name, words, q), _score(" ".join(romanise(name)), words, q))
+
+    found: list[tuple[float, dict[str, Any]]] = []
+    track_q = select(Track).where(*_like_all(Track.search_text, words))
+    album_q = select(Album).where(*_like_all(Album.search_text, words))
+    if language:
+        track_q = track_q.where(_tracks_in_language(language))
+        album_q = album_q.where(_in_language(language))
+    for t in s.scalars(track_q.limit(60)):
+        found.append(
+            (score(t.title) + 1, {"kind": "song", "id": t.id, "text": t.title,
+                                              "detail": t.artist_name})
+        )  # fmt: skip
+    for a in s.scalars(select(Artist).where(*_like_all(Artist.search_text, words)).limit(30)):
+        found.append((score(a.name) + 3, {"kind": "artist", "id": a.id, "text": a.name}))
+    for a in s.scalars(album_q.limit(30)):
+        found.append(
+            (score(a.title) + 2, {"kind": "album", "id": a.id, "text": a.title,
+                                               "detail": a.artist_name})
+        )  # fmt: skip
+    items, seen = [], set()
+    for score, item in sorted(found, key=lambda x: -x[0]):
+        # Only names that match themselves (not a song found by its album's name).
+        key = (item["kind"], item["text"].lower())
+        if score < 25 or key in seen:
+            continue
+        seen.add(key)
+        items.append(item)
+        if len(items) == 8:
+            break
+    return {"items": items}
+
+
 # ------------------------------------------------------------------ playlists
 
 

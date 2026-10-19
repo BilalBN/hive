@@ -24,6 +24,10 @@ from hive.library.lookup.service import LookupService
 from hive.library.media_api import router as media_router
 from hive.library.scanner import Library
 from hive.library.uploads import router as uploads_router
+from hive.people.admin_api import router as people_admin_router
+from hive.people.api import router as people_router
+from hive.people.service import People, Problem
+from hive.people.settings import HomeSettings
 from hive.system import router as system_router
 
 log = logging.getLogger("hive.server")
@@ -40,6 +44,7 @@ def create_app(settings: Settings | None = None, lookup_http: Http | None = None
         app.state.db = Database(settings.database_url, settings.database_path)
         app.state.dev_key = development_key(app.state.db)
         app.state.ticket_secret = ticket_secret(app.state.db)
+        app.state.people = People(app.state.db, HomeSettings(app.state.db, settings.home_name))
         app.state.library = Library(settings, app.state.db)
         app.state.library.start()
         app.state.lookup = LookupService(
@@ -53,7 +58,13 @@ def create_app(settings: Settings | None = None, lookup_http: Http | None = None
         if settings.lookup_worker:
             app.state.lookup.start()
         log.info("Hive %s started for %s", __version__, settings.home_name)
-        log.info("development key for the apps (until M2): %s", app.state.dev_key)
+        if app.state.people.admin_exists():
+            log.info("apps join with invites and email codes (Hive Admin → Requests)")
+        else:
+            log.info(
+                "development key for the apps (until an admin is set up): %s", app.state.dev_key
+            )
+            log.info("set up the first admin in Hive Admin on this computer")
         yield
         app.state.lookup.stop()
         app.state.library.stop()
@@ -72,6 +83,8 @@ def create_app(settings: Settings | None = None, lookup_http: Http | None = None
     app.state.settings = settings
 
     app.include_router(system_router)
+    app.include_router(people_router)
+    app.include_router(people_admin_router)
     app.include_router(library_router)
     app.include_router(media_router)
     app.include_router(admin_library_router)
@@ -101,6 +114,10 @@ def create_app(settings: Settings | None = None, lookup_http: Http | None = None
         from fastapi.exception_handlers import http_exception_handler
 
         return await http_exception_handler(request, exc)
+
+    @app.exception_handler(Problem)
+    async def people_problem(request: Request, exc: Problem):
+        return problem(exc.status, exc.title, exc.detail, **exc.extra)
 
     @app.exception_handler(RequestValidationError)
     async def validation_error(request: Request, exc: RequestValidationError):

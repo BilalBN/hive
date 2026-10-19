@@ -27,15 +27,18 @@ class Health(ApiModel):
     server_version: str
     api_version: str
     min_app_version: str | None = None
+    access: Literal["developmentKey", "invites"] = "developmentKey"
     server_time: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 
 @router.get("/health", response_model=Health, response_model_by_alias=True)
 async def get_health(request: Request) -> Health:
     settings = request.app.state.settings
+    people = request.app.state.people
     return Health(
-        home_name=settings.home_name,
+        home_name=people.home.home_name,
         server_version=__version__,
         api_version=load_contract()["info"]["version"],
         min_app_version=settings.min_app_version,
+        access="invites" if people.admin_exists() else "developmentKey",
     )

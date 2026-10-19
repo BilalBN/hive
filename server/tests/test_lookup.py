@@ -17,7 +17,7 @@ from hive.config import Settings
 from hive.library.lookup.http import Http
 
 from .audio_fixtures import cover_png
-from .conftest import Home, assert_matches, needs_ffmpeg
+from .conftest import HOME_COMPUTER, Home, assert_matches, needs_ffmpeg
 from .test_know_your_music import _album, _write_soundtrack
 
 
@@ -251,7 +251,7 @@ def looked_home(settings: Settings, built_library, internet: FakeInternet) -> It
             os.utime(p, (stamp, stamp))
     http = Http(transport=httpx.MockTransport(internet))
     http.spacing = {}
-    with TestClient(create_app(settings, lookup_http=http)) as c:
+    with TestClient(create_app(settings, lookup_http=http), client=HOME_COMPUTER) as c:
         h = Home(c, {k: music / v.relative_to(src) for k, v in paths.items()}, music)
         h.wait()
         yield h

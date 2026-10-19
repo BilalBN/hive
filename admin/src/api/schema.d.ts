@@ -64,7 +64,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Check the code; creates an access request (approved at once when invited). */
+        /** Check the code; creates an access request (approved at once when invited or already a member). */
         post: operations["verifyEmailCode"];
         delete?: never;
         options?: never;
@@ -81,10 +81,10 @@ export interface paths {
             };
             cookie?: never;
         };
-        /** Poll an access request while waiting for approval. */
-        get: operations["getAccessRequest"];
+        get?: never;
         put?: never;
-        post?: never;
+        /** Check on an access request while waiting for approval (POST so the token stays out of URLs). */
+        post: operations["getAccessRequest"];
         delete?: never;
         options?: never;
         head?: never;
@@ -142,6 +142,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The signed-in person. */
+        get: operations["getMe"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Change your name or Simple mode. */
+        patch: operations["updateMe"];
+        trace?: never;
+    };
     "/api/v1/me/devices": {
         parameters: {
             query?: never;
@@ -171,7 +189,7 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        /** Remove one of your own devices (counts towards the monthly swap limit). */
+        /** Remove one of your own devices (counts towards the monthly swap limit; this device signs out). */
         delete: operations["removeMyDevice"];
         options?: never;
         head?: never;
@@ -315,6 +333,23 @@ export interface paths {
         };
         /** Instant search across songs, albums, artists and playlists. */
         get: operations["search"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/library/suggest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Names to finish what's being typed in search (songs, albums, artists at home). */
+        get: operations["suggest"];
         put?: never;
         post?: never;
         delete?: never;
@@ -606,6 +641,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/session": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Whether this browser is signed in, on the home computer, or Hive needs its first admin. */
+        get: operations["adminGetSession"];
+        put?: never;
+        post?: never;
+        /** End the admin session. */
+        delete: operations["adminSignOut"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create the first admin. Only on the home computer, and only once; the development key stops working. */
+        post: operations["adminSetup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/session/email": {
         parameters: {
             query?: never;
@@ -615,7 +685,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Email an admin sign-in code (fallback to passkeys). */
+        /** Email an admin a sign-in code. The answer is the same for any address. */
         post: operations["adminStartEmailSignIn"];
         delete?: never;
         options?: never;
@@ -632,7 +702,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Check the admin email code and start a session. */
+        /** Check the email code and the authenticator code, and start a session (cookie hive_admin). */
         post: operations["adminVerifyEmailSignIn"];
         delete?: never;
         options?: never;
@@ -649,7 +719,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Start a passkey sign-in or registration. */
+        /** Start a passkey sign-in or registration (needs HTTPS on the private network). */
         post: operations["adminPasskeyOptions"];
         delete?: never;
         options?: never;
@@ -674,7 +744,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/admin/session": {
+    "/api/v1/admin/me/authenticator": {
         parameters: {
             query?: never;
             header?: never;
@@ -682,10 +752,12 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        put?: never;
-        post?: never;
-        /** End the admin session. */
-        delete: operations["adminSignOut"];
+        /** Confirm the authenticator with a code from it; it's required for signing in away from the home computer. */
+        put: operations["adminConfirmAuthenticator"];
+        /** Start setting up an authenticator app (returns the secret and an otpauth link for a QR code). */
+        post: operations["adminStartAuthenticator"];
+        /** Remove your authenticator (only on the home computer). */
+        delete: operations["adminRemoveAuthenticator"];
         options?: never;
         head?: never;
         patch?: never;
@@ -715,7 +787,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Access requests waiting for approval. */
+        /** Access requests (waiting first, then recent decisions), and codes to pass on while email isn't set up. */
         get: operations["adminListRequests"];
         put?: never;
         post?: never;
@@ -755,8 +827,27 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Decline a request. */
+        /** Decline a request (undo allowed for 10 seconds). */
         post: operations["adminDeclineRequest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/requests/{requestId}/undo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                requestId: components["parameters"]["RequestId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Undo an approval or decline made in the last 10 seconds. */
+        post: operations["adminUndoDecision"];
         delete?: never;
         options?: never;
         head?: never;
@@ -773,7 +864,7 @@ export interface paths {
         /** Invites not yet used. */
         get: operations["adminListInvites"];
         put?: never;
-        /** Create an invite; returns the Hive code and QR payload plus the private-network invite link. */
+        /** Create an invite; returns the Hive code and QR payload (shown once) plus the private-network invite link. */
         post: operations["adminCreateInvite"];
         delete?: never;
         options?: never;
@@ -833,7 +924,7 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        /** Suspend, reinstate, change role, override the device limit, set Simple mode. */
+        /** Rename, suspend or reinstate, change role, override the device limit, reset devices, set Simple mode. */
         patch: operations["adminUpdatePerson"];
         trace?: never;
     };
@@ -1053,6 +1144,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/library/tidy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Song titles with download clutter, each as before → after; and the ones already tidied. */
+        get: operations["adminListTidy"];
+        put?: never;
+        /** Use the tidy names for these songs (what Hive shows; the files don't change). */
+        post: operations["adminApplyTidy"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/library/tidy/undo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Go back to the files' own titles for these songs. */
+        post: operations["adminUndoTidy"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/library/albums": {
         parameters: {
             query?: never;
@@ -1243,6 +1369,23 @@ export interface paths {
         patch: operations["adminUpdateSettings"];
         trace?: never;
     };
+    "/api/v1/admin/settings/email/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send a test email with the saved settings. */
+        post: operations["adminTestEmail"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/audit": {
         parameters: {
             query?: never;
@@ -1250,7 +1393,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Every admin action, filterable. */
+        /** Every admin action and sign-in, newest first. */
         get: operations["adminListAudit"];
         put?: never;
         post?: never;
@@ -1342,6 +1485,11 @@ export interface components {
              */
             minAppVersion?: string;
             /**
+             * @description How apps get in. developmentKey until the first admin is set up (M1's key), then invites and email codes.
+             * @enum {string}
+             */
+            access?: "developmentKey" | "invites";
+            /**
              * Format: date-time
              * @description The server's clock; apps measure their offset from it.
              */
@@ -1355,6 +1503,15 @@ export interface components {
             detail?: string;
             /** @description For 501 responses, the milestone that builds this operation. */
             milestone?: string;
+            /** @description A machine-readable reason: deviceLimit, swapLimit, suspended, revoked, signInNeeded, authenticatorNeeded, expired, tooMany. */
+            code?: string;
+            /** @description For a wrong code. */
+            attemptsLeft?: number;
+            retryAfterSeconds?: number;
+            /** @description For deviceLimit. */
+            devices?: components["schemas"]["MyDevice"][];
+            /** @description For deviceLimit. */
+            swapsLeft?: number;
         };
         /** @description What a file or stream is, and how the app labels it. */
         AudioFormat: {
@@ -1403,9 +1560,9 @@ export interface components {
             format: components["schemas"]["AudioFormat"];
             liked: boolean;
             hasLyrics?: boolean;
-            /** @description Who wrote the music */
+            /** @description Who wrote the music, as credited. */
             composer?: string;
-            /** @description Who wrote the words */
+            /** @description Who wrote the words, as credited. */
             lyricist?: string;
         };
         AlbumSummary: {
@@ -1426,7 +1583,7 @@ export interface components {
             /** @description Language code (e.g. "ml"); missing when not known. */
             language?: string;
             kind?: components["schemas"]["AlbumKind"];
-            /** @description The film */
+            /** @description The film, for soundtracks (often the album title). */
             filmTitle?: string;
         };
         /** @enum {string} */
@@ -1524,7 +1681,7 @@ export interface components {
         HomeTile: {
             /** @enum {string} */
             kind: "album" | "playlist" | "artist" | "liked";
-            /** @description The album */
+            /** @description The album, playlist or artist; "liked" for liked songs. */
             id: string;
             title: string;
             subtitle?: string;
@@ -1649,7 +1806,7 @@ export interface components {
             integratedLufs: number;
             /** @example 0.6 */
             truePeakDbtp: number;
-            /** @description The whole album */
+            /** @description The whole album, for album-mode levelling. */
             albumLufs?: number;
         };
         StreamTicket: {
@@ -1693,7 +1850,7 @@ export interface components {
              * @enum {string}
              */
             status: "queued" | "working" | "done" | "failed" | "duplicate" | "ignored";
-            /** @description Plain words */
+            /** @description Plain words, for files that need attention. */
             problem?: string;
             /** Format: date-time */
             updatedAt: string;
@@ -1717,7 +1874,7 @@ export interface components {
             folders: components["schemas"]["MusicFolder"][];
             /** @description Where browser uploads are saved. */
             uploadFolder: string;
-            /** @description FFmpeg was found; without it High */
+            /** @description FFmpeg was found; without it High, Data saver and loudness are unavailable. */
             ffmpeg?: boolean;
             /** @description Up to 50 files waiting or being read. */
             queue: components["schemas"]["ImportItem"][];
@@ -1742,7 +1899,7 @@ export interface components {
             enabled: boolean;
             /** @description A key is set (it's never sent back). */
             acoustidKey: boolean;
-            /** @description fpcalc (Chromaprint) was found */
+            /** @description fpcalc (Chromaprint) was found, so fingerprints can be made. */
             fingerprinting?: boolean;
             working: boolean;
             waiting: number;
@@ -1754,14 +1911,14 @@ export interface components {
             edited: number;
             /** @description Albums recognised by the sound of their songs (AcoustID). */
             soundMatches?: number;
-            /** @description Why AcoustID turned Hive down last time */
+            /** @description Why AcoustID turned Hive down last time, in plain words. */
             acoustidProblem?: string;
             /**
              * Format: date-time
              * @description When AcoustID last answered.
              */
             acoustidUsedAt?: string;
-            /** @description Why the last lookup failed */
+            /** @description Why the last lookup failed, in plain words. */
             lastError?: string;
             /** @description What leaves home, in plain words, for the admin panel to show. */
             sends?: string;
@@ -1788,12 +1945,12 @@ export interface components {
             text?: string;
             /** @enum {string} */
             kind?: "synced" | "plain";
-            /** @description What happened */
+            /** @description What happened, in plain words. */
             message: string;
         };
         AcoustidTest: {
             ok: boolean;
-            /** @description What happened */
+            /** @description What happened, in plain words. */
             message: string;
             status: components["schemas"]["LookupStatus"];
         };
@@ -1808,14 +1965,14 @@ export interface components {
             filmTitle?: string;
             film?: components["schemas"]["Film"];
             credits?: components["schemas"]["Credit"][];
-            /** @description The cover it found */
+            /** @description The cover it found, already saved at home. */
             artworkId?: string;
             trackCount?: number;
             /** @description How sure the match is. */
             score: number;
-            /** @description Where it came from */
+            /** @description Where it came from, e.g. "MusicBrainz · Wikidata". */
             source: string;
-            /** @description The page on MusicBrainz or Wikidata */
+            /** @description The page on MusicBrainz or Wikidata, to check by eye. */
             link?: string;
         };
         AdminAlbum: {
@@ -1830,7 +1987,7 @@ export interface components {
             sources: {
                 [key: string]: string;
             };
-            /** @description Where its files are */
+            /** @description Where its files are, relative to the music folder. */
             folder?: string;
         };
         AdminAlbumPage: {
@@ -1859,6 +2016,418 @@ export interface components {
         DevelopmentKey: {
             /** @example hive-dev-7k2q-9mxp-4c8a */
             key: string;
+        };
+        /** @enum {string} */
+        Platform: "android" | "ios" | "macos" | "windows" | "linux" | "web";
+        InviteCode: {
+            /** @description The Hive code, typed ("HIVE-7K2Q-9MXP") or from the QR. */
+            code: string;
+        };
+        InviteInfo: {
+            homeName: string;
+            /** @description False when used, cancelled or expired. */
+            valid: boolean;
+            /** @description The address it is for, partly hidden ("b•••@gmail.com"), when it names one. */
+            email?: string;
+            /** Format: date-time */
+            expiresAt?: string;
+        };
+        EmailStart: {
+            /** Format: email */
+            email: string;
+            inviteCode?: string;
+            /** @description What the device is called, e.g. "Bilal's Pixel". */
+            deviceName: string;
+            platform: components["schemas"]["Platform"];
+        };
+        EmailStarted: {
+            verificationId: string;
+            /** Format: date-time */
+            expiresAt: string;
+            resendAfterSeconds: number;
+            /** @description False while email isn't set up at home; the admin passes the code on. */
+            emailSent: boolean;
+        };
+        EmailVerify: {
+            verificationId: string;
+            code: string;
+        };
+        AccessRequestStatus: {
+            requestId: string;
+            /** @description Keep it to poll and to register the device; it works for 7 days. */
+            requestToken: string;
+            /** @enum {string} */
+            status: "pending" | "approved" | "declined";
+            homeName: string;
+            /** @description The person's name once known. */
+            name?: string;
+        };
+        RequestPoll: {
+            requestToken: string;
+        };
+        DeviceRegistration: {
+            requestId: string;
+            requestToken: string;
+            /** @description The device's Ed25519 public key, base64url (32 bytes). */
+            publicKey: string;
+            name: string;
+            platform: components["schemas"]["Platform"];
+            appVersion?: string;
+            /** @description At the device limit, the device to remove to make room (counts as a swap). */
+            replaceDeviceId?: string;
+        };
+        DeviceSession: {
+            deviceId: string;
+            /** @description Send as "Authorization: Bearer"; lasts 15 minutes. */
+            accessToken: string;
+            /** Format: date-time */
+            accessExpiresAt: string;
+            /** @description Replaced on every use; lasts 30 days. */
+            refreshToken: string;
+            /** Format: date-time */
+            refreshExpiresAt: string;
+            me: components["schemas"]["Me"];
+        };
+        ChallengeRequest: {
+            deviceId: string;
+        };
+        Challenge: {
+            /** @description Sign these exact bytes (UTF-8) with the device key. */
+            challenge: string;
+            /** Format: date-time */
+            expiresAt: string;
+        };
+        TokenRefresh: {
+            deviceId: string;
+            refreshToken: string;
+            challenge: string;
+            /** @description Ed25519 signature of the challenge, base64url. */
+            signature: string;
+        };
+        Me: {
+            id: string;
+            name: string;
+            email: string;
+            /** @enum {string} */
+            role: "admin" | "member";
+            simpleMode: boolean;
+        };
+        MeEdit: {
+            name?: string;
+            simpleMode?: boolean;
+        };
+        MyDevice: {
+            id: string;
+            name: string;
+            platform: components["schemas"]["Platform"];
+            appVersion?: string;
+            /** @description The device asking. */
+            current: boolean;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            lastSeenAt?: string;
+        };
+        MyDevices: {
+            items: components["schemas"]["MyDevice"][];
+            /** @description Devices allowed at once. */
+            limit: number;
+            /** @description Devices that can still be removed in the last 30 days. */
+            swapsLeft: number;
+            swapsPerMonth: number;
+        };
+        AdminMe: {
+            id: string;
+            name: string;
+            email: string;
+            /** @description An authenticator app is set up (needed to sign in away from the home computer). */
+            authenticator: boolean;
+        };
+        AdminSession: {
+            /** @description This browser may use Hive Admin. */
+            signedIn: boolean;
+            /** @description Opened on the home computer itself, which is always allowed. */
+            onHomeComputer: boolean;
+            /** @description No admin exists yet; set one up on the home computer. */
+            needsSetup: boolean;
+            /** @description Email settings are saved, so codes can be sent. */
+            emailReady: boolean;
+            me?: components["schemas"]["AdminMe"];
+        };
+        AdminSetup: {
+            name: string;
+            /** Format: email */
+            email: string;
+        };
+        AdminEmailStart: {
+            /** Format: email */
+            email: string;
+        };
+        AdminEmailVerify: {
+            verificationId: string;
+            code: string;
+            /** @description From the admin's authenticator app. */
+            authenticatorCode?: string;
+        };
+        AuthenticatorSetup: {
+            /** @description Base32, for typing into the app. */
+            secret: string;
+            /** @description otpauth:// link, for the QR code. */
+            uri: string;
+        };
+        AuthenticatorCode: {
+            code: string;
+        };
+        AdminAlert: {
+            /** @enum {string} */
+            level: "info" | "warning" | "problem";
+            text: string;
+        };
+        AdminOverview: {
+            homeName: string;
+            pendingRequests: number;
+            people: number;
+            /** @description Active devices. */
+            devices: number;
+            tracks: number;
+            albums: number;
+            sizeBytes: number;
+            losslessPercent: number;
+            emailReady: boolean;
+            /** @description The M1 key still works because no admin is set up yet. */
+            developmentKeyActive: boolean;
+            alerts: components["schemas"]["AdminAlert"][];
+            /** @description The last 8 entries of the audit log. */
+            recent: components["schemas"]["AuditEntry"][];
+        };
+        AdminAccessRequest: {
+            id: string;
+            email: string;
+            deviceName: string;
+            platform: components["schemas"]["Platform"];
+            /** @enum {string} */
+            status: "pending" | "approved" | "declined";
+            invited: boolean;
+            /** @description Already in the family; this is a new device. */
+            existingPerson: boolean;
+            note?: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            decidedAt?: string;
+            /**
+             * Format: date-time
+             * @description Until when Undo works.
+             */
+            undoUntil?: string;
+        };
+        PendingCode: {
+            email: string;
+            code: string;
+            /** @enum {string} */
+            purpose: "join" | "admin";
+            /** Format: date-time */
+            expiresAt: string;
+        };
+        AdminRequests: {
+            items: components["schemas"]["AdminAccessRequest"][];
+            /** @description While email isn't set up, the codes people are waiting for, to pass on in person or by message. */
+            codes: components["schemas"]["PendingCode"][];
+        };
+        RequestDecision: {
+            /** @description For you, e.g. "cousin, Dubai". */
+            note?: string;
+            /** @description The person's name, when approving someone new. */
+            name?: string;
+        };
+        InviteCreate: {
+            /**
+             * Format: email
+             * @description Only this address can use it; empty for anyone with the code.
+             */
+            email?: string;
+            name?: string;
+            /**
+             * @default member
+             * @enum {string}
+             */
+            role: "member" | "admin";
+            note?: string;
+            /** @default 7 */
+            days: number;
+        };
+        AdminInvite: {
+            id: string;
+            email?: string;
+            name?: string;
+            /** @enum {string} */
+            role: "member" | "admin";
+            note?: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            expiresAt: string;
+            /** @description Only when just created. */
+            code?: string;
+            /** @description Only when just created: hive://join?… for the QR code and the app. */
+            joinLink?: string;
+            /** @description The Tailscale share link saved in Settings, sent along with the invite. */
+            privateNetworkLink?: string;
+        };
+        AdminInvites: {
+            items: components["schemas"]["AdminInvite"][];
+        };
+        AdminDevice: {
+            id: string;
+            personId: string;
+            personName: string;
+            name: string;
+            platform: components["schemas"]["Platform"];
+            appVersion?: string;
+            /** @enum {string} */
+            status: "active" | "revoked";
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            lastSeenAt?: string;
+        };
+        AdminDevices: {
+            items: components["schemas"]["AdminDevice"][];
+        };
+        AdminPerson: {
+            id: string;
+            name: string;
+            email: string;
+            /** @enum {string} */
+            role: "admin" | "member";
+            /** @enum {string} */
+            status: "active" | "suspended";
+            devicesUsed: number;
+            deviceLimit: number;
+            /** @description The limit is set for this person rather than the default. */
+            deviceLimitOverride?: boolean;
+            simpleMode: boolean;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            lastActiveAt?: string;
+        };
+        AdminPeople: {
+            items: components["schemas"]["AdminPerson"][];
+        };
+        AdminPersonDetail: {
+            person: components["schemas"]["AdminPerson"];
+            devices: components["schemas"]["AdminDevice"][];
+            /** @description Devices removed in the last 30 days. */
+            swapsUsed: number;
+            swapsPerMonth: number;
+            /** @description Sign-ins and device changes (never what they listen to). */
+            activity: components["schemas"]["AuditEntry"][];
+        };
+        PersonEdit: {
+            name?: string;
+            /** @enum {string} */
+            role?: "admin" | "member";
+            /** @enum {string} */
+            status?: "active" | "suspended";
+            /** @description null goes back to the default. */
+            deviceLimit?: number | null;
+            simpleMode?: boolean;
+            /** @description Sign out every device of this person. */
+            resetDevices?: boolean;
+        };
+        EmailSettings: {
+            /** @example smtp.gmail.com */
+            host: string;
+            port: number;
+            /** @enum {string} */
+            security: "starttls" | "ssl" | "none";
+            username: string;
+            /** @description The sender address shown to the family. */
+            from: string;
+            passwordSet: boolean;
+            ready: boolean;
+        };
+        EmailSettingsEdit: {
+            host?: string;
+            port?: number;
+            /** @enum {string} */
+            security?: "starttls" | "ssl" | "none";
+            username?: string;
+            /** @description Empty removes it. */
+            password?: string;
+            from?: string;
+        };
+        AdminSettings: {
+            homeName: string;
+            devicesPerPerson: number;
+            swapsPerMonth: number;
+            /** @description How apps reach home, put in invites (e.g. "http://100.84.12.7:8443"). */
+            address?: string;
+            /** @description Tailscale's share link for this computer, sent with every invite. */
+            privateNetworkLink?: string;
+            email: components["schemas"]["EmailSettings"];
+        };
+        AdminSettingsEdit: {
+            homeName?: string;
+            devicesPerPerson?: number;
+            swapsPerMonth?: number;
+            address?: string;
+            privateNetworkLink?: string;
+            email?: components["schemas"]["EmailSettingsEdit"];
+        };
+        EmailTest: {
+            /**
+             * Format: email
+             * @description Defaults to your own address.
+             */
+            to?: string;
+        };
+        EmailTestResult: {
+            ok: boolean;
+            message: string;
+        };
+        AuditEntry: {
+            id: string;
+            /** Format: date-time */
+            at: string;
+            /** @description Who did it (an admin, a person, or "Hive"). */
+            actor: string;
+            /** @description Machine name, e.g. "request.approve". */
+            action: string;
+            /** @description What happened, in plain words. */
+            text: string;
+        };
+        AuditPage: {
+            items: components["schemas"]["AuditEntry"][];
+            total: number;
+            offset: number;
+        };
+        TidyItem: {
+            trackId: string;
+            albumId: string;
+            albumTitle: string;
+            /** @description The file's own title. */
+            before: string;
+            after: string;
+            applied: boolean;
+        };
+        TidyList: {
+            items: components["schemas"]["TidyItem"][];
+        };
+        TrackIds: {
+            trackIds: string[];
+        };
+        Suggestion: {
+            /** @enum {string} */
+            kind: "song" | "album" | "artist";
+            id: string;
+            text: string;
+            /** @description The artist for a song or album. */
+            detail?: string;
+        };
+        Suggestions: {
+            items: components["schemas"]["Suggestion"][];
         };
         /** @description Placeholder until this operation's milestone defines the real shape. */
         Pending: {
@@ -1895,6 +2464,42 @@ export interface components {
         };
         /** @description The request body or parameters are wrong. */
         Invalid: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["Problem"];
+            };
+        };
+        /** @description The code is wrong; the Problem has attemptsLeft. */
+        WrongCode: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["Problem"];
+            };
+        };
+        /** @description The code has expired; ask for a new one. */
+        Expired: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["Problem"];
+            };
+        };
+        /** @description Too many tries or codes; the detail says when to try again. */
+        TooMany: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["Problem"];
+            };
+        };
+        /** @description All devices are in use; the Problem has code "deviceLimit", devices (MyDevice list) and swapsLeft. */
+        DeviceLimit: {
             headers: {
                 [name: string]: unknown;
             };
@@ -1992,10 +2597,23 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: components["requestBodies"]["Pending"];
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InviteCode"];
+            };
+        };
         responses: {
-            200: components["responses"]["Pending"];
-            501: components["responses"]["NotImplemented"];
+            /** @description The invite. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InviteInfo"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Invalid"];
         };
     };
     startEmailVerification: {
@@ -2005,10 +2623,25 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: components["requestBodies"]["Pending"];
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmailStart"];
+            };
+        };
         responses: {
-            200: components["responses"]["Pending"];
-            501: components["responses"]["NotImplemented"];
+            /** @description A code is on its way. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailStarted"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Invalid"];
+            429: components["responses"]["TooMany"];
         };
     };
     verifyEmailCode: {
@@ -2018,10 +2651,25 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: components["requestBodies"]["Pending"];
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmailVerify"];
+            };
+        };
         responses: {
-            200: components["responses"]["Pending"];
-            501: components["responses"]["NotImplemented"];
+            /** @description The access request. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccessRequestStatus"];
+                };
+            };
+            400: components["responses"]["WrongCode"];
+            404: components["responses"]["NotFound"];
+            410: components["responses"]["Expired"];
+            429: components["responses"]["TooMany"];
         };
     };
     getAccessRequest: {
@@ -2033,10 +2681,22 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequestPoll"];
+            };
+        };
         responses: {
-            200: components["responses"]["Pending"];
-            501: components["responses"]["NotImplemented"];
+            /** @description The request. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccessRequestStatus"];
+                };
+            };
+            404: components["responses"]["NotFound"];
         };
     };
     registerDevice: {
@@ -2046,10 +2706,25 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: components["requestBodies"]["Pending"];
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeviceRegistration"];
+            };
+        };
         responses: {
-            200: components["responses"]["Pending"];
-            501: components["responses"]["NotImplemented"];
+            /** @description Signed in. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeviceSession"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["DeviceLimit"];
+            422: components["responses"]["Invalid"];
         };
     };
     createChallenge: {
@@ -2059,10 +2734,22 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: components["requestBodies"]["Pending"];
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChallengeRequest"];
+            };
+        };
         responses: {
-            200: components["responses"]["Pending"];
-            501: components["responses"]["NotImplemented"];
+            /** @description The challenge. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Challenge"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
         };
     };
     refreshToken: {
@@ -2072,10 +2759,69 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: components["requestBodies"]["Pending"];
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TokenRefresh"];
+            };
+        };
         responses: {
-            200: components["responses"]["Pending"];
-            501: components["responses"]["NotImplemented"];
+            /** @description New tokens. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeviceSession"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    getMe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description You. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Me"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    updateMe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MeEdit"];
+            };
+        };
+        responses: {
+            /** @description You. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Me"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            422: components["responses"]["Invalid"];
         };
     };
     listMyDevices: {
@@ -2087,8 +2833,16 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            200: components["responses"]["Pending"];
-            501: components["responses"]["NotImplemented"];
+            /** @description Your devices. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyDevices"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
         };
     };
     removeMyDevice: {
@@ -2109,7 +2863,9 @@ export interface operations {
                 };
                 content?: never;
             };
-            501: components["responses"]["NotImplemented"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
         };
     };
     getHome: {
@@ -2325,6 +3081,31 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SearchResults"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    suggest: {
+        parameters: {
+            query: {
+                q: string;
+                /** @description Only music in this language (a code from listLanguages, e.g. "ml"). */
+                language?: components["parameters"]["Language"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Suggestions. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Suggestions"];
                 };
             };
             401: components["responses"]["Unauthorized"];
@@ -2772,6 +3553,71 @@ export interface operations {
             501: components["responses"]["NotImplemented"];
         };
     };
+    adminGetSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The session. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminSession"];
+                };
+            };
+        };
+    };
+    adminSignOut: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Signed out. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    adminSetup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminSetup"];
+            };
+        };
+        responses: {
+            /** @description The session. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminSession"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["Invalid"];
+        };
+    };
     adminStartEmailSignIn: {
         parameters: {
             query?: never;
@@ -2779,10 +3625,23 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: components["requestBodies"]["Pending"];
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminEmailStart"];
+            };
+        };
         responses: {
-            200: components["responses"]["Pending"];
-            501: components["responses"]["NotImplemented"];
+            /** @description A code is on its way if the address is an admin's. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailStarted"];
+                };
+            };
+            422: components["responses"]["Invalid"];
+            429: components["responses"]["TooMany"];
         };
     };
     adminVerifyEmailSignIn: {
@@ -2792,10 +3651,25 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: components["requestBodies"]["Pending"];
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminEmailVerify"];
+            };
+        };
         responses: {
-            200: components["responses"]["Pending"];
-            501: components["responses"]["NotImplemented"];
+            /** @description Signed in. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminSession"];
+                };
+            };
+            400: components["responses"]["WrongCode"];
+            403: components["responses"]["Forbidden"];
+            410: components["responses"]["Expired"];
+            429: components["responses"]["TooMany"];
         };
     };
     adminPasskeyOptions: {
@@ -2824,7 +3698,33 @@ export interface operations {
             501: components["responses"]["NotImplemented"];
         };
     };
-    adminSignOut: {
+    adminConfirmAuthenticator: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AuthenticatorCode"];
+            };
+        };
+        responses: {
+            /** @description The session. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminSession"];
+                };
+            };
+            400: components["responses"]["WrongCode"];
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    adminStartAuthenticator: {
         parameters: {
             query?: never;
             header?: never;
@@ -2833,14 +3733,37 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Signed out. */
-            204: {
+            /** @description The secret. */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["AuthenticatorSetup"];
+                };
             };
-            501: components["responses"]["NotImplemented"];
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    adminRemoveAuthenticator: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The session. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminSession"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
         };
     };
     adminGetOverview: {
@@ -2852,8 +3775,16 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            200: components["responses"]["Pending"];
-            501: components["responses"]["NotImplemented"];
+            /** @description The overview. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminOverview"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
         };
     };
     adminListRequests: {
@@ -2865,8 +3796,16 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            200: components["responses"]["Pending"];
-            501: components["responses"]["NotImplemented"];
+            /** @description Requests. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminRequests"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
         };
     };
     adminApproveRequest: {
@@ -2878,10 +3817,24 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["RequestDecision"];
+            };
+        };
         responses: {
-            200: components["responses"]["Pending"];
-            501: components["responses"]["NotImplemented"];
+            /** @description The request. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminAccessRequest"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
         };
     };
     adminDeclineRequest: {
@@ -2893,10 +3846,49 @@ export interface operations {
             };
             cookie?: never;
         };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["RequestDecision"];
+            };
+        };
+        responses: {
+            /** @description The request. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminAccessRequest"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    adminUndoDecision: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                requestId: components["parameters"]["RequestId"];
+            };
+            cookie?: never;
+        };
         requestBody?: never;
         responses: {
-            200: components["responses"]["Pending"];
-            501: components["responses"]["NotImplemented"];
+            /** @description The request, waiting again. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminAccessRequest"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
         };
     };
     adminListInvites: {
@@ -2908,8 +3900,16 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            200: components["responses"]["Pending"];
-            501: components["responses"]["NotImplemented"];
+            /** @description Invites. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminInvites"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
         };
     };
     adminCreateInvite: {
@@ -2919,10 +3919,23 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: components["requestBodies"]["Pending"];
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InviteCreate"];
+            };
+        };
         responses: {
-            200: components["responses"]["Pending"];
-            501: components["responses"]["NotImplemented"];
+            /** @description The invite. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminInvite"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            422: components["responses"]["Invalid"];
         };
     };
     adminRevokeInvite: {
@@ -2943,7 +3956,8 @@ export interface operations {
                 };
                 content?: never;
             };
-            501: components["responses"]["NotImplemented"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
         };
     };
     adminListPeople: {
@@ -2955,8 +3969,16 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            200: components["responses"]["Pending"];
-            501: components["responses"]["NotImplemented"];
+            /** @description People. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminPeople"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
         };
     };
     adminGetPerson: {
@@ -2970,8 +3992,17 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            200: components["responses"]["Pending"];
-            501: components["responses"]["NotImplemented"];
+            /** @description The person. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminPersonDetail"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
         };
     };
     adminUpdatePerson: {
@@ -2983,10 +4014,25 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: components["requestBodies"]["Pending"];
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PersonEdit"];
+            };
+        };
         responses: {
-            200: components["responses"]["Pending"];
-            501: components["responses"]["NotImplemented"];
+            /** @description The person. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminPersonDetail"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["Invalid"];
         };
     };
     adminListDevices: {
@@ -2998,8 +4044,16 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            200: components["responses"]["Pending"];
-            501: components["responses"]["NotImplemented"];
+            /** @description Devices. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminDevices"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
         };
     };
     adminRevokeDevice: {
@@ -3013,8 +4067,17 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            200: components["responses"]["Pending"];
-            501: components["responses"]["NotImplemented"];
+            /** @description The device. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminDevice"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
         };
     };
     adminListImports: {
@@ -3297,6 +4360,77 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
+        };
+    };
+    adminListTidy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Suggestions. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TidyList"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    adminApplyTidy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TrackIds"];
+            };
+        };
+        responses: {
+            /** @description Suggestions left. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TidyList"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    adminUndoTidy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TrackIds"];
+            };
+        };
+        responses: {
+            /** @description Suggestions. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TidyList"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
         };
     };
     adminListAlbums: {
@@ -3616,8 +4750,16 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            200: components["responses"]["Pending"];
-            501: components["responses"]["NotImplemented"];
+            /** @description Settings. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminSettings"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
         };
     };
     adminUpdateSettings: {
@@ -3627,23 +4769,74 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: components["requestBodies"]["Pending"];
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminSettingsEdit"];
+            };
+        };
         responses: {
-            200: components["responses"]["Pending"];
-            501: components["responses"]["NotImplemented"];
+            /** @description Settings. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminSettings"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            422: components["responses"]["Invalid"];
         };
     };
-    adminListAudit: {
+    adminTestEmail: {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["EmailTest"];
+            };
+        };
+        responses: {
+            /** @description What happened. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailTestResult"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    adminListAudit: {
+        parameters: {
+            query?: {
+                offset?: components["parameters"]["Offset"];
+                limit?: components["parameters"]["Limit"];
+                /** @description Only this kind of action (e.g. "request.approve"). */
+                action?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
         requestBody?: never;
         responses: {
-            200: components["responses"]["Pending"];
-            501: components["responses"]["NotImplemented"];
+            /** @description A page of the log. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditPage"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
         };
     };
     adminListBackups: {

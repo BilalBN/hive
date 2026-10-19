@@ -20,7 +20,7 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request, Response
 
-from hive.auth import CallerDep
+from hive.auth import AdminDep
 from hive.library.tags import IMAGE_EXTENSIONS, is_audio
 
 router = APIRouter(prefix="/api/v1/admin/uploads", tags=["admin"])
@@ -106,7 +106,7 @@ def _clean_stale(request: Request) -> None:
 
 
 @router.post("", status_code=201)
-def admin_create_upload(request: Request, caller: CallerDep) -> Response:
+def admin_create_upload(request: Request, caller: AdminDep) -> Response:
     _check_version(request)
     settings = request.app.state.settings
     try:
@@ -136,7 +136,7 @@ def admin_create_upload(request: Request, caller: CallerDep) -> Response:
 
 
 @router.head("/{uploadId}")
-def admin_get_upload_offset(uploadId: str, request: Request, caller: CallerDep) -> Response:  # noqa: N803
+def admin_get_upload_offset(uploadId: str, request: Request, caller: AdminDep) -> Response:  # noqa: N803
     part, meta_path = _paths(request, uploadId)
     meta = _load(meta_path)
     offset = part.stat().st_size if part.exists() else 0
@@ -146,7 +146,7 @@ def admin_get_upload_offset(uploadId: str, request: Request, caller: CallerDep) 
 
 
 @router.patch("/{uploadId}", status_code=204)
-async def admin_append_upload(uploadId: str, request: Request, caller: CallerDep) -> Response:  # noqa: N803
+async def admin_append_upload(uploadId: str, request: Request, caller: AdminDep) -> Response:  # noqa: N803
     _check_version(request)
     if (
         request.headers.get("content-type", "").split(";")[0].strip()
@@ -181,7 +181,7 @@ async def admin_append_upload(uploadId: str, request: Request, caller: CallerDep
 
 
 @router.delete("/{uploadId}", status_code=204)
-def admin_cancel_upload(uploadId: str, request: Request, caller: CallerDep) -> Response:  # noqa: N803
+def admin_cancel_upload(uploadId: str, request: Request, caller: AdminDep) -> Response:  # noqa: N803
     part, meta_path = _paths(request, uploadId)
     _load(meta_path)
     part.unlink(missing_ok=True)

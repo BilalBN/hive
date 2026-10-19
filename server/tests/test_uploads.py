@@ -8,7 +8,7 @@ import pytest
 
 from hive.library.uploads import safe_relative
 
-from .conftest import Home, needs_ffmpeg
+from .conftest import Home, away, needs_ffmpeg
 
 TUS = {"Tus-Resumable": "1.0.0"}
 
@@ -85,7 +85,8 @@ def test_upload_in_chunks_resume_and_scan(home: Home) -> None:
     assert dupes and dupes[0]["problem"].startswith("Same file as")
 
 
-def test_upload_refuses_non_audio_and_unsafe_names(client) -> None:
+def test_upload_refuses_non_audio_and_unsafe_names(home_client) -> None:
+    client = home_client
     key = client.app.state.dev_key
     auth = {"Authorization": f"Bearer {key}", **TUS}
     r = client.post(
@@ -109,11 +110,13 @@ def test_upload_refuses_non_audio_and_unsafe_names(client) -> None:
         },  # fmt: skip
     )
     assert r.status_code == 412
-    r = client.post("/api/v1/admin/uploads", headers={**TUS, "Upload-Length": "10"})
+    # Away from the home computer, Hive Admin needs an admin session.
+    r = away(client).post("/api/v1/admin/uploads", headers={**TUS, "Upload-Length": "10"})
     assert r.status_code == 401
 
 
-def test_cancel_upload(client) -> None:
+def test_cancel_upload(home_client) -> None:
+    client = home_client
     auth = {"Authorization": f"Bearer {client.app.state.dev_key}", **TUS}
     r = client.post(
         "/api/v1/admin/uploads",

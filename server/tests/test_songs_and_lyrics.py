@@ -19,7 +19,7 @@ from hive.library.lookup.songs import best_release, queries, tidy
 from hive.library.lookup.sources import MbSong, MbSongRelease
 
 from .audio_fixtures import FFMPEG, _tone, cover_png
-from .conftest import Home, assert_matches, needs_ffmpeg
+from .conftest import HOME_COMPUTER, Home, assert_matches, needs_ffmpeg
 from .test_lookup import _artist
 
 PERFECT_LRC = "[00:00.50]I found a love for me\n[00:02.00]Darling, just dive right in\n"
@@ -135,7 +135,7 @@ def loose_home(settings: Settings, internet: SongsInternet) -> Iterator[Home]:
         os.utime(p, (old, old))
     http = Http(transport=httpx.MockTransport(internet))
     http.spacing = {}
-    with TestClient(create_app(settings, lookup_http=http)) as c:
+    with TestClient(create_app(settings, lookup_http=http), client=HOME_COMPUTER) as c:
         h = Home(c, paths, music)
         h.wait()
         yield h

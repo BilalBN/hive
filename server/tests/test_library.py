@@ -7,7 +7,7 @@ import time
 
 import pytest
 
-from .conftest import Home, assert_matches, needs_ffmpeg
+from .conftest import Home, assert_matches, away, needs_ffmpeg
 
 pytestmark = needs_ffmpeg
 
@@ -19,11 +19,14 @@ def _albums(home: Home) -> dict[str, dict]:
 
 
 def test_library_needs_the_key(home: Home) -> None:
-    r = home.client.get("/api/v1/library/home")
+    other = away(home.client)  # not the home computer
+    r = other.get("/api/v1/library/home")
     assert r.status_code == 401
     assert r.headers["content-type"].startswith("application/problem+json")
-    r = home.client.get("/api/v1/library/home", headers={"Authorization": "Bearer wrong"})
+    r = other.get("/api/v1/library/home", headers={"Authorization": "Bearer wrong"})
     assert r.status_code == 401
+    r = other.get("/api/v1/library/home", headers=home.auth)  # the development key
+    assert r.status_code == 200
 
 
 def test_scan_reads_every_good_file(home: Home) -> None:
@@ -292,3 +295,68 @@ def test_unknown_things_are_404(home: Home) -> None:
 def test_empty_search(home: Home, q: str) -> None:
     r = home.get("/api/v1/library/search", params={"q": q})
     assert r.status_code in (200, 422)
+
+
+# ------------------------------------------------------------------ M2
+
+
+def test_suggestions_finish_what_is_typed(home: Home) -> None:
+    body = home.get("/api/v1/library/suggest", params={"q": "dre"}).json()
+    assert_matches(body, "Suggestions")
+    assert body["items"][0] == {
+        "kind": "song",
+        "id": home.track_id("Dreams"),
+        "text": "Dreams",
+        "detail": "Fleetwood Mac",
+    }
+    # Typed in English, a Malayalam title is suggested by its spelling.
+    texts = [
+        i["text"] for i in home.get("/api/v1/library/suggest", params={"q": "mala"}).json()["items"]
+    ]
+    assert "മലരേ (Malare)" in texts
+    kinds = {
+        i["kind"]
+        for i in home.get("/api/v1/library/suggest", params={"q": "fleet"}).json()["items"]
+    }
+    assert "artist" in kinds
+    # A song isn't suggested just because its album matches.
+    rumours = home.get("/api/v1/library/suggest", params={"q": "rumou"}).json()["items"]
+    assert [i["kind"] for i in rumours] == ["album"]
+
+
+def test_tidy_song_names(home: Home) -> None:
+    # Download-site clutter in a title, as songs arrive from the internet.
+    track_id = home.track_id("Dreams")
+    with home.client.app.state.db.engine.begin() as conn:
+        from sqlalchemy import update
+
+        from hive.models import Track
+
+        conn.execute(
+            update(Track)
+            .where(Track.id == track_id)
+            .values(title="02_Dreams [www.Mp3MaD.Com]", file_title="02_Dreams [www.Mp3MaD.Com]")
+        )
+    body = home.get("/api/v1/admin/library/tidy").json()
+    assert_matches(body, "TidyList")
+    item = next(i for i in body["items"] if i["trackId"] == track_id)
+    assert item == {
+        "trackId": track_id,
+        "albumId": item["albumId"],
+        "albumTitle": "Rumours",
+        "before": "02_Dreams [www.Mp3MaD.Com]",
+        "after": "Dreams",
+        "applied": False,
+    }
+    body = home.post("/api/v1/admin/library/tidy", json={"trackIds": [track_id]}).json()
+    assert next(i for i in body["items"] if i["trackId"] == track_id)["applied"] is True
+    assert home.track_id("Dreams") == track_id
+    assert home.get("/api/v1/library/suggest", params={"q": "dreams"}).json()["items"]
+    # A rescan keeps the tidy name; the file is never changed.
+    home.client.app.state.library.enqueue(home.paths["dreams"], force=True)
+    home.wait()
+    assert home.track_id("Dreams") == track_id
+    # Undo: back to what the file says (here the file's own tag is clean).
+    body = home.post("/api/v1/admin/library/tidy/undo", json={"trackIds": [track_id]}).json()
+    assert not any(i["trackId"] == track_id and i["applied"] for i in body["items"])
+    assert home.track_id("Dreams") == track_id

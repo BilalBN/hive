@@ -17,6 +17,7 @@ dependencies = [
   "pillow>=10.4",
   "watchdog>=5.0",
   "httpx>=0.27",  # online lookup (MusicBrainz, Cover Art Archive, Wikidata, AcoustID)
+  "cryptography>=42",  # M2: checks each device's Ed25519 signature
 ]
 
 [project.optional-dependencies]

@@ -48,8 +48,25 @@ def built_library(tmp_path_factory: pytest.TempPathFactory) -> tuple[Path, dict[
     return root, build_library(root)
 
 
+# Requests from the home computer itself: Hive Admin works without signing in.
+HOME_COMPUTER = ("127.0.0.1", 50000)
+
+
+def away(client: TestClient) -> TestClient:
+    """The same server, asked from another device on the private network."""
+    return TestClient(client.app, client=("100.64.0.9", 50000))
+
+
+@pytest.fixture
+def home_client(settings: Settings) -> Iterator[TestClient]:
+    """A server with an empty library, used from the home computer."""
+    with TestClient(create_app(settings), client=HOME_COMPUTER) as c:
+        yield c
+
+
 class Home:
-    """A running server with the test library scanned in."""
+    """A running server with the test library scanned in, used from the home
+    computer (so Hive Admin calls work too)."""
 
     def __init__(self, client: TestClient, paths: dict[str, Path], music: Path) -> None:
         self.client = client
@@ -97,7 +114,7 @@ def home(settings: Settings, built_library) -> Iterator[Home]:
             stamp = old + 60 if p.name.startswith("Copy of") else old
             os.utime(p, (stamp, stamp))
     mapped = {k: music / v.relative_to(src) for k, v in paths.items()}
-    with TestClient(create_app(settings)) as c:
+    with TestClient(create_app(settings), client=HOME_COMPUTER) as c:
         h = Home(c, mapped, music)
         h.wait()
         yield h

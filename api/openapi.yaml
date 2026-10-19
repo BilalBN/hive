@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Hive API
-  version: 0.2.0
+  version: 0.3.0
   summary: The private family music server's API.
   description: |
     This file is the single source of truth for every endpoint. The server is
@@ -59,8 +59,13 @@ paths:
       summary: Check an invite code from a QR or typed code, and show which home it belongs to.
       x-milestone: M2
       security: []
-      requestBody: { $ref: "#/components/requestBodies/Pending" }
-      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/InviteCode" } } }
+      responses:
+        "200": { description: The invite., content: { application/json: { schema: { $ref: "#/components/schemas/InviteInfo" } } } }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/Invalid" }
   /api/v1/auth/email/start:
     post:
       tags: [auth]
@@ -68,26 +73,45 @@ paths:
       summary: Send a 6-digit code to an email address.
       x-milestone: M2
       security: []
-      requestBody: { $ref: "#/components/requestBodies/Pending" }
-      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/EmailStart" } } }
+      responses:
+        "200": { description: A code is on its way., content: { application/json: { schema: { $ref: "#/components/schemas/EmailStarted" } } } }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/Invalid" }
+        "429": { $ref: "#/components/responses/TooMany" }
   /api/v1/auth/email/verify:
     post:
       tags: [auth]
       operationId: verifyEmailCode
-      summary: Check the code; creates an access request (approved at once when invited).
+      summary: Check the code; creates an access request (approved at once when invited or already a member).
       x-milestone: M2
       security: []
-      requestBody: { $ref: "#/components/requestBodies/Pending" }
-      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/EmailVerify" } } }
+      responses:
+        "200": { description: The access request., content: { application/json: { schema: { $ref: "#/components/schemas/AccessRequestStatus" } } } }
+        "400": { $ref: "#/components/responses/WrongCode" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "410": { $ref: "#/components/responses/Expired" }
+        "429": { $ref: "#/components/responses/TooMany" }
   /api/v1/auth/requests/{requestId}:
     parameters: [{ $ref: "#/components/parameters/RequestId" }]
-    get:
+    post:
       tags: [auth]
       operationId: getAccessRequest
-      summary: Poll an access request while waiting for approval.
+      summary: Check on an access request while waiting for approval (POST so the token stays out of URLs).
       x-milestone: M2
       security: []
-      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/RequestPoll" } } }
+      responses:
+        "200": { description: The request., content: { application/json: { schema: { $ref: "#/components/schemas/AccessRequestStatus" } } } }
+        "404": { $ref: "#/components/responses/NotFound" }
   /api/v1/auth/devices:
     post:
       tags: [auth]
@@ -95,8 +119,15 @@ paths:
       summary: Register this device's public key once approved; enforces the device limit.
       x-milestone: M2
       security: []
-      requestBody: { $ref: "#/components/requestBodies/Pending" }
-      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/DeviceRegistration" } } }
+      responses:
+        "200": { description: Signed in., content: { application/json: { schema: { $ref: "#/components/schemas/DeviceSession" } } } }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/DeviceLimit" }
+        "422": { $ref: "#/components/responses/Invalid" }
   /api/v1/auth/challenge:
     post:
       tags: [auth]
@@ -104,8 +135,12 @@ paths:
       summary: Get a one-time challenge for the device to sign before refreshing.
       x-milestone: M2
       security: []
-      requestBody: { $ref: "#/components/requestBodies/Pending" }
-      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/ChallengeRequest" } } }
+      responses:
+        "200": { description: The challenge., content: { application/json: { schema: { $ref: "#/components/schemas/Challenge" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
   /api/v1/auth/token:
     post:
       tags: [auth]
@@ -113,28 +148,58 @@ paths:
       summary: Swap a refresh token plus a signed challenge for new tokens.
       x-milestone: M2
       security: []
-      requestBody: { $ref: "#/components/requestBodies/Pending" }
-      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/TokenRefresh" } } }
+      responses:
+        "200": { description: New tokens., content: { application/json: { schema: { $ref: "#/components/schemas/DeviceSession" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /api/v1/me:
+    get:
+      tags: [auth]
+      operationId: getMe
+      summary: The signed-in person.
+      x-milestone: M2
+      responses:
+        "200": { description: You., content: { application/json: { schema: { $ref: "#/components/schemas/Me" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    patch:
+      tags: [auth]
+      operationId: updateMe
+      summary: Change your name or Simple mode.
+      x-milestone: M2
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/MeEdit" } } }
+      responses:
+        "200": { description: You., content: { application/json: { schema: { $ref: "#/components/schemas/Me" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "422": { $ref: "#/components/responses/Invalid" }
   /api/v1/me/devices:
     get:
       tags: [auth]
       operationId: listMyDevices
       summary: The signed-in person's devices (up to 4) and swaps left this month.
       x-milestone: M2
-      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+      responses:
+        "200": { description: Your devices., content: { application/json: { schema: { $ref: "#/components/schemas/MyDevices" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
   /api/v1/me/devices/{deviceId}:
     parameters: [{ $ref: "#/components/parameters/DeviceId" }]
     delete:
       tags: [auth]
       operationId: removeMyDevice
-      summary: Remove one of your own devices (counts towards the monthly swap limit).
+      summary: Remove one of your own devices (counts towards the monthly swap limit; this device signs out).
       x-milestone: M2
-      responses: { "204": { description: Removed. }, "501": { $ref: "#/components/responses/NotImplemented" } }
+      responses:
+        "204": { description: Removed. }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
 
   # ------------------------------------------------------------- library (M1)
-  # Until M2 every call here is authorised by the home's development key, sent
-  # as `Authorization: Bearer <key>` (see `hive info`). M2 replaces it with
-  # per-device tokens; the operations do not change.
+  # Authorised by the device's access token (M2). Before the first admin is
+  # set up, the home's development key from M1 still works.
   /api/v1/library/home:
     get:
       tags: [library]
@@ -265,6 +330,21 @@ paths:
         - $ref: "#/components/parameters/Language"
       responses:
         "200": { description: Matches by kind., content: { application/json: { schema: { $ref: "#/components/schemas/SearchResults" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /api/v1/library/suggest:
+    get:
+      tags: [library]
+      operationId: suggest
+      summary: Names to finish what's being typed in search (songs, albums, artists at home).
+      x-milestone: M2
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema: { type: string, minLength: 1, maxLength: 100 }
+        - $ref: "#/components/parameters/Language"
+      responses:
+        "200": { description: Suggestions., content: { application/json: { schema: { $ref: "#/components/schemas/Suggestions" } } } }
         "401": { $ref: "#/components/responses/Unauthorized" }
   /api/v1/library/languages:
     get:
@@ -495,30 +575,73 @@ paths:
       responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
 
   # --------------------------------------------------------------- admin (M1+)
+  /api/v1/admin/session:
+    get:
+      tags: [admin]
+      operationId: adminGetSession
+      summary: Whether this browser is signed in, on the home computer, or Hive needs its first admin.
+      x-milestone: M2
+      security: []
+      responses:
+        "200": { description: The session., content: { application/json: { schema: { $ref: "#/components/schemas/AdminSession" } } } }
+    delete:
+      tags: [admin]
+      operationId: adminSignOut
+      summary: End the admin session.
+      x-milestone: M2
+      responses:
+        "204": { description: Signed out. }
+  /api/v1/admin/setup:
+    post:
+      tags: [admin]
+      operationId: adminSetup
+      summary: Create the first admin. Only on the home computer, and only once; the development key stops working.
+      x-milestone: M2
+      security: []
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/AdminSetup" } } }
+      responses:
+        "200": { description: The session., content: { application/json: { schema: { $ref: "#/components/schemas/AdminSession" } } } }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/Invalid" }
   /api/v1/admin/session/email:
     post:
       tags: [admin]
       operationId: adminStartEmailSignIn
-      summary: Email an admin sign-in code (fallback to passkeys).
+      summary: Email an admin a sign-in code. The answer is the same for any address.
       x-milestone: M2
       security: []
-      requestBody: { $ref: "#/components/requestBodies/Pending" }
-      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/AdminEmailStart" } } }
+      responses:
+        "200": { description: A code is on its way if the address is an admin's., content: { application/json: { schema: { $ref: "#/components/schemas/EmailStarted" } } } }
+        "422": { $ref: "#/components/responses/Invalid" }
+        "429": { $ref: "#/components/responses/TooMany" }
   /api/v1/admin/session/email/verify:
     post:
       tags: [admin]
       operationId: adminVerifyEmailSignIn
-      summary: Check the admin email code and start a session.
+      summary: Check the email code and the authenticator code, and start a session (cookie hive_admin).
       x-milestone: M2
       security: []
-      requestBody: { $ref: "#/components/requestBodies/Pending" }
-      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/AdminEmailVerify" } } }
+      responses:
+        "200": { description: Signed in., content: { application/json: { schema: { $ref: "#/components/schemas/AdminSession" } } } }
+        "400": { $ref: "#/components/responses/WrongCode" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "410": { $ref: "#/components/responses/Expired" }
+        "429": { $ref: "#/components/responses/TooMany" }
   /api/v1/admin/session/passkey/options:
     post:
       tags: [admin]
       operationId: adminPasskeyOptions
-      summary: Start a passkey sign-in or registration.
-      x-milestone: M2
+      summary: Start a passkey sign-in or registration (needs HTTPS on the private network).
+      x-milestone: M6
       security: []
       requestBody: { $ref: "#/components/requestBodies/Pending" }
       responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
@@ -527,31 +650,57 @@ paths:
       tags: [admin]
       operationId: adminPasskeyVerify
       summary: Finish a passkey sign-in or registration.
-      x-milestone: M2
+      x-milestone: M6
       security: []
       requestBody: { $ref: "#/components/requestBodies/Pending" }
       responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
-  /api/v1/admin/session:
+  /api/v1/admin/me/authenticator:
+    post:
+      tags: [admin]
+      operationId: adminStartAuthenticator
+      summary: Start setting up an authenticator app (returns the secret and an otpauth link for a QR code).
+      x-milestone: M2
+      responses:
+        "200": { description: The secret., content: { application/json: { schema: { $ref: "#/components/schemas/AuthenticatorSetup" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    put:
+      tags: [admin]
+      operationId: adminConfirmAuthenticator
+      summary: Confirm the authenticator with a code from it; it's required for signing in away from the home computer.
+      x-milestone: M2
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/AuthenticatorCode" } } }
+      responses:
+        "200": { description: The session., content: { application/json: { schema: { $ref: "#/components/schemas/AdminSession" } } } }
+        "400": { $ref: "#/components/responses/WrongCode" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
     delete:
       tags: [admin]
-      operationId: adminSignOut
-      summary: End the admin session.
+      operationId: adminRemoveAuthenticator
+      summary: Remove your authenticator (only on the home computer).
       x-milestone: M2
-      responses: { "204": { description: Signed out. }, "501": { $ref: "#/components/responses/NotImplemented" } }
+      responses:
+        "200": { description: The session., content: { application/json: { schema: { $ref: "#/components/schemas/AdminSession" } } } }
+        "403": { $ref: "#/components/responses/Forbidden" }
   /api/v1/admin/overview:
     get:
       tags: [admin]
       operationId: adminGetOverview
       summary: Health cards, requests waiting and recent activity.
       x-milestone: M2
-      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+      responses:
+        "200": { description: The overview., content: { application/json: { schema: { $ref: "#/components/schemas/AdminOverview" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
   /api/v1/admin/requests:
     get:
       tags: [admin]
       operationId: adminListRequests
-      summary: Access requests waiting for approval.
+      summary: Access requests (waiting first, then recent decisions), and codes to pass on while email isn't set up.
       x-milestone: M2
-      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+      responses:
+        "200": { description: Requests., content: { application/json: { schema: { $ref: "#/components/schemas/AdminRequests" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
   /api/v1/admin/requests/{requestId}/approve:
     parameters: [{ $ref: "#/components/parameters/RequestId" }]
     post:
@@ -559,29 +708,62 @@ paths:
       operationId: adminApproveRequest
       summary: Approve a request (undo allowed for 10 seconds).
       x-milestone: M2
-      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+      requestBody:
+        required: false
+        content: { application/json: { schema: { $ref: "#/components/schemas/RequestDecision" } } }
+      responses:
+        "200": { description: The request., content: { application/json: { schema: { $ref: "#/components/schemas/AdminAccessRequest" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
   /api/v1/admin/requests/{requestId}/decline:
     parameters: [{ $ref: "#/components/parameters/RequestId" }]
     post:
       tags: [admin]
       operationId: adminDeclineRequest
-      summary: Decline a request.
+      summary: Decline a request (undo allowed for 10 seconds).
       x-milestone: M2
-      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+      requestBody:
+        required: false
+        content: { application/json: { schema: { $ref: "#/components/schemas/RequestDecision" } } }
+      responses:
+        "200": { description: The request., content: { application/json: { schema: { $ref: "#/components/schemas/AdminAccessRequest" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+  /api/v1/admin/requests/{requestId}/undo:
+    parameters: [{ $ref: "#/components/parameters/RequestId" }]
+    post:
+      tags: [admin]
+      operationId: adminUndoDecision
+      summary: Undo an approval or decline made in the last 10 seconds.
+      x-milestone: M2
+      responses:
+        "200": { description: 'The request, waiting again.', content: { application/json: { schema: { $ref: "#/components/schemas/AdminAccessRequest" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
   /api/v1/admin/invites:
     get:
       tags: [admin]
       operationId: adminListInvites
       summary: Invites not yet used.
       x-milestone: M2
-      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+      responses:
+        "200": { description: Invites., content: { application/json: { schema: { $ref: "#/components/schemas/AdminInvites" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
     post:
       tags: [admin]
       operationId: adminCreateInvite
-      summary: Create an invite; returns the Hive code and QR payload plus the private-network invite link.
+      summary: Create an invite; returns the Hive code and QR payload (shown once) plus the private-network invite link.
       x-milestone: M2
-      requestBody: { $ref: "#/components/requestBodies/Pending" }
-      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/InviteCreate" } } }
+      responses:
+        "200": { description: The invite., content: { application/json: { schema: { $ref: "#/components/schemas/AdminInvite" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "422": { $ref: "#/components/responses/Invalid" }
   /api/v1/admin/invites/{inviteId}:
     parameters:
       - { name: inviteId, in: path, required: true, schema: { type: string } }
@@ -590,14 +772,19 @@ paths:
       operationId: adminRevokeInvite
       summary: Cancel an unused invite.
       x-milestone: M2
-      responses: { "204": { description: Cancelled. }, "501": { $ref: "#/components/responses/NotImplemented" } }
+      responses:
+        "204": { description: Cancelled. }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
   /api/v1/admin/people:
     get:
       tags: [admin]
       operationId: adminListPeople
       summary: Everyone with access, their devices used and status.
       x-milestone: M2
-      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+      responses:
+        "200": { description: People., content: { application/json: { schema: { $ref: "#/components/schemas/AdminPeople" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
   /api/v1/admin/people/{personId}:
     parameters:
       - { name: personId, in: path, required: true, schema: { type: string } }
@@ -606,21 +793,33 @@ paths:
       operationId: adminGetPerson
       summary: One person with devices, swaps used and activity.
       x-milestone: M2
-      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+      responses:
+        "200": { description: The person., content: { application/json: { schema: { $ref: "#/components/schemas/AdminPersonDetail" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
     patch:
       tags: [admin]
       operationId: adminUpdatePerson
-      summary: Suspend, reinstate, change role, override the device limit, set Simple mode.
+      summary: Rename, suspend or reinstate, change role, override the device limit, reset devices, set Simple mode.
       x-milestone: M2
-      requestBody: { $ref: "#/components/requestBodies/Pending" }
-      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/PersonEdit" } } }
+      responses:
+        "200": { description: The person., content: { application/json: { schema: { $ref: "#/components/schemas/AdminPersonDetail" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/Invalid" }
   /api/v1/admin/devices:
     get:
       tags: [admin]
       operationId: adminListDevices
       summary: Every device across the family.
       x-milestone: M2
-      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+      responses:
+        "200": { description: Devices., content: { application/json: { schema: { $ref: "#/components/schemas/AdminDevices" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
   /api/v1/admin/devices/{deviceId}/revoke:
     parameters: [{ $ref: "#/components/parameters/DeviceId" }]
     post:
@@ -628,7 +827,10 @@ paths:
       operationId: adminRevokeDevice
       summary: Sign a device out and delete its downloads on next contact.
       x-milestone: M2
-      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+      responses:
+        "200": { description: The device., content: { application/json: { schema: { $ref: "#/components/schemas/AdminDevice" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
   /api/v1/admin/library/imports:
     get:
       tags: [admin]
@@ -756,6 +958,38 @@ paths:
         "200": { description: What was found., content: { application/json: { schema: { $ref: "#/components/schemas/LyricsFound" } } } }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "404": { $ref: "#/components/responses/NotFound" }
+  /api/v1/admin/library/tidy:
+    get:
+      tags: [admin]
+      operationId: adminListTidy
+      summary: Song titles with download clutter, each as before → after; and the ones already tidied.
+      x-milestone: M2
+      responses:
+        "200": { description: Suggestions., content: { application/json: { schema: { $ref: "#/components/schemas/TidyList" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    post:
+      tags: [admin]
+      operationId: adminApplyTidy
+      summary: Use the tidy names for these songs (what Hive shows; the files don't change).
+      x-milestone: M2
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/TrackIds" } } }
+      responses:
+        "200": { description: Suggestions left., content: { application/json: { schema: { $ref: "#/components/schemas/TidyList" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /api/v1/admin/library/tidy/undo:
+    post:
+      tags: [admin]
+      operationId: adminUndoTidy
+      summary: Go back to the files' own titles for these songs.
+      x-milestone: M2
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/TrackIds" } } }
+      responses:
+        "200": { description: Suggestions., content: { application/json: { schema: { $ref: "#/components/schemas/TidyList" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
   /api/v1/admin/library/albums:
     get:
       tags: [admin]
@@ -916,21 +1150,49 @@ paths:
       operationId: adminGetSettings
       summary: Server settings.
       x-milestone: M2
-      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+      responses:
+        "200": { description: Settings., content: { application/json: { schema: { $ref: "#/components/schemas/AdminSettings" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
     patch:
       tags: [admin]
       operationId: adminUpdateSettings
       summary: Change server settings.
       x-milestone: M2
-      requestBody: { $ref: "#/components/requestBodies/Pending" }
-      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/AdminSettingsEdit" } } }
+      responses:
+        "200": { description: Settings., content: { application/json: { schema: { $ref: "#/components/schemas/AdminSettings" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "422": { $ref: "#/components/responses/Invalid" }
+  /api/v1/admin/settings/email/test:
+    post:
+      tags: [admin]
+      operationId: adminTestEmail
+      summary: Send a test email with the saved settings.
+      x-milestone: M2
+      requestBody:
+        required: false
+        content: { application/json: { schema: { $ref: "#/components/schemas/EmailTest" } } }
+      responses:
+        "200": { description: What happened., content: { application/json: { schema: { $ref: "#/components/schemas/EmailTestResult" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
   /api/v1/admin/audit:
     get:
       tags: [admin]
       operationId: adminListAudit
-      summary: Every admin action, filterable.
+      summary: Every admin action and sign-in, newest first.
       x-milestone: M2
-      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+      parameters:
+        - $ref: "#/components/parameters/Offset"
+        - $ref: "#/components/parameters/Limit"
+        - name: action
+          in: query
+          description: Only this kind of action (e.g. "request.approve").
+          schema: { type: string, maxLength: 64 }
+      responses:
+        "200": { description: A page of the log., content: { application/json: { schema: { $ref: "#/components/schemas/AuditPage" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
   /api/v1/admin/backups:
     get:
       tags: [admin]
@@ -1011,6 +1273,18 @@ components:
     Invalid:
       description: The request body or parameters are wrong.
       content: { application/problem+json: { schema: { $ref: "#/components/schemas/Problem" } } }
+    WrongCode:
+      description: 'The code is wrong; the Problem has attemptsLeft.'
+      content: { application/problem+json: { schema: { $ref: "#/components/schemas/Problem" } } }
+    Expired:
+      description: The code has expired; ask for a new one.
+      content: { application/problem+json: { schema: { $ref: "#/components/schemas/Problem" } } }
+    TooMany:
+      description: Too many tries or codes; the detail says when to try again.
+      content: { application/problem+json: { schema: { $ref: "#/components/schemas/Problem" } } }
+    DeviceLimit:
+      description: 'All devices are in use; the Problem has code "deviceLimit", devices (MyDevice list) and swapsLeft.'
+      content: { application/problem+json: { schema: { $ref: "#/components/schemas/Problem" } } }
     Conflict:
       description: Can't be done in the current state; the detail says why.
       content: { application/problem+json: { schema: { $ref: "#/components/schemas/Problem" } } }
@@ -1052,6 +1326,10 @@ components:
           type: string
           description: Older apps show "Time for an update".
           examples: ["0.1.0"]
+        access:
+          type: string
+          enum: [developmentKey, invites]
+          description: How apps get in. developmentKey until the first admin is set up (M1's key), then invites and email codes.
         serverTime:
           type: string
           format: date-time
@@ -1068,6 +1346,13 @@ components:
         milestone:
           type: string
           description: For 501 responses, the milestone that builds this operation.
+        code:
+          type: string
+          description: 'A machine-readable reason: deviceLimit, swapLimit, suspended, revoked, signInNeeded, authenticatorNeeded, expired, tooMany.'
+        attemptsLeft: { type: integer, description: For a wrong code. }
+        retryAfterSeconds: { type: integer }
+        devices: { type: array, description: For deviceLimit., items: { $ref: "#/components/schemas/MyDevice" } }
+        swapsLeft: { type: integer, description: For deviceLimit. }
     # --------------------------------------------------------- library (M1)
     AudioFormat:
       type: object
@@ -1109,8 +1394,8 @@ components:
         format: { $ref: "#/components/schemas/AudioFormat" }
         liked: { type: boolean }
         hasLyrics: { type: boolean }
-        composer: { type: string, description: Who wrote the music, as credited. }
-        lyricist: { type: string, description: Who wrote the words, as credited. }
+        composer: { type: string, description: 'Who wrote the music, as credited.' }
+        lyricist: { type: string, description: 'Who wrote the words, as credited.' }
     AlbumSummary:
       type: object
       required: [id, title, artistName, trackCount, tier, addedAt]
@@ -1129,7 +1414,7 @@ components:
         addedAt: { type: string, format: date-time }
         language: { type: string, description: Language code (e.g. "ml"); missing when not known. }
         kind: { $ref: "#/components/schemas/AlbumKind" }
-        filmTitle: { type: string, description: The film, for soundtracks (often the album title). }
+        filmTitle: { type: string, description: 'The film, for soundtracks (often the album title).' }
     AlbumKind:
       type: string
       enum: [album, soundtrack, compilation, single, ep, live, other]
@@ -1257,7 +1542,7 @@ components:
       required: [kind, id, title]
       properties:
         kind: { type: string, enum: [album, playlist, artist, liked] }
-        id: { type: string, description: The album, playlist or artist; "liked" for liked songs. }
+        id: { type: string, description: 'The album, playlist or artist; "liked" for liked songs.' }
         title: { type: string }
         subtitle: { type: string }
         artworkIds:
@@ -1423,7 +1708,7 @@ components:
       properties:
         integratedLufs: { type: number, examples: [-9.4] }
         truePeakDbtp: { type: number, examples: [0.6] }
-        albumLufs: { type: number, description: The whole album, for album-mode levelling. }
+        albumLufs: { type: number, description: 'The whole album, for album-mode levelling.' }
     StreamTicket:
       type: object
       required: [url, expiresAt, format, mimeType, durationMs, transcoded]
@@ -1465,7 +1750,7 @@ components:
           type: string
           enum: [queued, working, done, failed, duplicate, ignored]
           description: duplicate = an exact copy of a song already in the library, so it was skipped.
-        problem: { type: string, description: Plain words, for files that need attention. }
+        problem: { type: string, description: 'Plain words, for files that need attention.' }
         updatedAt: { type: string, format: date-time }
     MusicFolder:
       type: object
@@ -1488,7 +1773,7 @@ components:
         lastScanAt: { type: string, format: date-time }
         folders: { type: array, items: { $ref: "#/components/schemas/MusicFolder" } }
         uploadFolder: { type: string, description: Where browser uploads are saved. }
-        ffmpeg: { type: boolean, description: FFmpeg was found; without it High, Data saver and loudness are unavailable. }
+        ffmpeg: { type: boolean, description: 'FFmpeg was found; without it High, Data saver and loudness are unavailable.' }
         queue:
           type: array
           description: Up to 50 files waiting or being read.
@@ -1523,7 +1808,7 @@ components:
       properties:
         enabled: { type: boolean }
         acoustidKey: { type: boolean, description: A key is set (it's never sent back). }
-        fingerprinting: { type: boolean, description: fpcalc (Chromaprint) was found, so fingerprints can be made. }
+        fingerprinting: { type: boolean, description: 'fpcalc (Chromaprint) was found, so fingerprints can be made.' }
         working: { type: boolean }
         waiting: { type: integer }
         found: { type: integer }
@@ -1532,9 +1817,9 @@ components:
         failed: { type: integer }
         edited: { type: integer, description: Albums you corrected by hand. }
         soundMatches: { type: integer, description: Albums recognised by the sound of their songs (AcoustID). }
-        acoustidProblem: { type: string, description: Why AcoustID turned Hive down last time, in plain words. }
+        acoustidProblem: { type: string, description: 'Why AcoustID turned Hive down last time, in plain words.' }
         acoustidUsedAt: { type: string, format: date-time, description: When AcoustID last answered. }
-        lastError: { type: string, description: Why the last lookup failed, in plain words. }
+        lastError: { type: string, description: 'Why the last lookup failed, in plain words.' }
         sends:
           type: string
           description: What leaves home, in plain words, for the admin panel to show.
@@ -1564,13 +1849,13 @@ components:
         found: { type: boolean }
         text: { type: string }
         kind: { type: string, enum: [synced, plain] }
-        message: { type: string, description: What happened, in plain words. }
+        message: { type: string, description: 'What happened, in plain words.' }
     AcoustidTest:
       type: object
       required: [ok, message, status]
       properties:
         ok: { type: boolean }
-        message: { type: string, description: What happened, in plain words. }
+        message: { type: string, description: 'What happened, in plain words.' }
         status: { $ref: "#/components/schemas/LookupStatus" }
     LookupState:
       type: string
@@ -1587,11 +1872,11 @@ components:
         filmTitle: { type: string }
         film: { $ref: "#/components/schemas/Film" }
         credits: { type: array, items: { $ref: "#/components/schemas/Credit" } }
-        artworkId: { type: string, description: The cover it found, already saved at home. }
+        artworkId: { type: string, description: 'The cover it found, already saved at home.' }
         trackCount: { type: integer }
         score: { type: number, minimum: 0, maximum: 1, description: How sure the match is. }
-        source: { type: string, description: Where it came from, e.g. "MusicBrainz · Wikidata". }
-        link: { type: string, description: The page on MusicBrainz or Wikidata, to check by eye. }
+        source: { type: string, description: 'Where it came from, e.g. "MusicBrainz · Wikidata".' }
+        link: { type: string, description: 'The page on MusicBrainz or Wikidata, to check by eye.' }
     AdminAlbum:
       type: object
       required: [album, lookup, edited, sources]
@@ -1608,7 +1893,7 @@ components:
           type: object
           description: Where each detail came from (tags, folder, script, lookup, you).
           additionalProperties: { type: string }
-        folder: { type: string, description: Where its files are, relative to the music folder. }
+        folder: { type: string, description: 'Where its files are, relative to the music folder.' }
     AdminAlbumPage:
       type: object
       required: [items, total, offset]
@@ -1645,6 +1930,420 @@ components:
       required: [key]
       properties:
         key: { type: string, examples: ["hive-dev-7k2q-9mxp-4c8a"] }
+    # ------------------------------------------------------------ auth (M2)
+    Platform:
+      type: string
+      enum: [android, ios, macos, windows, linux, web]
+    InviteCode:
+      type: object
+      required: [code]
+      properties:
+        code: { type: string, minLength: 4, maxLength: 64, description: 'The Hive code, typed ("HIVE-7K2Q-9MXP") or from the QR.' }
+    InviteInfo:
+      type: object
+      required: [homeName, valid]
+      properties:
+        homeName: { type: string }
+        valid: { type: boolean, description: 'False when used, cancelled or expired.' }
+        email: { type: string, description: 'The address it is for, partly hidden ("b•••@gmail.com"), when it names one.' }
+        expiresAt: { type: string, format: date-time }
+    EmailStart:
+      type: object
+      required: [email, deviceName, platform]
+      properties:
+        email: { type: string, format: email, maxLength: 254 }
+        inviteCode: { type: string, maxLength: 64 }
+        deviceName: { type: string, minLength: 1, maxLength: 80, description: 'What the device is called, e.g. "Bilal''s Pixel".' }
+        platform: { $ref: "#/components/schemas/Platform" }
+    EmailStarted:
+      type: object
+      required: [verificationId, expiresAt, resendAfterSeconds, emailSent]
+      properties:
+        verificationId: { type: string }
+        expiresAt: { type: string, format: date-time }
+        resendAfterSeconds: { type: integer }
+        emailSent: { type: boolean, description: False while email isn't set up at home; the admin passes the code on. }
+    EmailVerify:
+      type: object
+      required: [verificationId, code]
+      properties:
+        verificationId: { type: string }
+        code: { type: string, pattern: "^[0-9]{6}$" }
+    AccessRequestStatus:
+      type: object
+      required: [requestId, requestToken, status, homeName]
+      properties:
+        requestId: { type: string }
+        requestToken: { type: string, description: Keep it to poll and to register the device; it works for 7 days. }
+        status: { type: string, enum: [pending, approved, declined] }
+        homeName: { type: string }
+        name: { type: string, description: The person's name once known. }
+    RequestPoll:
+      type: object
+      required: [requestToken]
+      properties:
+        requestToken: { type: string }
+    DeviceRegistration:
+      type: object
+      required: [requestId, requestToken, publicKey, name, platform]
+      properties:
+        requestId: { type: string }
+        requestToken: { type: string }
+        publicKey: { type: string, description: 'The device''s Ed25519 public key, base64url (32 bytes).' }
+        name: { type: string, minLength: 1, maxLength: 80 }
+        platform: { $ref: "#/components/schemas/Platform" }
+        appVersion: { type: string, maxLength: 32 }
+        replaceDeviceId: { type: string, description: 'At the device limit, the device to remove to make room (counts as a swap).' }
+    DeviceSession:
+      type: object
+      required: [deviceId, accessToken, accessExpiresAt, refreshToken, refreshExpiresAt, me]
+      properties:
+        deviceId: { type: string }
+        accessToken: { type: string, description: 'Send as "Authorization: Bearer"; lasts 15 minutes.' }
+        accessExpiresAt: { type: string, format: date-time }
+        refreshToken: { type: string, description: Replaced on every use; lasts 30 days. }
+        refreshExpiresAt: { type: string, format: date-time }
+        me: { $ref: "#/components/schemas/Me" }
+    ChallengeRequest:
+      type: object
+      required: [deviceId]
+      properties:
+        deviceId: { type: string }
+    Challenge:
+      type: object
+      required: [challenge, expiresAt]
+      properties:
+        challenge: { type: string, description: Sign these exact bytes (UTF-8) with the device key. }
+        expiresAt: { type: string, format: date-time }
+    TokenRefresh:
+      type: object
+      required: [deviceId, refreshToken, challenge, signature]
+      properties:
+        deviceId: { type: string }
+        refreshToken: { type: string }
+        challenge: { type: string }
+        signature: { type: string, description: 'Ed25519 signature of the challenge, base64url.' }
+    Me:
+      type: object
+      required: [id, name, email, role, simpleMode]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        email: { type: string }
+        role: { type: string, enum: [admin, member] }
+        simpleMode: { type: boolean }
+    MeEdit:
+      type: object
+      properties:
+        name: { type: string, minLength: 1, maxLength: 80 }
+        simpleMode: { type: boolean }
+    MyDevice:
+      type: object
+      required: [id, name, platform, current, createdAt]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        platform: { $ref: "#/components/schemas/Platform" }
+        appVersion: { type: string }
+        current: { type: boolean, description: The device asking. }
+        createdAt: { type: string, format: date-time }
+        lastSeenAt: { type: string, format: date-time }
+    MyDevices:
+      type: object
+      required: [items, limit, swapsLeft, swapsPerMonth]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/MyDevice" } }
+        limit: { type: integer, description: Devices allowed at once. }
+        swapsLeft: { type: integer, description: Devices that can still be removed in the last 30 days. }
+        swapsPerMonth: { type: integer }
+
+    # ------------------------------------------------------------ admin access (M2)
+    AdminMe:
+      type: object
+      required: [id, name, email, authenticator]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        email: { type: string }
+        authenticator: { type: boolean, description: An authenticator app is set up (needed to sign in away from the home computer). }
+    AdminSession:
+      type: object
+      required: [signedIn, onHomeComputer, needsSetup, emailReady]
+      properties:
+        signedIn: { type: boolean, description: This browser may use Hive Admin. }
+        onHomeComputer: { type: boolean, description: 'Opened on the home computer itself, which is always allowed.' }
+        needsSetup: { type: boolean, description: No admin exists yet; set one up on the home computer. }
+        emailReady: { type: boolean, description: 'Email settings are saved, so codes can be sent.' }
+        me: { $ref: "#/components/schemas/AdminMe" }
+    AdminSetup:
+      type: object
+      required: [name, email]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 80 }
+        email: { type: string, format: email, maxLength: 254 }
+    AdminEmailStart:
+      type: object
+      required: [email]
+      properties:
+        email: { type: string, format: email, maxLength: 254 }
+    AdminEmailVerify:
+      type: object
+      required: [verificationId, code]
+      properties:
+        verificationId: { type: string }
+        code: { type: string, pattern: "^[0-9]{6}$" }
+        authenticatorCode: { type: string, pattern: "^[0-9]{6}$", description: From the admin's authenticator app. }
+    AuthenticatorSetup:
+      type: object
+      required: [secret, uri]
+      properties:
+        secret: { type: string, description: 'Base32, for typing into the app.' }
+        uri: { type: string, description: 'otpauth:// link, for the QR code.' }
+    AuthenticatorCode:
+      type: object
+      required: [code]
+      properties:
+        code: { type: string, pattern: "^[0-9]{6}$" }
+    AdminAlert:
+      type: object
+      required: [level, text]
+      properties:
+        level: { type: string, enum: [info, warning, problem] }
+        text: { type: string }
+    AdminOverview:
+      type: object
+      required: [homeName, pendingRequests, people, devices, tracks, albums, sizeBytes, losslessPercent, emailReady, developmentKeyActive, alerts, recent]
+      properties:
+        homeName: { type: string }
+        pendingRequests: { type: integer }
+        people: { type: integer }
+        devices: { type: integer, description: Active devices. }
+        tracks: { type: integer }
+        albums: { type: integer }
+        sizeBytes: { type: integer }
+        losslessPercent: { type: integer }
+        emailReady: { type: boolean }
+        developmentKeyActive: { type: boolean, description: The M1 key still works because no admin is set up yet. }
+        alerts: { type: array, items: { $ref: "#/components/schemas/AdminAlert" } }
+        recent: { type: array, description: The last 8 entries of the audit log., items: { $ref: "#/components/schemas/AuditEntry" } }
+    AdminAccessRequest:
+      type: object
+      required: [id, email, deviceName, platform, status, invited, existingPerson, createdAt]
+      properties:
+        id: { type: string }
+        email: { type: string }
+        deviceName: { type: string }
+        platform: { $ref: "#/components/schemas/Platform" }
+        status: { type: string, enum: [pending, approved, declined] }
+        invited: { type: boolean }
+        existingPerson: { type: boolean, description: Already in the family; this is a new device. }
+        note: { type: string }
+        createdAt: { type: string, format: date-time }
+        decidedAt: { type: string, format: date-time }
+        undoUntil: { type: string, format: date-time, description: Until when Undo works. }
+    PendingCode:
+      type: object
+      required: [email, code, purpose, expiresAt]
+      properties:
+        email: { type: string }
+        code: { type: string }
+        purpose: { type: string, enum: [join, admin] }
+        expiresAt: { type: string, format: date-time }
+    AdminRequests:
+      type: object
+      required: [items, codes]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/AdminAccessRequest" } }
+        codes:
+          type: array
+          description: While email isn't set up, the codes people are waiting for, to pass on in person or by message.
+          items: { $ref: "#/components/schemas/PendingCode" }
+    RequestDecision:
+      type: object
+      properties:
+        note: { type: string, maxLength: 200, description: 'For you, e.g. "cousin, Dubai".' }
+        name: { type: string, maxLength: 80, description: 'The person''s name, when approving someone new.' }
+    InviteCreate:
+      type: object
+      properties:
+        email: { type: string, format: email, maxLength: 254, description: Only this address can use it; empty for anyone with the code. }
+        name: { type: string, maxLength: 80 }
+        role: { type: string, enum: [member, admin], default: member }
+        note: { type: string, maxLength: 200 }
+        days: { type: integer, minimum: 1, maximum: 30, default: 7 }
+    AdminInvite:
+      type: object
+      required: [id, role, createdAt, expiresAt]
+      properties:
+        id: { type: string }
+        email: { type: string }
+        name: { type: string }
+        role: { type: string, enum: [member, admin] }
+        note: { type: string }
+        createdAt: { type: string, format: date-time }
+        expiresAt: { type: string, format: date-time }
+        code: { type: string, description: Only when just created. }
+        joinLink: { type: string, description: 'Only when just created: hive://join?… for the QR code and the app.' }
+        privateNetworkLink: { type: string, description: 'The Tailscale share link saved in Settings, sent along with the invite.' }
+    AdminInvites:
+      type: object
+      required: [items]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/AdminInvite" } }
+    AdminDevice:
+      type: object
+      required: [id, personId, personName, name, platform, status, createdAt]
+      properties:
+        id: { type: string }
+        personId: { type: string }
+        personName: { type: string }
+        name: { type: string }
+        platform: { $ref: "#/components/schemas/Platform" }
+        appVersion: { type: string }
+        status: { type: string, enum: [active, revoked] }
+        createdAt: { type: string, format: date-time }
+        lastSeenAt: { type: string, format: date-time }
+    AdminDevices:
+      type: object
+      required: [items]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/AdminDevice" } }
+    AdminPerson:
+      type: object
+      required: [id, name, email, role, status, devicesUsed, deviceLimit, simpleMode, createdAt]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        email: { type: string }
+        role: { type: string, enum: [admin, member] }
+        status: { type: string, enum: [active, suspended] }
+        devicesUsed: { type: integer }
+        deviceLimit: { type: integer }
+        deviceLimitOverride: { type: boolean, description: The limit is set for this person rather than the default. }
+        simpleMode: { type: boolean }
+        createdAt: { type: string, format: date-time }
+        lastActiveAt: { type: string, format: date-time }
+    AdminPeople:
+      type: object
+      required: [items]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/AdminPerson" } }
+    AdminPersonDetail:
+      type: object
+      required: [person, devices, swapsUsed, swapsPerMonth, activity]
+      properties:
+        person: { $ref: "#/components/schemas/AdminPerson" }
+        devices: { type: array, items: { $ref: "#/components/schemas/AdminDevice" } }
+        swapsUsed: { type: integer, description: Devices removed in the last 30 days. }
+        swapsPerMonth: { type: integer }
+        activity: { type: array, description: Sign-ins and device changes (never what they listen to)., items: { $ref: "#/components/schemas/AuditEntry" } }
+    PersonEdit:
+      type: object
+      properties:
+        name: { type: string, minLength: 1, maxLength: 80 }
+        role: { type: string, enum: [admin, member] }
+        status: { type: string, enum: [active, suspended] }
+        deviceLimit: { type: ["integer", "null"], minimum: 1, maximum: 20, description: null goes back to the default. }
+        simpleMode: { type: boolean }
+        resetDevices: { type: boolean, description: Sign out every device of this person. }
+    EmailSettings:
+      type: object
+      required: [host, port, security, username, from, passwordSet, ready]
+      properties:
+        host: { type: string, examples: ["smtp.gmail.com"] }
+        port: { type: integer }
+        security: { type: string, enum: [starttls, ssl, none] }
+        username: { type: string }
+        from: { type: string, description: The sender address shown to the family. }
+        passwordSet: { type: boolean }
+        ready: { type: boolean }
+    EmailSettingsEdit:
+      type: object
+      properties:
+        host: { type: string, maxLength: 255 }
+        port: { type: integer, minimum: 1, maximum: 65535 }
+        security: { type: string, enum: [starttls, ssl, none] }
+        username: { type: string, maxLength: 254 }
+        password: { type: string, maxLength: 512, description: Empty removes it. }
+        from: { type: string, maxLength: 254 }
+    AdminSettings:
+      type: object
+      required: [homeName, devicesPerPerson, swapsPerMonth, email]
+      properties:
+        homeName: { type: string }
+        devicesPerPerson: { type: integer }
+        swapsPerMonth: { type: integer }
+        address: { type: string, description: 'How apps reach home, put in invites (e.g. "http://100.84.12.7:8443").' }
+        privateNetworkLink: { type: string, description: 'Tailscale''s share link for this computer, sent with every invite.' }
+        email: { $ref: "#/components/schemas/EmailSettings" }
+    AdminSettingsEdit:
+      type: object
+      properties:
+        homeName: { type: string, minLength: 1, maxLength: 60 }
+        devicesPerPerson: { type: integer, minimum: 1, maximum: 20 }
+        swapsPerMonth: { type: integer, minimum: 0, maximum: 20 }
+        address: { type: string, maxLength: 200 }
+        privateNetworkLink: { type: string, maxLength: 500 }
+        email: { $ref: "#/components/schemas/EmailSettingsEdit" }
+    EmailTest:
+      type: object
+      properties:
+        to: { type: string, format: email, maxLength: 254, description: Defaults to your own address. }
+    EmailTestResult:
+      type: object
+      required: [ok, message]
+      properties:
+        ok: { type: boolean }
+        message: { type: string }
+    AuditEntry:
+      type: object
+      required: [id, at, actor, action, text]
+      properties:
+        id: { type: string }
+        at: { type: string, format: date-time }
+        actor: { type: string, description: 'Who did it (an admin, a person, or "Hive").' }
+        action: { type: string, description: 'Machine name, e.g. "request.approve".' }
+        text: { type: string, description: 'What happened, in plain words.' }
+    AuditPage:
+      type: object
+      required: [items, total, offset]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/AuditEntry" } }
+        total: { type: integer }
+        offset: { type: integer }
+    TidyItem:
+      type: object
+      required: [trackId, albumId, albumTitle, before, after, applied]
+      properties:
+        trackId: { type: string }
+        albumId: { type: string }
+        albumTitle: { type: string }
+        before: { type: string, description: The file's own title. }
+        after: { type: string }
+        applied: { type: boolean }
+    TidyList:
+      type: object
+      required: [items]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/TidyItem" } }
+    TrackIds:
+      type: object
+      required: [trackIds]
+      properties:
+        trackIds: { type: array, items: { type: string }, minItems: 1, maxItems: 2000 }
+    Suggestion:
+      type: object
+      required: [kind, id, text]
+      properties:
+        kind: { type: string, enum: [song, album, artist] }
+        id: { type: string }
+        text: { type: string }
+        detail: { type: string, description: 'The artist for a song or album.' }
+    Suggestions:
+      type: object
+      required: [items]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/Suggestion" } }
     Pending:
       type: object
       description: Placeholder until this operation's milestone defines the real shape.

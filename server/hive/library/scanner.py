@@ -636,9 +636,12 @@ def _upsert(s, path, root, st, digest, info: FileInfo, loudness, artwork_id) -> 
         track = Track(id=new_id(), path=str(path))
         s.add(track)
     new_title = info.title or path.stem
-    if track.title is not None and (track.title, track.artist_name) != (new_title, credit):
+    before = (track.file_title or track.title, track.artist_name)
+    if track.title is not None and before != (new_title, credit):
         track.lyrics_checked_at = None  # a new name may find lyrics online
-    track.title = new_title
+    track.file_title = new_title
+    # A tidy name chosen in Hive Admin is shown instead; the file is untouched.
+    track.title = track.title_override or new_title
     track.album_id = album.id
     track.artist_id = track_artist_row.id
     track.artist_name = credit

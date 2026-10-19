@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from collections import Counter
 from pathlib import Path
 from typing import Annotated, Any, Literal
@@ -12,7 +13,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from hive.auth import CallerDep
+from hive.auth import AdminDep
 from hive.library import catalog as C
 from hive.library import text as T
 from hive.library.api import SessionDep, _like_all, album_body
@@ -107,12 +108,12 @@ def library_status(request: Request, s) -> dict[str, Any]:
 
 
 @router.get("/library/imports")
-def admin_list_imports(request: Request, caller: CallerDep, s: SessionDep) -> dict[str, Any]:
+def admin_list_imports(request: Request, caller: AdminDep, s: SessionDep) -> dict[str, Any]:
     return library_status(request, s)
 
 
 @router.post("/library/scan")
-def admin_start_scan(request: Request, caller: CallerDep, s: SessionDep) -> dict[str, Any]:
+def admin_start_scan(request: Request, caller: AdminDep, s: SessionDep) -> dict[str, Any]:
     request.app.state.library.scan_in_background()
     return library_status(request, s)
 
@@ -127,7 +128,7 @@ def _import_id(import_id: str) -> int:
 def admin_ignore_import(
     importId: str,
     request: Request,
-    caller: CallerDep,
+    caller: AdminDep,
     s: SessionDep,  # noqa: N803
 ) -> dict[str, Any]:
     if not request.app.state.library.ignore(_import_id(importId)):
@@ -139,7 +140,7 @@ def admin_ignore_import(
 def admin_delete_copy(
     importId: str,
     request: Request,
-    caller: CallerDep,
+    caller: AdminDep,
     s: SessionDep,  # noqa: N803
 ) -> dict[str, Any]:
     if request.app.state.library.delete_copy(_import_id(importId)) is None:
@@ -152,7 +153,7 @@ def admin_delete_copy(
 
 
 @router.post("/library/imports/delete-copies")
-def admin_delete_copies(request: Request, caller: CallerDep, s: SessionDep) -> dict[str, Any]:
+def admin_delete_copies(request: Request, caller: AdminDep, s: SessionDep) -> dict[str, Any]:
     library = request.app.state.library
     ids = s.scalars(select(ImportItem.id).where(ImportItem.status == "duplicate")).all()
     for i in ids:
@@ -162,7 +163,7 @@ def admin_delete_copies(request: Request, caller: CallerDep, s: SessionDep) -> d
 
 
 @router.get("/development-key")
-def admin_get_development_key(request: Request, caller: CallerDep) -> dict[str, str]:
+def admin_get_development_key(request: Request, caller: AdminDep) -> dict[str, str]:
     return {"key": request.app.state.dev_key}
 
 
@@ -205,26 +206,26 @@ def _lookup(request: Request):
 
 
 @router.get("/library/lookup")
-def admin_get_lookup(request: Request, caller: CallerDep) -> dict[str, Any]:
+def admin_get_lookup(request: Request, caller: AdminDep) -> dict[str, Any]:
     return _lookup(request).status()
 
 
 @router.patch("/library/lookup")
 def admin_update_lookup(
-    request: Request, body: LookupSettingsBody, caller: CallerDep
+    request: Request, body: LookupSettingsBody, caller: AdminDep
 ) -> dict[str, Any]:
     _lookup(request).configure(enabled=body.enabled, acoustid_key=body.acoustidKey)
     return _lookup(request).status()
 
 
 @router.post("/library/lookup/retry")
-def admin_retry_lookup(request: Request, body: LookupRetryBody, caller: CallerDep) -> dict:
+def admin_retry_lookup(request: Request, body: LookupRetryBody, caller: AdminDep) -> dict:
     _lookup(request).retry(body.albumIds, bool(body.all))
     return _lookup(request).status()
 
 
 @router.post("/library/lookup/test-acoustid")
-def admin_test_acoustid(request: Request, caller: CallerDep) -> dict[str, Any]:
+def admin_test_acoustid(request: Request, caller: AdminDep) -> dict[str, Any]:
     ok, message = _lookup(request).test_acoustid()
     return {"ok": ok, "message": message, "status": _lookup(request).status()}
 
@@ -241,7 +242,7 @@ FILTERS = {
 @router.get("/library/albums")
 def admin_list_albums(
     request: Request,
-    caller: CallerDep,
+    caller: AdminDep,
     s: SessionDep,
     offset: Annotated[int, Query(ge=0)] = 0,
     limit: Annotated[int, Query(ge=1, le=500)] = 100,
@@ -305,7 +306,7 @@ def _album_or_404(s, album_id: str) -> Album:
 def admin_get_album(
     albumId: str,  # noqa: N803
     request: Request,
-    caller: CallerDep,
+    caller: AdminDep,
     s: SessionDep,
 ) -> dict[str, Any]:
     return _admin_album(request, s, caller, _album_or_404(s, albumId))
@@ -316,7 +317,7 @@ def admin_update_album(
     albumId: str,  # noqa: N803
     body: AlbumEditBody,
     request: Request,
-    caller: CallerDep,
+    caller: AdminDep,
     s: SessionDep,
 ) -> dict[str, Any]:
     library = request.app.state.library
@@ -383,7 +384,7 @@ MAX_COVER = 20 * 1024 * 1024
 async def admin_set_album_artwork(
     albumId: str,  # noqa: N803
     request: Request,
-    caller: CallerDep,
+    caller: AdminDep,
 ) -> dict[str, Any]:
     ctype = request.headers.get("content-type", "").split(";")[0].strip()
     if ctype not in ("image/jpeg", "image/png", "image/webp"):
@@ -413,7 +414,7 @@ def admin_decide_match(
     albumId: str,  # noqa: N803
     body: MatchDecisionBody,
     request: Request,
-    caller: CallerDep,
+    caller: AdminDep,
     s: SessionDep,
 ) -> dict[str, Any]:
     _album_or_404(s, albumId)
@@ -455,7 +456,7 @@ def _track(s: Session, track_id: str) -> Track:
 
 
 @router.get("/library/tracks/{trackId}/lyrics")
-def admin_get_lyrics(trackId: str, caller: CallerDep, s: SessionDep) -> dict[str, Any]:  # noqa: N803
+def admin_get_lyrics(trackId: str, caller: AdminDep, s: SessionDep) -> dict[str, Any]:  # noqa: N803
     return _lyrics_body(_track(s, trackId))
 
 
@@ -464,7 +465,7 @@ def admin_set_lyrics(
     trackId: str,  # noqa: N803
     body: LyricsEditBody,
     request: Request,
-    caller: CallerDep,
+    caller: AdminDep,
     s: SessionDep,
 ) -> dict[str, Any]:
     """Lyrics typed or pasted in Hive Admin (plain, or timed LRC). Empty goes
@@ -490,7 +491,7 @@ def admin_set_lyrics(
 def admin_find_lyrics(
     trackId: str,  # noqa: N803
     request: Request,
-    caller: CallerDep,
+    caller: AdminDep,
     s: SessionDep,
 ) -> dict[str, Any]:
     """Ask LRCLIB for this song's lyrics. Nothing is saved: Hive Admin shows
@@ -508,3 +509,102 @@ def admin_find_lyrics(
     kind, _lines = parse_lyrics(text)
     timed = "Timed lyrics" if kind == "synced" else "Lyrics"
     return {"found": True, "text": text, "kind": kind, "message": f"{timed} from LRCLIB."}
+
+
+# ------------------------------------------------------------------ M2: tidy song names
+
+_TRACK_NUMBER = re.compile(r"^\d{1,3}\s*[-._)]\s*(?=\S)")
+
+
+def tidy_title(title: str) -> str:
+    """A song title without download clutter: website names, sizes, "Official
+    Video", stray underscores and a leading track number."""
+    from hive.library.lookup.songs import tidy
+
+    text = title.strip()
+    stripped = _TRACK_NUMBER.sub("", text)
+    if stripped and any(ch.isalpha() for ch in stripped):
+        text = stripped
+    return tidy(text).strip()
+
+
+class TrackIdsBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    trackIds: list[str] = Field(min_length=1, max_length=2000)  # noqa: N815
+
+
+def _tidy_list(s: Session) -> dict[str, Any]:
+    items = []
+    rows = s.execute(
+        select(Track, Album.title)
+        .join(Album, Album.id == Track.album_id)
+        .order_by(Album.title, Track.disc_no, Track.track_no, Track.title)
+    ).all()
+    for t, album_title in rows:
+        before = t.file_title or t.title
+        if t.title_override:
+            items.append((t, album_title, before, t.title_override, True))
+            continue
+        after = tidy_title(before)
+        if after and after != before:
+            items.append((t, album_title, before, after, False))
+    return {
+        "items": [
+            {
+                "trackId": t.id,
+                "albumId": t.album_id,
+                "albumTitle": album_title,
+                "before": before,
+                "after": after,
+                "applied": applied,
+            }
+            for t, album_title, before, after, applied in items
+        ]
+    }
+
+
+@router.get("/library/tidy")
+def admin_list_tidy(caller: AdminDep, s: SessionDep) -> dict[str, Any]:
+    return _tidy_list(s)
+
+
+def _set_titles(request: Request, s: Session, ids: list[str], tidy_them: bool) -> None:
+    with request.app.state.library._write_lock:
+        albums: set[str] = set()
+        for t in s.scalars(select(Track).where(Track.id.in_(ids))):
+            original = t.file_title or t.title
+            if tidy_them:
+                clean = tidy_title(original)
+                if not clean or clean == original:
+                    continue
+                t.file_title, t.title_override, t.title = original, clean, clean
+            else:
+                t.title_override, t.title = None, original
+            albums.add(t.album_id)
+        for album in s.scalars(select(Album).where(Album.id.in_(albums))):
+            C.refresh_search(s, album)
+        n = len(ids)
+        what = "Tidied" if tidy_them else "Restored"
+        songs = "song" if n == 1 else "songs"
+        request.app.state.people.audit(
+            s,
+            "library.tidy" if tidy_them else "library.untidy",
+            f"{what} the names of {n} {songs}.",
+        )
+        s.commit()
+
+
+@router.post("/library/tidy")
+def admin_apply_tidy(
+    body: TrackIdsBody, request: Request, caller: AdminDep, s: SessionDep
+) -> dict[str, Any]:
+    _set_titles(request, s, body.trackIds, True)
+    return _tidy_list(s)
+
+
+@router.post("/library/tidy/undo")
+def admin_undo_tidy(
+    body: TrackIdsBody, request: Request, caller: AdminDep, s: SessionDep
+) -> dict[str, Any]:
+    _set_titles(request, s, body.trackIds, False)
+    return _tidy_list(s)

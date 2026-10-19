@@ -14,7 +14,7 @@ from PIL import Image
 
 from hive.auth import sign_ticket
 
-from .conftest import Home, assert_matches, needs_ffmpeg
+from .conftest import Home, assert_matches, away, needs_ffmpeg
 
 pytestmark = needs_ffmpeg
 
@@ -153,7 +153,7 @@ def test_artwork_resized_and_cached(home: Home) -> None:
     with Image.open(io.BytesIO(r.content)) as im:
         assert im.size == (800, 800)
     assert home.get("/api/v1/media/artwork/nope").status_code == 404
-    assert home.client.get(f"/api/v1/media/artwork/{album['artworkId']}").status_code == 401
+    assert away(home.client).get(f"/api/v1/media/artwork/{album['artworkId']}").status_code == 401
 
 
 def test_lyrics_synced_and_plain(home: Home) -> None:

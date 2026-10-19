@@ -1,8 +1,9 @@
 """Database tables.
 
 M0: server metadata. M1: the library (artists, albums, tracks), the import
-queue, playlists, likes and what each person played recently. People and
-devices arrive in M2; until then every request acts as one person, ``dev``.
+queue, playlists, likes and what each person played recently. M2: people,
+invites, email codes, access requests, devices, admin sessions, audit log.
+Before the first admin exists every request acts as one person, ``dev``.
 """
 
 from __future__ import annotations
@@ -129,6 +130,10 @@ class Track(Base):
     lookup: Mapped[str | None] = mapped_column(Text)
     # waiting | found | notFound, or None when the album is looked up whole.
     lookup_state: Mapped[str | None] = mapped_column(String(16))
+    # M2 Tidy song names: the title as the file (or lookup) gives it, and the
+    # clean one the admin chose to show instead. The file never changes.
+    file_title: Mapped[str | None] = mapped_column(String(512))
+    title_override: Mapped[str | None] = mapped_column(String(512))
     lufs: Mapped[float | None] = mapped_column(Float)
     true_peak: Mapped[float | None] = mapped_column(Float)
     search_text: Mapped[str] = mapped_column(Text, default="")
@@ -249,3 +254,143 @@ class RecentContext(Base):
     kind: Mapped[str] = mapped_column(String(16), primary_key=True)
     ref_id: Mapped[str] = mapped_column(String(64), primary_key=True)
     last_played_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+# ------------------------------------------------------------------ people (M2)
+
+
+class User(Base):
+    """A person in the family: proved their email once, approved once."""
+
+    __tablename__ = "users"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    email: Mapped[str] = mapped_column(String(254), unique=True)  # lower case
+    name: Mapped[str] = mapped_column(String(80))
+    # admin | member
+    role: Mapped[str] = mapped_column(String(8), default="member")
+    # active | suspended
+    status: Mapped[str] = mapped_column(String(12), default="active")
+    device_limit: Mapped[int | None] = mapped_column(Integer)  # None: the home's default
+    simple_mode: Mapped[bool] = mapped_column(Boolean, default=False)
+    note: Mapped[str | None] = mapped_column(String(200))
+    # An authenticator app (RFC 6238), for admins signing in away from home.
+    totp_secret: Mapped[str | None] = mapped_column(String(64))
+    totp_pending: Mapped[str | None] = mapped_column(String(64))
+    totp_last_step: Mapped[int | None] = mapped_column(Integer)  # no code used twice
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    last_active_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class Invite(Base):
+    """An invite: a code (stored only as a hash), optionally for one address."""
+
+    __tablename__ = "invites"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    code_hash: Mapped[str] = mapped_column(String(64), unique=True)
+    email: Mapped[str | None] = mapped_column(String(254))
+    name: Mapped[str | None] = mapped_column(String(80))
+    role: Mapped[str] = mapped_column(String(8), default="member")
+    note: Mapped[str | None] = mapped_column(String(200))
+    created_by: Mapped[str | None] = mapped_column(String(32))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    used_by: Mapped[str | None] = mapped_column(String(32))
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class EmailCode(Base):
+    """A 6-digit code sent to an address: 10 minutes, 5 tries, kept as a hash."""
+
+    __tablename__ = "email_codes"
+    __table_args__ = (Index("ix_email_codes_email", "email", "created_at"),)
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    email: Mapped[str] = mapped_column(String(254))
+    # join | admin
+    purpose: Mapped[str] = mapped_column(String(8))
+    code_hash: Mapped[str] = mapped_column(String(64))
+    attempts: Mapped[int] = mapped_column(Integer, default=0)
+    invite_id: Mapped[str | None] = mapped_column(String(32))
+    device_name: Mapped[str | None] = mapped_column(String(80))
+    platform: Mapped[str | None] = mapped_column(String(12))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class AccessRequest(Base):
+    """Someone proved their email and is waiting (or was approved, or declined)."""
+
+    __tablename__ = "access_requests"
+    __table_args__ = (Index("ix_access_requests_status", "status", "created_at"),)
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    token_hash: Mapped[str] = mapped_column(String(64))
+    email: Mapped[str] = mapped_column(String(254))
+    user_id: Mapped[str | None] = mapped_column(String(32))  # set once approved
+    invite_id: Mapped[str | None] = mapped_column(String(32))
+    device_name: Mapped[str] = mapped_column(String(80))
+    platform: Mapped[str] = mapped_column(String(12))
+    # pending | approved | declined
+    status: Mapped[str] = mapped_column(String(10), default="pending")
+    existing_person: Mapped[bool] = mapped_column(Boolean, default=False)
+    note: Mapped[str | None] = mapped_column(String(200))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    decided_by: Mapped[str | None] = mapped_column(String(32))
+    device_id: Mapped[str | None] = mapped_column(String(32))  # the device it became
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
+class Device(Base):
+    """One app install: its public key, and the refresh token it holds now."""
+
+    __tablename__ = "devices"
+    __table_args__ = (Index("ix_devices_user", "user_id", "status"),)
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    name: Mapped[str] = mapped_column(String(80))
+    platform: Mapped[str] = mapped_column(String(12))
+    app_version: Mapped[str | None] = mapped_column(String(32))
+    public_key: Mapped[str] = mapped_column(String(64))  # Ed25519, base64url
+    # active | revoked
+    status: Mapped[str] = mapped_column(String(10), default="active")
+    refresh_hash: Mapped[str | None] = mapped_column(String(64))
+    refresh_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    challenge: Mapped[str | None] = mapped_column(String(64))
+    challenge_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    last_seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # self (removed by its owner, counts as a swap) | admin | reset
+    revoked_by: Mapped[str | None] = mapped_column(String(8))
+
+
+class AdminSession(Base):
+    """A signed-in Hive Admin browser away from the home computer."""
+
+    __tablename__ = "admin_sessions"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)  # hash of the cookie
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
+class AuditEntry(Base):
+    """Append-only: who did what and when (never what anyone listened to)."""
+
+    __tablename__ = "audit_log"
+    __table_args__ = (Index("ix_audit_at", "at"), Index("ix_audit_target", "target_id"))
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    actor_id: Mapped[str | None] = mapped_column(String(32))
+    actor: Mapped[str] = mapped_column(String(80))
+    action: Mapped[str] = mapped_column(String(48))
+    target_id: Mapped[str | None] = mapped_column(String(32))
+    text: Mapped[str] = mapped_column(Text)
