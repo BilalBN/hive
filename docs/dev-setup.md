@@ -173,6 +173,23 @@ searching the lead actor's name finds it.
    the film, cast and music; search an actor, music director, singer or
    lyricist, in English even for Malayalam or Hindi titles.
 
+### Later additions to M1.5 (19 Oct)
+
+- **Loose songs** (folders like `Uploads/English`, names such as
+  `Ee_Puzhayum_-Vijay_Yesudas[www.Mp3MaD.Com].mp3`) are looked up one by one
+  and move to their real album, with its cover. Albums that came back
+  "Not found" try again with **Look up again**.
+- **Lyrics:** Hive Admin → Albums → an album → **Add lyrics** on any song:
+  type or paste them (timed LRC lines like `[01:23.45] a line` follow the
+  song), or **Find online** (LRCLIB). Songs with no lyrics are also looked up
+  on LRCLIB in the background while online lookup is on.
+- **Home** has Recently played, Picked for you (a new mix daily), On repeat,
+  From the movies and Artists.
+- **Duplicate copies** have their own list on the Library page, with Delete
+  copy / Keep / Delete all copies; problem files can be ignored.
+- After `git pull`, restart the server: the first start reads every song once
+  more (quick: unchanged files keep their loudness). No new packages.
+
 ## Useful commands
 
 | What | Command |
@@ -180,6 +197,7 @@ searching the lead actor's name finds it.
 | Server tests | `cd server && .venv/bin/python -m pytest` |
 | Admin tests | `cd admin && npm test` (unit), `npm run e2e` (browser) |
 | App tests | `cd app && flutter test` |
+| After changing the app icon design | `python3 tools/gen_app_icons.py` (needs Pillow) |
 | After editing `design/tokens.json` | `python3 tools/gen_design.py` |
 | After editing `api/openapi.yaml` | `python3 tools/gen_dart_client.py` and `npm run gen:api --prefix admin` |
 | See the settings in use | `cd server && .venv/bin/python -m hive info` |
