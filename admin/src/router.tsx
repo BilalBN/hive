@@ -6,14 +6,26 @@ import { Shell } from "./layout/Shell";
 import { allSections } from "./nav";
 import { type AlbumFilter } from "./api/client";
 import { AlbumsPage, FILTERS } from "./pages/Albums";
+import { ActivityPage } from "./pages/Activity";
+import { DevicesPage } from "./pages/Devices";
+import { InvitePage } from "./pages/Invite";
 import { LibraryPage } from "./pages/Library";
 import { Overview } from "./pages/Overview";
+import { PeoplePage } from "./pages/People";
+import { RequestsPage } from "./pages/Requests";
+import { SettingsPage } from "./pages/Settings";
+import { SetupPage } from "./pages/Setup";
 import { UploadPage } from "./pages/Upload";
 
 const built: Record<string, () => ReactElement> = {
   "/": Overview,
   "/library": LibraryPage,
   "/upload": () => <UploadPage />,
+  "/requests": RequestsPage,
+  "/devices": DevicesPage,
+  "/invite": InvitePage,
+  "/activity": ActivityPage,
+  "/settings": SettingsPage,
 };
 
 const rootRoute = createRootRoute({
@@ -26,7 +38,7 @@ const rootRoute = createRootRoute({
 });
 
 const routes = allSections
-  .filter((section) => section.path !== "/albums")
+  .filter((section) => section.path !== "/albums" && section.path !== "/people")
   .map((section) =>
     createRoute({
       getParentRoute: () => rootRoute,
@@ -46,9 +58,25 @@ const albumsRoute = createRoute({
   }),
 });
 
+/** People keeps the open person in the address. */
+const peopleRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/people",
+  component: PeoplePage,
+  validateSearch: (s: Record<string, unknown>): { person?: string } =>
+    typeof s.person === "string" && s.person ? { person: s.person } : {},
+});
+
+/** Creating the first admin, linked from the Overview (not in the navigation). */
+const setupRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/setup",
+  component: SetupPage,
+});
+
 export function makeRouter(history?: RouterHistory) {
   return createRouter({
-    routeTree: rootRoute.addChildren([...routes, albumsRoute]),
+    routeTree: rootRoute.addChildren([...routes, albumsRoute, peopleRoute, setupRoute]),
     basepath: "/admin",
     history,
   });

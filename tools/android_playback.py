@@ -163,20 +163,25 @@ def main(apk: str, address: str, dev_key: str) -> None:
     time.sleep(1.5)
     hide_keyboard()
     tap(into_view(r"^Premam, "))
-    # The tab bar and mini player float over the page's lower part: bring the
-    # rows up first, since once music plays the screen can't be read (it
-    # never settles while the progress moves) and these taps reuse places.
-    into_view(r"^Aluva Puzha", room=72)
+    # The tab bar and mini player float over the page's lower part, so rows
+    # are brought clear of them before tapping. Once music plays the screen
+    # can't be read (it never settles while the progress moves), so after
+    # the first song starts it's paused once, the rows are found again with
+    # the mini player showing, and play resumes; the taps below reuse places.
+    tap(into_view(r"^Malare|മലരേ"))  # play the first song
+    time.sleep(4)
+    alive()
+    step("playing")
+    key("KEYCODE_MEDIA_PAUSE")
+    time.sleep(1.5)
+    into_view(r"^Aluva Puzha")
     rows = []
     for title in (r"^Malare|മലരേ", r"^Aluva Puzha"):
         rows.append(find(title, 30))
     screenshot("album")
     step(f"album open, rows at {rows}")
-
-    tap(rows[0])  # play the first song
-    time.sleep(4)
-    alive()
-    step("playing")
+    key("KEYCODE_MEDIA_PLAY")
+    time.sleep(1)
 
     # Switching the way people do: another song in the list, quickly again,
     # the mini player's Next, headset / lock-screen keys, and letting short

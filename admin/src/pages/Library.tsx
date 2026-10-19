@@ -12,6 +12,7 @@ import {
 } from "../api/client";
 import { Artwork } from "../components/Artwork";
 import { LookupPanel } from "../components/LookupPanel";
+import { TidyPanel } from "../components/TidyPanel";
 import { QueryError } from "../components/QueryError";
 import { formatBytes } from "../upload/queue";
 
@@ -143,8 +144,8 @@ function Duplicates({ items }: { items: ImportItem[] }) {
         </button>
       </div>
       <p className="note">
-        These files are exact copies of songs already in Hive, so they were skipped and nothing is missing. Deleting a copy
-        removes only that file (Hive compares the two again first). Keep hides it from this list.
+        These files are exact copies of songs already in Hive, so they were skipped and nothing is missing. Deleting a
+        copy removes only that file (Hive compares the two again first). Keep hides it from this list.
       </p>
       {removeAll.error && <p className="note note--error">{removeAll.error.message}</p>}
       <ul className="rows">
@@ -195,8 +196,8 @@ export function LibraryPage() {
         <div className="banner banner--warning" role="status">
           <CircleAlert size={18} aria-hidden />
           <span>
-            FFmpeg isn't installed on the home PC, so High and Data saver quality and volume levelling are off.
-            Lossless still plays. On a Mac, run <code>brew install ffmpeg</code> and restart Hive.
+            FFmpeg isn't installed on the home PC, so High and Data saver quality and volume levelling are off. Lossless
+            still plays. On a Mac, run <code>brew install ffmpeg</code> and restart Hive.
           </span>
         </div>
       )}
@@ -233,6 +234,7 @@ export function LibraryPage() {
           </div>
 
           <LookupPanel />
+          <TidyPanel />
 
           <section className="panel" aria-labelledby="folders-h">
             <h2 id="folders-h" className="panel__title">
@@ -247,7 +249,9 @@ export function LibraryPage() {
                   <div className="row__text">
                     <p className="row__title mono">{f.path}</p>
                     <p className="row__meta">
-                      {f.exists ? `${number.format(f.trackCount)} songs` : "This folder can't be found (is the drive connected?)"}
+                      {f.exists
+                        ? `${number.format(f.trackCount)} songs`
+                        : "This folder can't be found (is the drive connected?)"}
                     </p>
                   </div>
                 </li>

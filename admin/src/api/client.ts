@@ -26,8 +26,8 @@ export class ApiError extends Error {
     super(problem?.detail ?? problem?.title ?? `Server answered ${status}`);
   }
 
-  /** M1: Hive Admin only works on the home computer itself (sign-in arrives in M2). */
-  get needsHomeComputer(): boolean {
+  /** Signed out (or the session ended): sign in again. */
+  get needsSignIn(): boolean {
     return this.status === 401;
   }
 }
@@ -130,7 +130,14 @@ export async function testAcoustid(): Promise<AcoustidTest> {
 
 export async function fetchAdminAlbums(filter: AlbumFilter, q: string, offset = 0): Promise<AdminAlbumPage> {
   const { data, error, response } = await api.GET("/api/v1/admin/library/albums", {
-    params: { query: { filter, offset, limit: 100, ...(q.trim() ? { q: q.trim() } : {}) } },
+    params: {
+      query: {
+        filter,
+        offset,
+        limit: 100,
+        ...(q.trim() ? { q: q.trim() } : {}),
+      },
+    },
   });
   if (!data) fail(response, error);
   return data;
@@ -167,7 +174,11 @@ export async function decideMatch(albumId: string, accept: boolean): Promise<Adm
 export async function setAlbumArtwork(albumId: string, file: Blob): Promise<AdminAlbum> {
   const response = await globalThis.fetch(
     `${globalThis.location?.origin ?? ""}/api/v1/admin/library/albums/${encodeURIComponent(albumId)}/artwork`,
-    { method: "PUT", body: file, headers: { "Content-Type": file.type || "image/jpeg" } },
+    {
+      method: "PUT",
+      body: file,
+      headers: { "Content-Type": file.type || "image/jpeg" },
+    },
   );
   const body = await response.json().catch(() => undefined);
   if (!response.ok) throw new ApiError(response.status, body as Problem | undefined);

@@ -9,9 +9,9 @@ test("the server hosts Hive Admin and it shows home online", async ({ page }) =>
 });
 
 test("client-side pages load directly and say when they arrive", async ({ page }) => {
-  await page.goto("/admin/devices");
-  await expect(page.getByRole("heading", { name: "Devices" })).toBeVisible();
-  await expect(page.getByText("Arrives in M2")).toBeVisible();
+  await page.goto("/admin/backups");
+  await expect(page.getByRole("heading", { name: "Backups" })).toBeVisible();
+  await expect(page.getByText("Arrives in M4")).toBeVisible();
   await page.getByRole("link", { name: "Overview" }).click();
   await expect(page).toHaveURL(/\/admin\/$/);
 });

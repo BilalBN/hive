@@ -253,15 +253,9 @@ def overview(request: Request, who: AdminDep) -> dict[str, Any]:
         albums = s.scalar(select(func.count()).select_from(Album))
         recent = s.scalars(select(AuditEntry).order_by(AuditEntry.id.desc()).limit(8)).all()
         admin_exists = people.admin_exists(s)
+        # The first-admin setup and the waiting requests have their own places on
+        # the Overview, so they aren't repeated here.
         alerts: list[dict[str, str]] = []
-        if not admin_exists:
-            alerts.append(
-                {
-                    "level": "warning",
-                    "text": "Set up the first admin to switch from the development key to "
-                    "invites (Settings → Your sign-in, on the home computer).",
-                }
-            )
         if not people.home.email.ready:
             alerts.append(
                 {
@@ -278,9 +272,6 @@ def overview(request: Request, who: AdminDep) -> dict[str, Any]:
                     "computer (Settings → Your sign-in).",
                 }
             )
-        if pending:
-            who_waits = "person is" if pending == 1 else "people are"
-            alerts.append({"level": "info", "text": f"{pending} {who_waits} waiting for approval."})
         return {
             "homeName": people.home.home_name,
             "pendingRequests": pending or 0,
@@ -332,10 +323,35 @@ def undo(requestId: str, request: Request, who: AdminDep) -> dict[str, Any]:  # 
     return _admin(request, who).undo(requestId)
 
 
+def private_network_ip() -> str | None:
+    """This computer's Tailscale address (100.64.0.0/10), if it has one.
+
+    Asks the OS which local address it would use to reach Tailscale's own
+    service address; nothing is sent (a UDP socket only picks a route)."""
+    import ipaddress
+    import socket
+
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+            sock.connect(("100.100.100.100", 53))
+            ip = sock.getsockname()[0]
+    except OSError:
+        return None
+    return ip if ipaddress.ip_address(ip) in ipaddress.ip_network("100.64.0.0/10") else None
+
+
 def home_address(request: Request) -> str:
+    """Where the apps reach home: the saved address, else the address this page
+    was opened on, unless that's this computer's loopback (useless on a phone),
+    in which case the private-network address."""
     saved = _people(request).home.get("address")
     if saved:
         return saved
+    host = request.url.hostname or ""
+    if host in {"127.0.0.1", "localhost", "::1"}:
+        ip = private_network_ip()
+        if ip:
+            return f"{request.url.scheme}://{ip}:{request.url.port or 8443}"
     return f"{request.url.scheme}://{request.url.netloc}"
 
 

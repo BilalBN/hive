@@ -21,7 +21,11 @@ describe("Library page", () => {
   });
 
   it("warns when FFmpeg is missing", async () => {
-    mockApi({ "GET /api/v1/admin/library/imports": { body: { ...library, ffmpeg: false } } });
+    mockApi({
+      "GET /api/v1/admin/library/imports": {
+        body: { ...library, ffmpeg: false },
+      },
+    });
     renderAt("/library");
     expect(await screen.findByText(/FFmpeg isn't installed/)).toBeInTheDocument();
   });
@@ -32,11 +36,23 @@ describe("Library page", () => {
       scanning: true,
       queued: 2,
       queue: [
-        { id: "1", path: "Premam/01 Malare.flac", status: "working", updatedAt: "2026-10-18T06:00:00Z" },
-        { id: "2", path: "Premam/02 Aluva Puzha.flac", status: "queued", updatedAt: "2026-10-18T06:00:00Z" },
+        {
+          id: "1",
+          path: "Premam/01 Malare.flac",
+          status: "working",
+          updatedAt: "2026-10-18T06:00:00Z",
+        },
+        {
+          id: "2",
+          path: "Premam/02 Aluva Puzha.flac",
+          status: "queued",
+          updatedAt: "2026-10-18T06:00:00Z",
+        },
       ],
     };
-    const fetchMock = mockApi({ "POST /api/v1/admin/library/scan": { body: scanning } });
+    const fetchMock = mockApi({
+      "POST /api/v1/admin/library/scan": { body: scanning },
+    });
     renderAt("/library");
     const btn = await screen.findByRole("button", { name: /Scan now/ });
     await screen.findByText("1,240");
@@ -55,12 +71,17 @@ describe("Library page", () => {
       problem: "Same file as Uploads/English/Perfect.mp3, so it was skipped",
       updatedAt: "2026-10-18T06:00:00Z",
     };
-    const withCopies = { ...library, duplicates: [copy, { ...copy, id: "10", path: "Uploads/English/New/Kiss me.mp3" }] };
+    const withCopies = {
+      ...library,
+      duplicates: [copy, { ...copy, id: "10", path: "Uploads/English/New/Kiss me.mp3" }],
+    };
     const cleaned = { ...library, duplicates: [] };
     const fetchMock = mockApi({
       "GET /api/v1/admin/library/imports": { body: withCopies },
       "POST /api/v1/admin/library/imports/delete-copies": { body: cleaned },
-      "POST /api/v1/admin/library/imports/7/ignore": { body: { ...withCopies, needsAttention: [] } },
+      "POST /api/v1/admin/library/imports/7/ignore": {
+        body: { ...withCopies, needsAttention: [] },
+      },
     });
     vi.stubGlobal("confirm", () => true);
     renderAt("/library");
@@ -98,11 +119,86 @@ describe("Library page", () => {
     expect(await screen.findByText(/doesn't accept this key/)).toBeInTheDocument();
   });
 
-  it("explains that Hive Admin opens on the home computer for now", async () => {
+  it("asks to sign in again when the session has ended", async () => {
+    let signedIn = true;
     mockApi({
-      "GET /api/v1/admin/library/imports": { status: 401, body: { title: "Sign-in needed", status: 401 } },
+      "GET /api/v1/admin/library/imports": {
+        status: 401,
+        body: { title: "Sign-in needed", status: 401 },
+      },
+      "GET /api/v1/admin/session": () => {
+        const s = {
+          signedIn,
+          onHomeComputer: false,
+          needsSetup: false,
+          emailReady: true,
+        };
+        signedIn = false;
+        return { body: s };
+      },
     });
     renderAt("/library");
-    expect(await screen.findByRole("alert")).toHaveTextContent("only opens on the home computer");
+    expect(await screen.findByRole("heading", { name: "Sign in to Hive Admin" })).toBeInTheDocument();
+  });
+
+  it("offers tidy names for songs with download clutter, display only", async () => {
+    let applied: string[] = [];
+    mockApi({
+      "GET /api/v1/admin/library/tidy": {
+        body: {
+          items: [
+            {
+              trackId: "t1",
+              albumId: "a1",
+              albumTitle: "Premam",
+              before: "01 - Malare [Songs.pk]",
+              after: "Malare",
+              applied: false,
+            },
+            {
+              trackId: "t2",
+              albumId: "a1",
+              albumTitle: "Premam",
+              before: "Kalippu (www.site.com) 320kbps",
+              after: "Kalippu",
+              applied: false,
+            },
+          ],
+        },
+      },
+      "POST /api/v1/admin/library/tidy": () => {
+        applied = ["t1", "t2"];
+        return {
+          body: {
+            items: [
+              {
+                trackId: "t1",
+                albumId: "a1",
+                albumTitle: "Premam",
+                before: "01 - Malare [Songs.pk]",
+                after: "Malare",
+                applied: true,
+              },
+              {
+                trackId: "t2",
+                albumId: "a1",
+                albumTitle: "Premam",
+                before: "Kalippu (www.site.com) 320kbps",
+                after: "Kalippu",
+                applied: true,
+              },
+            ],
+          },
+        };
+      },
+    });
+    renderAt("/library");
+    expect(await screen.findByText(/2 songs have clutter/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Review" }));
+    expect(screen.getByText("01 - Malare [Songs.pk]")).toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText("Select all (2)"));
+    fireEvent.click(screen.getByRole("button", { name: "Tidy 2 songs" }));
+    expect(await screen.findByText(/2 tidied so far/)).toBeInTheDocument();
+    expect(applied).toEqual(["t1", "t2"]);
   });
 });

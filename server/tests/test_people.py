@@ -488,3 +488,18 @@ def test_settings_and_email(server: TestClient, monkeypatch: pytest.MonkeyPatch)
     overview = server.get("/api/v1/admin/overview").json()
     assert_matches(overview, "AdminOverview")
     assert overview["emailReady"] is True and overview["developmentKeyActive"] is False
+
+
+def test_invites_carry_the_private_network_address(
+    server: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Opened on the home computer, the page's own address is loopback: no use to
+    a phone. Invites carry the Tailscale address instead, until one is saved."""
+    from hive.people import admin_api
+
+    monkeypatch.setattr(admin_api, "private_network_ip", lambda: "100.84.12.7")
+    r = server.post("http://127.0.0.1:8443/api/v1/admin/invites", json={})
+    assert "a=http%3A%2F%2F100.84.12.7%3A8443" in r.json()["joinLink"]
+    server.patch("/api/v1/admin/settings", json={"address": "http://hive-pc:8443"})
+    r = server.post("http://127.0.0.1:8443/api/v1/admin/invites", json={})
+    assert "a=http%3A%2F%2Fhive-pc%3A8443" in r.json()["joinLink"]
