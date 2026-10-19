@@ -79,6 +79,21 @@ final lyricsProvider = FutureProvider.autoDispose.family<Lyrics, String>(
   (ref, id) => ref.watch(hiveApiProvider).getLyrics(trackId: id),
 );
 
+/// Names that finish what's being typed in search, best first.
+final suggestionsProvider = FutureProvider.autoDispose
+    .family<List<Suggestion>, String>((ref, q) async {
+      if (q.trim().isEmpty) return const [];
+      // Wait for a pause in typing before asking home.
+      var live = true;
+      ref.onDispose(() => live = false);
+      await Future<void>.delayed(const Duration(milliseconds: 120));
+      if (!live) return const [];
+      final r = await ref
+          .watch(hiveApiProvider)
+          .suggest(q: q, language: ref.watch(activeLanguageProvider));
+      return r.items;
+    });
+
 final searchProvider = FutureProvider.autoDispose.family<SearchResults, String>(
   (ref, q) async {
     // Wait for typing to pause; a newer query cancels this one.

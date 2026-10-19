@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'auth/device_auth.dart';
 import 'core/home_connection.dart';
 import 'design/icons.g.dart';
 import 'design/theme.dart';
@@ -53,13 +54,32 @@ Page<void> _sheetPage(GoRouterState state, Widget child) =>
       ),
     );
 
-GoRouter buildRouter(HomeAddressStore store) => GoRouter(
+/// Whether this device may use home yet: an address, plus either M1's
+/// development key (while home still uses it) or its own sign-in.
+bool readyForHome(HomeAddressStore store, DeviceAuth auth, HomeStatus status) {
+  if (store.address == null) return false;
+  if (auth.signedIn) return auth.problem != SignInProblem.suspended;
+  if (store.key == null) return false;
+  // Home switched to invites: the old key is no use any more.
+  return !(status is HomeConnected && status.health.access == 'invites');
+}
+
+GoRouter buildRouter(
+  HomeAddressStore store,
+  DeviceAuth auth,
+  HomeStatus Function() status,
+  Listenable statusChanges,
+) => GoRouter(
   initialLocation: '/home',
-  refreshListenable: store,
+  refreshListenable: Listenable.merge([store, auth, statusChanges]),
   redirect: (context, state) {
-    final hasHome = store.address != null;
+    final atConnectNow = state.matchedLocation == '/connect';
+    if (!auth.loaded) {
+      return store.address == null && !atConnectNow ? '/connect' : null;
+    }
+    final ready = readyForHome(store, auth, status());
     final atConnect = state.matchedLocation == '/connect';
-    if (!hasHome && !atConnect) return '/connect';
+    if (!ready && !atConnect) return '/connect';
     return null;
   },
   routes: [
@@ -126,10 +146,25 @@ GoRouter buildRouter(HomeAddressStore store) => GoRouter(
 );
 
 final routerProvider = Provider<GoRouter>((ref) {
-  final router = buildRouter(ref.watch(homeAddressStoreProvider));
-  ref.onDispose(router.dispose);
+  final statusChanges = ValueNotifier<HomeStatus>(ref.read(homeStatusProvider));
+  ref.listen(homeStatusProvider, (_, s) => statusChanges.value = s);
+  final router = buildRouter(
+    ref.watch(homeAddressStoreProvider),
+    ref.watch(deviceAuthProvider),
+    () => ref.read(homeStatusProvider),
+    statusChanges,
+  );
+  ref.onDispose(() {
+    router.dispose();
+    statusChanges.dispose();
+  });
   return router;
 });
+
+/// Reads this device's saved sign-in once, at start-up.
+final authLoadedProvider = FutureProvider<void>(
+  (ref) => ref.watch(deviceAuthProvider).load(),
+);
 
 class HiveApp extends ConsumerWidget {
   const HiveApp({super.key});
@@ -138,6 +173,7 @@ class HiveApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     // Keep the home check running for as long as the app is open.
     ref.watch(homeStatusProvider);
+    ref.watch(authLoadedProvider);
     return MaterialApp.router(
       title: 'Hive',
       debugShowCheckedModeBanner: false,

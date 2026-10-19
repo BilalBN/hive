@@ -28,6 +28,10 @@ void main() {
         overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
       );
       await initAudio(container);
+      // This device's saved sign-in, before the first screen decides where to go.
+      await container
+          .read(authLoadedProvider.future)
+          .timeout(startupTimeout, onTimeout: () {});
       runApp(
         UncontrolledProviderScope(container: container, child: const HiveApp()),
       );

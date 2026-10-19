@@ -115,6 +115,28 @@ void main() {
     expect(find.bySemanticsLabel(RegExp('^Now playing: മലരേ')), findsOneWidget);
   });
 
+  testWidgets('search suggests names while typing, and fills one in', (
+    tester,
+  ) async {
+    await pumpConnected(tester);
+    await tester.tap(find.bySemanticsLabel('Search'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'Kal');
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pumpAndSettle();
+    final suggestion = find.bySemanticsLabel(
+      RegExp('^Suggestion: Kalippu, Rajesh Murugesan'),
+    );
+    expect(suggestion, findsOneWidget);
+    await tester.tap(suggestion);
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<TextField>(find.byType(TextField)).controller!.text,
+      'Kalippu',
+    );
+    expect(find.bySemanticsLabel(RegExp('^Suggestion:')), findsNothing);
+  });
+
   testWidgets('search says plainly when nothing matches', (tester) async {
     await pumpConnected(tester);
     await tester.tap(find.bySemanticsLabel('Search'));

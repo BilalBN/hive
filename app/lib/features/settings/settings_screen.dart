@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../api/hive_api.g.dart' show hiveApiVersion;
+import '../../api/hive_api.g.dart';
+import '../../auth/device_auth.dart';
+import '../../core/api.dart';
+import '../../core/app_info.dart';
 import '../../core/home_connection.dart';
 import '../../player/quality.dart';
 import '../../design/icons.g.dart';
@@ -68,6 +71,10 @@ class SettingsScreen extends ConsumerWidget {
                 ),
               ],
             ),
+            if (ref.watch(deviceAuthProvider).signedIn) ...[
+              const SizedBox(height: HiveSpace.lg),
+              const _YourDevices(),
+            ],
             const SizedBox(height: HiveSpace.lg),
             _Heading('Playback'),
             _Group(
@@ -160,17 +167,220 @@ class SettingsScreen extends ConsumerWidget {
                 _Row(
                   icon: HiveIcons.info,
                   title: 'About Hive',
-                  value: 'App 0.1.0 · API $hiveApiVersion',
+                  value: 'App $appVersion · API $hiveApiVersion',
                 ),
               ],
             ),
             const SizedBox(height: HiveSpace.md),
             Text(
-              'Your devices, Listen and appearance arrive with the milestones that build them.',
+              'Listen and appearance arrive with the milestones that build them.',
               style: HiveType.caption.copyWith(color: p.textSecondary),
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+final myDevicesProvider = FutureProvider.autoDispose<MyDevices>(
+  (ref) => ref.watch(hiveApiProvider).listMyDevices(),
+);
+
+/// You, your devices (up to the home's limit), and leaving on this one.
+class _YourDevices extends ConsumerWidget {
+  const _YourDevices();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final p = HiveTheme.of(context);
+    final auth = ref.watch(deviceAuthProvider);
+    final devices = ref.watch(myDevicesProvider);
+    final me = auth.me;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _Heading('You'),
+        _Group(
+          children: [
+            _Row(
+              icon: HiveIcons.userRound,
+              title: me?.name ?? 'You',
+              value: me?.email ?? '',
+            ),
+          ],
+        ),
+        const SizedBox(height: HiveSpace.lg),
+        _Heading(
+          devices.value == null
+              ? 'Your devices'
+              : 'Your devices (${devices.value!.items.length} of ${devices.value!.limit})',
+        ),
+        _Group(
+          children: [
+            ...switch (devices) {
+              AsyncData(:final value) => [
+                for (final d in value.items)
+                  _DeviceRow(device: d, swapsLeft: value.swapsLeft),
+              ],
+              AsyncError(:final error) => [
+                Padding(
+                  padding: const EdgeInsets.all(HiveSpace.md),
+                  child: Text(
+                    describeError(error),
+                    style: HiveType.callout.copyWith(color: p.danger),
+                  ),
+                ),
+              ],
+              _ => [
+                const Padding(
+                  padding: EdgeInsets.all(HiveSpace.md),
+                  child: Center(
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                ),
+              ],
+            },
+            InkWell(
+              onTap: () => _leave(context, ref),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: HiveSpace.md,
+                  vertical: 14,
+                ),
+                child: Row(
+                  children: [
+                    Icon(HiveIcons.logOut, size: 20, color: p.danger),
+                    const SizedBox(width: HiveSpace.md),
+                    Text(
+                      'Sign out on this device',
+                      style: HiveType.body.copyWith(color: p.danger),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+        if (devices.value != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              HiveSpace.xs,
+              HiveSpace.xs,
+              HiveSpace.xs,
+              0,
+            ),
+            child: Text(
+              devices.value!.swapsLeft > 0
+                  ? 'You can remove a device and add another ${devices.value!.swapsLeft == 1 ? 'once more' : '${devices.value!.swapsLeft} more times'} this month.'
+                  : 'No device swaps left this month. Whoever runs Hive can still remove one for you.',
+              style: HiveType.caption.copyWith(color: p.textSecondary),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Future<void> _leave(BuildContext context, WidgetRef ref) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('Sign out on this device?'),
+        content: const Text(
+          'To use Hive here again you join with your email. Your likes and playlists stay at home.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(c, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(c, true),
+            child: const Text('Sign out'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    final auth = ref.read(deviceAuthProvider);
+    final id = auth.deviceId;
+    if (id != null) {
+      try {
+        await ref.read(hiveApiProvider).removeMyDevice(deviceId: id);
+      } catch (_) {
+        // Home unreachable: the device is forgotten here all the same.
+      }
+    }
+    await auth.forget();
+  }
+}
+
+class _DeviceRow extends ConsumerWidget {
+  const _DeviceRow({required this.device, required this.swapsLeft});
+  final MyDevice device;
+  final int swapsLeft;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final p = HiveTheme.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: HiveSpace.md,
+        vertical: 10,
+      ),
+      child: Row(
+        children: [
+          Icon(
+            switch (device.platform) {
+              'macos' || 'windows' || 'linux' => HiveIcons.laptop,
+              _ => HiveIcons.smartphone,
+            },
+            size: 20,
+            color: p.textSecondary,
+          ),
+          const SizedBox(width: HiveSpace.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  device.name,
+                  style: HiveType.body.copyWith(color: p.textPrimary),
+                ),
+                Text(
+                  device.current
+                      ? 'This device'
+                      : (device.appVersion == null
+                            ? device.platform
+                            : '${device.platform} · Hive ${device.appVersion}'),
+                  style: HiveType.caption.copyWith(
+                    color: device.current ? p.accentText : p.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (!device.current)
+            TextButton(
+              onPressed: swapsLeft <= 0
+                  ? null
+                  : () async {
+                      try {
+                        await ref
+                            .read(hiveApiProvider)
+                            .removeMyDevice(deviceId: device.id);
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(describeError(e))),
+                          );
+                        }
+                      }
+                      ref.invalidate(myDevicesProvider);
+                    },
+              child: const Text('Remove'),
+            ),
+        ],
       ),
     );
   }

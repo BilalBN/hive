@@ -88,6 +88,11 @@ function Created({ invite, onDone }: { invite: AdminInvite; onDone: () => void }
         {invite.joinLink && <Qr text={invite.joinLink} label={`QR code for the Hive invite ${invite.code}`} />}
         <div className="invite__text">
           <p className="invite__code mono">{invite.code}</p>
+          {address && !isLoopback(address) && (
+            <p className="note">
+              Typing it instead? Home address <code className="mono">{address}</code>
+            </p>
+          )}
           <ol className="steps">
             {steps.map((s) => (
               <li key={s}>{s}</li>

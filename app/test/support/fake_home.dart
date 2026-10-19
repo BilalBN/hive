@@ -4,6 +4,8 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/misc.dart';
 import 'package:hive/api/hive_api.g.dart';
+import 'package:hive/auth/device_auth.dart';
+import 'package:hive/auth/secret_store.dart';
 import 'package:hive/core/api.dart';
 import 'package:hive/core/home_connection.dart';
 import 'package:hive/player/player_controller.dart';
@@ -168,12 +170,42 @@ extension on TrackSummary {
 }
 
 /// Answers the app's API calls from the library above.
+/// A route in [FakeHomeAdapter.extra] throws this to answer with an error.
+class FakeProblem implements Exception {
+  FakeProblem(this.status, this.body);
+  final int status;
+  final Map<String, Object?> body;
+}
+
 class FakeHomeAdapter implements HttpClientAdapter {
   final requests = <String>[];
+
+  /// The Authorization header of each request, in order.
+  final authorizations = <String?>[];
   bool empty = false;
+
+  /// Answers checked before the library's, keyed "METHOD /path".
+  final extra = <String, Object? Function(RequestOptions o)>{};
 
   Object? _route(RequestOptions o) {
     final path = o.uri.path;
+    final hook = extra['${o.method} $path'];
+    if (hook != null) return hook(o);
+    if (path == '/api/v1/library/suggest') {
+      final q = (o.uri.queryParameters['q'] ?? '').toLowerCase();
+      return Suggestions(
+        items: [
+          for (final t in [...premam.tracks, ...lagaan.tracks])
+            if (t.title.toLowerCase().startsWith(q))
+              Suggestion(
+                kind: 'song',
+                id: t.id,
+                text: t.title,
+                detail: t.artistName,
+              ),
+        ],
+      ).toJson();
+    }
     final language = o.uri.queryParameters['language'];
     final albums = [
       for (final a in [premam, lagaan])
@@ -348,6 +380,7 @@ class FakeHomeAdapter implements HttpClientAdapter {
     requests.add(
       '${o.method} ${o.uri.path}${o.uri.hasQuery ? '?${o.uri.query}' : ''}',
     );
+    authorizations.add(o.headers['Authorization'] as String?);
     try {
       final data = _route(o);
       if (data == null) return ResponseBody.fromString('', 204);
@@ -356,6 +389,14 @@ class FakeHomeAdapter implements HttpClientAdapter {
         200,
         headers: {
           Headers.contentTypeHeader: [Headers.jsonContentType],
+        },
+      );
+    } on FakeProblem catch (e) {
+      return ResponseBody.fromString(
+        jsonEncode(e.body),
+        e.status,
+        headers: {
+          Headers.contentTypeHeader: ['application/problem+json'],
         },
       );
     } on StateError catch (e) {
@@ -381,9 +422,11 @@ Future<List<Override>> fakeHomeOverrides({
   FakeEngine? engine,
   bool connected = true,
   Map<String, Object> prefs = const {},
+  MemorySecretStore? secrets,
 }) async {
   SharedPreferences.setMockInitialValues({
     if (connected) 'home.address': 'http://100.84.12.7:8443',
+    if (connected) 'home.developmentKey': 'hive-dev-test-test-test-test',
     ...prefs,
   });
   final sp = await SharedPreferences.getInstance();
@@ -391,12 +434,19 @@ Future<List<Override>> fakeHomeOverrides({
   final tickets = FakeTickets();
   return [
     sharedPreferencesProvider.overrideWithValue(sp),
+    secretStoreProvider.overrideWithValue(secrets ?? MemorySecretStore()),
+    authApiForProvider.overrideWithValue(
+      (address) => HiveApi(dioFor(address)..httpClientAdapter = fake),
+    ),
     healthCheckProvider.overrideWithValue(check),
     keyCheckProvider.overrideWithValue((_, _) async {}),
     hiveApiProvider.overrideWith((ref) {
       final config = ref.watch(homeConfigProvider);
       if (config == null) throw StateError('Not connected to a home yet');
-      return HiveApi(dioForHome(config)..httpClientAdapter = fake);
+      return HiveApi(
+        dioForHome(config, auth: ref.watch(deviceAuthProvider))
+          ..httpClientAdapter = fake,
+      );
     }),
     audioEngineProvider.overrideWithValue(engine ?? FakeEngine()),
     ticketFetcherProvider.overrideWithValue(tickets.call),

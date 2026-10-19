@@ -1,7 +1,7 @@
 name: hive
 description: "Hive: the family's music, from home."
 publish_to: "none"
-version: 0.1.0+1
+version: 0.2.0+2
 
 environment:
   sdk: ^3.13.5
@@ -20,6 +20,9 @@ dependencies:
   media_kit_libs_audio: ^1.0.7
   audio_service_win: ^0.0.3
   connectivity_plus: ^7.3.2
+  cryptography: ^2.9.0
+  flutter_secure_storage: ^11.2.0
+  mobile_scanner: ^7.4.2
 
 # shared_preferences_android 2.5.0 (17 Oct 2026) moved to JNI and fails in
 # release builds with NoSuchMethodError on getAll, so the app can't start.

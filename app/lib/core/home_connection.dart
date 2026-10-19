@@ -33,8 +33,30 @@ class HomeAddressStore extends ChangeNotifier {
   Future<void> forget() async {
     await _prefs.remove(_addressKey);
     await _prefs.remove(_devKey);
+    await clearPending();
     notifyListeners();
   }
+
+  /// Joined with an invite: M1's development key is no use any more.
+  Future<void> clearKey() async {
+    await _prefs.remove(_devKey);
+    notifyListeners();
+  }
+
+  static const _pendingKey = 'home.pendingRequest';
+
+  /// A request waiting for the admin, so the app can pick it up again after
+  /// being closed: (id, token, device name).
+  ({String id, String token, String deviceName})? get pending {
+    final raw = _prefs.getStringList(_pendingKey);
+    if (raw == null || raw.length != 3) return null;
+    return (id: raw[0], token: raw[1], deviceName: raw[2]);
+  }
+
+  Future<void> savePending(String id, String token, String deviceName) =>
+      _prefs.setStringList(_pendingKey, [id, token, deviceName]);
+
+  Future<void> clearPending() => _prefs.remove(_pendingKey);
 }
 
 final sharedPreferencesProvider = Provider<SharedPreferences>(

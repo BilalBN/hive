@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio_media_kit/just_audio_media_kit.dart';
 
+import '../auth/device_auth.dart';
 import '../core/api.dart';
 import 'player_controller.dart';
 
@@ -27,6 +28,11 @@ class HiveAudioHandler extends BaseAudioHandler with SeekHandler {
 
   PlayerController get _player => _container.read(playerProvider.notifier);
 
+  Map<String, String>? _artHeaders(HomeConfig? config) {
+    final auth = _container.read(deviceAuthProvider);
+    return auth.signedIn ? auth.headers : config?.authHeaders;
+  }
+
   void _publish(PlayerState s) {
     final t = s.track;
     final config = _container.read(homeConfigProvider);
@@ -46,7 +52,7 @@ class HiveAudioHandler extends BaseAudioHandler with SeekHandler {
                 : config.address.resolve(
                     '/api/v1/media/artwork/${t.artworkId}?size=300',
                   ),
-            artHeaders: config?.authHeaders,
+            artHeaders: _artHeaders(config),
           ),
         );
       }

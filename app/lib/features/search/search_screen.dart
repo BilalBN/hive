@@ -65,6 +65,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   final _controller = TextEditingController();
   String _query = '';
 
+  /// Suggestions show while typing, and step aside once one is picked or the
+  /// search is sent.
+  bool _suggesting = true;
+
   @override
   void dispose() {
     _controller.dispose();
@@ -90,8 +94,14 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       controller: _controller,
       focusNode: focus,
       textInputAction: TextInputAction.search,
-      onChanged: (v) => setState(() => _query = v.trim()),
-      onSubmitted: (_) => _remember(),
+      onChanged: (v) => setState(() {
+        _query = v.trim();
+        _suggesting = true;
+      }),
+      onSubmitted: (_) {
+        _remember();
+        setState(() => _suggesting = false);
+      },
       style: HiveType.body.copyWith(color: p.textPrimary),
       decoration: InputDecoration(
         hintText: 'Songs, albums, artists, playlists',
@@ -143,12 +153,128 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             child: LanguageChips(),
           ),
           const SizedBox(height: HiveSpace.xs),
+          if (_query.isNotEmpty && _suggesting)
+            _Suggestions(
+              query: _query,
+              onPick: (s) {
+                _set(s.text);
+                _remember();
+                setState(() => _suggesting = false);
+                switch (s.kind) {
+                  case 'album':
+                    context.openAlbum(s.id);
+                  case 'artist':
+                    context.openArtist(s.id);
+                  default:
+                    FocusScope.of(context).unfocus();
+                }
+              },
+            ),
           Expanded(
             child: _query.isEmpty
                 ? _Recent(onPick: _set)
                 : _Results(query: _query, onOpen: _remember),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Up to five names that finish what's typed: a song fills in the search, an
+/// album or artist opens.
+class _Suggestions extends ConsumerWidget {
+  const _Suggestions({required this.query, required this.onPick});
+  final String query;
+  final ValueChanged<Suggestion> onPick;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final p = HiveTheme.of(context);
+    final items = ref.watch(suggestionsProvider(query)).value ?? const [];
+    // Nothing to add when the only suggestion is exactly what's typed.
+    final shown = items
+        .where((s) => s.text.toLowerCase() != query.toLowerCase())
+        .take(5)
+        .toList();
+    if (shown.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        HiveSpace.md,
+        0,
+        HiveSpace.md,
+        HiveSpace.xs,
+      ),
+      child: Material(
+        color: p.surface,
+        borderRadius: BorderRadius.circular(HiveRadius.card),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          children: [
+            for (final s in shown)
+              Semantics(
+                button: true,
+                label:
+                    'Suggestion: ${s.text}${s.detail == null ? '' : ', ${s.detail}'}',
+                excludeSemantics: true,
+                child: InkWell(
+                  onTap: () => onPick(s),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: HiveSpace.md,
+                      vertical: 10,
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          switch (s.kind) {
+                            'album' => HiveIcons.discAlbum,
+                            'artist' => HiveIcons.userRound,
+                            _ => HiveIcons.music,
+                          },
+                          size: 16,
+                          color: p.textSecondary,
+                        ),
+                        const SizedBox(width: HiveSpace.sm),
+                        Flexible(
+                          child: Text(
+                            s.text,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: HiveType.body.copyWith(
+                              color: p.textPrimary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        if (s.detail != null) ...[
+                          const SizedBox(width: HiveSpace.xs),
+                          Expanded(
+                            child: Text(
+                              s.detail!,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: HiveType.callout.copyWith(
+                                color: p.textSecondary,
+                              ),
+                            ),
+                          ),
+                        ] else
+                          const Spacer(),
+                        Icon(
+                          s.kind == 'song'
+                              ? HiveIcons.arrowUpLeft
+                              : HiveIcons.chevronRight,
+                          size: 16,
+                          color: p.textTertiary,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

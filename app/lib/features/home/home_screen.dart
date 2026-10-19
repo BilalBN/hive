@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../api/hive_api.g.dart';
+import '../../core/app_info.dart';
 import '../../core/home_connection.dart';
 import '../../design/icons.g.dart';
 import '../../design/theme.dart';
@@ -119,6 +120,14 @@ class HomeScreen extends ConsumerWidget {
                     ok: true,
                     text: 'Checking home…',
                   ),
+                  HomeConnected(:final health)
+                      when health.minAppVersion != null &&
+                          isOlder(appVersion, health.minAppVersion!) =>
+                    HiveBanner(
+                      title: 'Time for an update',
+                      body:
+                          '${health.homeName} needs Hive ${health.minAppVersion} or newer. Ask whoever runs Hive for the new app.',
+                    ),
                   HomeConnected(:final health) => StatusLine(
                     ok: true,
                     text: 'Connected to home',
