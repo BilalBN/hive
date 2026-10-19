@@ -546,8 +546,28 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Permission to keep a song offline, with its valid-until date. */
+        /**
+         * Permission to keep a song offline, with a link to fetch it and its valid-until date.
+         * @description The device downloads the link, keeps the song encrypted, and may play it until validUntil without reaching home. Checking in (checkDownloads) moves the date on.
+         */
         post: operations["createDownloadTicket"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/media/downloads/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Check in with home; downloads stay playable for another 30 days, minus songs that left the library. */
+        post: operations["checkDownloads"];
         delete?: never;
         options?: never;
         head?: never;
@@ -563,7 +583,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Match a short recording against the family library; the clip is deleted afterwards. */
+        /**
+         * Match a short recording against the family library; the clip is deleted afterwards.
+         * @description Send 5 to 15 seconds of the microphone (WAV, M4A/AAC, Opus or MP3, up to 3 MB) as the body. Matched or not, the attempt goes in the person's Listen history.
+         */
         post: operations["matchClip"];
         delete?: never;
         options?: never;
@@ -1334,6 +1357,25 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/song-requests/{songRequestId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                songRequestId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Mark a song request added (the person sees it in Listen history) or dismissed. */
+        patch: operations["adminUpdateSongRequest"];
+        trace?: never;
+    };
     "/api/v1/admin/recognition": {
         parameters: {
             query?: never;
@@ -1345,6 +1387,23 @@ export interface paths {
         get: operations["adminGetRecognition"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/recognition/rebuild": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Fingerprint every song again from scratch (in the background). */
+        post: operations["adminRebuildRecognition"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1840,6 +1899,112 @@ export interface components {
             /** @enum {string} */
             kind: "synced" | "plain" | "none";
             lines: components["schemas"]["LyricsLine"][];
+        };
+        ListenResult: {
+            /** @description The history entry. */
+            id: number;
+            matched: boolean;
+            /** @enum {string} */
+            source: "library" | "shazam";
+            track?: components["schemas"]["TrackSummary"];
+            /** @description Where the song is now (the clip's start plus its length), for "Play from 1:42". */
+            positionMs?: number;
+            confidence?: number;
+        };
+        ListenEvent: {
+            id: number;
+            /** Format: date-time */
+            at: string;
+            /** @enum {string} */
+            source: "library" | "shazam";
+            matched: boolean;
+            track?: components["schemas"]["TrackSummary"];
+            positionMs?: number;
+            /** @description What Shazam called a song that isn't at home (M5). */
+            title?: string;
+            artist?: string;
+            /** @description Asked the admin to add it. */
+            requested?: boolean;
+        };
+        ListenHistory: {
+            items: components["schemas"]["ListenEvent"][];
+        };
+        SongRequestCreate: {
+            /** @enum {string} */
+            source: "listen" | "search";
+            title?: string;
+            artist?: string;
+            note?: string;
+            /** @description The Listen attempt it came from */
+            listenEventId?: number;
+        };
+        SongRequest: {
+            id: string;
+            /** Format: date-time */
+            at: string;
+            /** @enum {string} */
+            source: "listen" | "search";
+            /** @enum {string} */
+            status: "waiting" | "added" | "dismissed";
+            title?: string;
+            artist?: string;
+            note?: string;
+            /**
+             * Format: date-time
+             * @description When Listen heard it.
+             */
+            heardAt?: string;
+            /** @description Who asked (admin view). */
+            personName?: string;
+            /** Format: date-time */
+            decidedAt?: string;
+        };
+        SongRequestDecision: {
+            /** @enum {string} */
+            status: "waiting" | "added" | "dismissed";
+        };
+        AdminSongRequests: {
+            items: components["schemas"]["SongRequest"][];
+        };
+        RecognitionStatus: {
+            tracks: number;
+            fingerprinted: number;
+            waiting: number;
+            working: boolean;
+            /** @description Songs that couldn't be fingerprinted (silent or unreadable). */
+            failed: number;
+            landmarks?: number;
+            /** @description Listen needs FFmpeg on the home PC. */
+            ffmpeg: boolean;
+            /** Format: date-time */
+            rebuiltAt?: string;
+            matchesThisWeek: number;
+            noMatchThisWeek: number;
+            /** @description M5. */
+            shazamThisWeek?: number;
+            requestsWaiting?: number;
+        };
+        DownloadRequest: {
+            /** @enum {string} */
+            quality: "lossless" | "high" | "dataSaver";
+            /**
+             * @default other
+             * @enum {string}
+             */
+            player: "apple" | "other";
+        };
+        DownloadTicket: components["schemas"]["StreamTicket"] & {
+            /**
+             * Format: date-time
+             * @description Plays offline until then; checking in with home moves it on.
+             */
+            validUntil: string;
+        };
+        DownloadCheck: {
+            /** Format: date-time */
+            validUntil: string;
+            /** @description Songs no longer at home; the device deletes them. */
+            gone: string[];
         };
         ImportItem: {
             id: string;
@@ -2511,6 +2676,15 @@ export interface components {
         };
         /** @description Can't be done in the current state; the detail says why. */
         Conflict: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["Problem"];
+            };
+        };
+        /** @description The upload is bigger than this operation takes. */
+        TooLarge: {
             headers: {
                 [name: string]: unknown;
             };
@@ -3458,10 +3632,48 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: components["requestBodies"]["Pending"];
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DownloadRequest"];
+            };
+        };
         responses: {
-            200: components["responses"]["Pending"];
-            501: components["responses"]["NotImplemented"];
+            /** @description The ticket. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DownloadTicket"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    checkDownloads: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TrackIds"];
+            };
+        };
+        responses: {
+            /** @description How long downloads stay playable. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DownloadCheck"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
         };
     };
     matchClip: {
@@ -3471,10 +3683,26 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: components["requestBodies"]["Pending"];
+        requestBody: {
+            content: {
+                "audio/*": string;
+                "application/octet-stream": string;
+            };
+        };
         responses: {
-            200: components["responses"]["Pending"];
-            501: components["responses"]["NotImplemented"];
+            /** @description What it heard. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListenResult"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            413: components["responses"]["TooLarge"];
+            422: components["responses"]["Invalid"];
+            503: components["responses"]["Unavailable"];
         };
     };
     listListenHistory: {
@@ -3486,8 +3714,16 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            200: components["responses"]["Pending"];
-            501: components["responses"]["NotImplemented"];
+            /** @description Newest first, up to 50. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListenHistory"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
         };
     };
     recordListenResult: {
@@ -3510,10 +3746,23 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: components["requestBodies"]["Pending"];
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SongRequestCreate"];
+            };
+        };
         responses: {
-            200: components["responses"]["Pending"];
-            501: components["responses"]["NotImplemented"];
+            /** @description The request. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SongRequest"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            422: components["responses"]["Invalid"];
         };
     };
     createShazamToken: {
@@ -4726,8 +4975,44 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            200: components["responses"]["Pending"];
-            501: components["responses"]["NotImplemented"];
+            /** @description Waiting first, then recent. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminSongRequests"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    adminUpdateSongRequest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                songRequestId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SongRequestDecision"];
+            };
+        };
+        responses: {
+            /** @description The request. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SongRequest"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
         };
     };
     adminGetRecognition: {
@@ -4739,8 +5024,37 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            200: components["responses"]["Pending"];
-            501: components["responses"]["NotImplemented"];
+            /** @description Coverage and recent matches. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecognitionStatus"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    adminRebuildRecognition: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Coverage now. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecognitionStatus"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
         };
     };
     adminGetSettings: {

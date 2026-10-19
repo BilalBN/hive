@@ -31,6 +31,7 @@ def settings(tmp_path: Path) -> Settings:
         scan_workers=2,
         lookup_online=False,
         lookup_worker=False,
+        fingerprint_worker=False,
     )
 
 

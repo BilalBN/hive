@@ -1155,6 +1155,345 @@ class Lyrics {
       };
 }
 
+class ListenResult {
+  const ListenResult({
+    required this.id,
+    required this.matched,
+    required this.source,
+    this.track,
+    this.positionMs,
+    this.confidence,
+  });
+
+  /// The history entry.
+  final int id;
+  final bool matched;
+  final String source;
+  final TrackSummary? track;
+  /// Where the song is now (the clip's start plus its length), for "Play from 1:42".
+  final int? positionMs;
+  final double? confidence;
+
+  factory ListenResult.fromJson(Map<String, dynamic> json) => ListenResult(
+        id: json['id'] as int,
+        matched: json['matched'] as bool,
+        source: json['source'] as String,
+        track: json['track'] == null ? null : TrackSummary.fromJson((json['track'] as Map).cast<String, dynamic>()),
+        positionMs: json['positionMs'] == null ? null : json['positionMs'] as int,
+        confidence: json['confidence'] == null ? null : (json['confidence'] as num).toDouble(),
+      );
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'matched': matched,
+        'source': source,
+        'track': ?track?.toJson(),
+        'positionMs': ?positionMs,
+        'confidence': ?confidence,
+      };
+}
+
+class ListenEvent {
+  const ListenEvent({
+    required this.id,
+    required this.at,
+    required this.source,
+    required this.matched,
+    this.track,
+    this.positionMs,
+    this.title,
+    this.artist,
+    this.requested,
+  });
+
+  final int id;
+  final DateTime at;
+  final String source;
+  final bool matched;
+  final TrackSummary? track;
+  final int? positionMs;
+  /// What Shazam called a song that isn't at home (M5).
+  final String? title;
+  final String? artist;
+  /// Asked the admin to add it.
+  final bool? requested;
+
+  factory ListenEvent.fromJson(Map<String, dynamic> json) => ListenEvent(
+        id: json['id'] as int,
+        at: DateTime.parse(json['at'] as String),
+        source: json['source'] as String,
+        matched: json['matched'] as bool,
+        track: json['track'] == null ? null : TrackSummary.fromJson((json['track'] as Map).cast<String, dynamic>()),
+        positionMs: json['positionMs'] == null ? null : json['positionMs'] as int,
+        title: json['title'] == null ? null : json['title'] as String,
+        artist: json['artist'] == null ? null : json['artist'] as String,
+        requested: json['requested'] == null ? null : json['requested'] as bool,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'at': at.toUtc().toIso8601String(),
+        'source': source,
+        'matched': matched,
+        'track': ?track?.toJson(),
+        'positionMs': ?positionMs,
+        'title': ?title,
+        'artist': ?artist,
+        'requested': ?requested,
+      };
+}
+
+class ListenHistory {
+  const ListenHistory({
+    required this.items,
+  });
+
+  final List<ListenEvent> items;
+
+  factory ListenHistory.fromJson(Map<String, dynamic> json) => ListenHistory(
+        items: (json['items'] as List<dynamic>).map((e) => ListenEvent.fromJson((e as Map).cast<String, dynamic>())).toList(),
+      );
+
+  Map<String, dynamic> toJson() => {
+        'items': items.map((e) => e.toJson()).toList(),
+      };
+}
+
+class SongRequestCreate {
+  const SongRequestCreate({
+    required this.source,
+    this.title,
+    this.artist,
+    this.note,
+    this.listenEventId,
+  });
+
+  final String source;
+  final String? title;
+  final String? artist;
+  final String? note;
+  /// The Listen attempt it came from
+  final int? listenEventId;
+
+  factory SongRequestCreate.fromJson(Map<String, dynamic> json) => SongRequestCreate(
+        source: json['source'] as String,
+        title: json['title'] == null ? null : json['title'] as String,
+        artist: json['artist'] == null ? null : json['artist'] as String,
+        note: json['note'] == null ? null : json['note'] as String,
+        listenEventId: json['listenEventId'] == null ? null : json['listenEventId'] as int,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'source': source,
+        'title': ?title,
+        'artist': ?artist,
+        'note': ?note,
+        'listenEventId': ?listenEventId,
+      };
+}
+
+class SongRequest {
+  const SongRequest({
+    required this.id,
+    required this.at,
+    required this.source,
+    required this.status,
+    this.title,
+    this.artist,
+    this.note,
+    this.heardAt,
+    this.personName,
+    this.decidedAt,
+  });
+
+  final String id;
+  final DateTime at;
+  final String source;
+  final String status;
+  final String? title;
+  final String? artist;
+  final String? note;
+  /// When Listen heard it.
+  final DateTime? heardAt;
+  /// Who asked (admin view).
+  final String? personName;
+  final DateTime? decidedAt;
+
+  factory SongRequest.fromJson(Map<String, dynamic> json) => SongRequest(
+        id: json['id'] as String,
+        at: DateTime.parse(json['at'] as String),
+        source: json['source'] as String,
+        status: json['status'] as String,
+        title: json['title'] == null ? null : json['title'] as String,
+        artist: json['artist'] == null ? null : json['artist'] as String,
+        note: json['note'] == null ? null : json['note'] as String,
+        heardAt: json['heardAt'] == null ? null : DateTime.parse(json['heardAt'] as String),
+        personName: json['personName'] == null ? null : json['personName'] as String,
+        decidedAt: json['decidedAt'] == null ? null : DateTime.parse(json['decidedAt'] as String),
+      );
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'at': at.toUtc().toIso8601String(),
+        'source': source,
+        'status': status,
+        'title': ?title,
+        'artist': ?artist,
+        'note': ?note,
+        'heardAt': ?heardAt?.toUtc().toIso8601String(),
+        'personName': ?personName,
+        'decidedAt': ?decidedAt?.toUtc().toIso8601String(),
+      };
+}
+
+class SongRequestDecision {
+  const SongRequestDecision({
+    required this.status,
+  });
+
+  final String status;
+
+  factory SongRequestDecision.fromJson(Map<String, dynamic> json) => SongRequestDecision(
+        status: json['status'] as String,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'status': status,
+      };
+}
+
+class AdminSongRequests {
+  const AdminSongRequests({
+    required this.items,
+  });
+
+  final List<SongRequest> items;
+
+  factory AdminSongRequests.fromJson(Map<String, dynamic> json) => AdminSongRequests(
+        items: (json['items'] as List<dynamic>).map((e) => SongRequest.fromJson((e as Map).cast<String, dynamic>())).toList(),
+      );
+
+  Map<String, dynamic> toJson() => {
+        'items': items.map((e) => e.toJson()).toList(),
+      };
+}
+
+class RecognitionStatus {
+  const RecognitionStatus({
+    required this.tracks,
+    required this.fingerprinted,
+    required this.waiting,
+    required this.working,
+    required this.failed,
+    this.landmarks,
+    required this.ffmpeg,
+    this.rebuiltAt,
+    required this.matchesThisWeek,
+    required this.noMatchThisWeek,
+    this.shazamThisWeek,
+    this.requestsWaiting,
+  });
+
+  final int tracks;
+  final int fingerprinted;
+  final int waiting;
+  final bool working;
+  /// Songs that couldn't be fingerprinted (silent or unreadable).
+  final int failed;
+  final int? landmarks;
+  /// Listen needs FFmpeg on the home PC.
+  final bool ffmpeg;
+  final DateTime? rebuiltAt;
+  final int matchesThisWeek;
+  final int noMatchThisWeek;
+  /// M5.
+  final int? shazamThisWeek;
+  final int? requestsWaiting;
+
+  factory RecognitionStatus.fromJson(Map<String, dynamic> json) => RecognitionStatus(
+        tracks: json['tracks'] as int,
+        fingerprinted: json['fingerprinted'] as int,
+        waiting: json['waiting'] as int,
+        working: json['working'] as bool,
+        failed: json['failed'] as int,
+        landmarks: json['landmarks'] == null ? null : json['landmarks'] as int,
+        ffmpeg: json['ffmpeg'] as bool,
+        rebuiltAt: json['rebuiltAt'] == null ? null : DateTime.parse(json['rebuiltAt'] as String),
+        matchesThisWeek: json['matchesThisWeek'] as int,
+        noMatchThisWeek: json['noMatchThisWeek'] as int,
+        shazamThisWeek: json['shazamThisWeek'] == null ? null : json['shazamThisWeek'] as int,
+        requestsWaiting: json['requestsWaiting'] == null ? null : json['requestsWaiting'] as int,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'tracks': tracks,
+        'fingerprinted': fingerprinted,
+        'waiting': waiting,
+        'working': working,
+        'failed': failed,
+        'landmarks': ?landmarks,
+        'ffmpeg': ffmpeg,
+        'rebuiltAt': ?rebuiltAt?.toUtc().toIso8601String(),
+        'matchesThisWeek': matchesThisWeek,
+        'noMatchThisWeek': noMatchThisWeek,
+        'shazamThisWeek': ?shazamThisWeek,
+        'requestsWaiting': ?requestsWaiting,
+      };
+}
+
+class DownloadRequest {
+  const DownloadRequest({
+    required this.quality,
+    this.player,
+  });
+
+  final String quality;
+  final String? player;
+
+  factory DownloadRequest.fromJson(Map<String, dynamic> json) => DownloadRequest(
+        quality: json['quality'] as String,
+        player: json['player'] == null ? null : json['player'] as String,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'quality': quality,
+        'player': ?player,
+      };
+}
+
+class DownloadTicket {
+  const DownloadTicket({
+  });
+
+
+  factory DownloadTicket.fromJson(Map<String, dynamic> json) => DownloadTicket(
+      );
+
+  Map<String, dynamic> toJson() => {
+      };
+}
+
+class DownloadCheck {
+  const DownloadCheck({
+    required this.validUntil,
+    required this.gone,
+  });
+
+  final DateTime validUntil;
+  /// Songs no longer at home; the device deletes them.
+  final List<String> gone;
+
+  factory DownloadCheck.fromJson(Map<String, dynamic> json) => DownloadCheck(
+        validUntil: DateTime.parse(json['validUntil'] as String),
+        gone: (json['gone'] as List<dynamic>).map((e) => e as String).toList(),
+      );
+
+  Map<String, dynamic> toJson() => {
+        'validUntil': validUntil.toUtc().toIso8601String(),
+        'gone': gone.map((e) => e).toList(),
+      };
+}
+
 class ImportItem {
   const ImportItem({
     required this.id,
@@ -3513,28 +3852,36 @@ class HiveApi {
     return Lyrics.fromJson((data as Map).cast<String, dynamic>());
   }
 
-  /// Permission to keep a song offline, with its valid-until date.
+  /// Permission to keep a song offline, with a link to fetch it and its valid-until date.
   ///
-  /// `POST /api/v1/media/tracks/{trackId}/download` · built in M4.
-  Future<Map<String, dynamic>> createDownloadTicket({required String trackId, required Map<String, dynamic> body}) async {
-    final data = await _send('POST', '/api/v1/media/tracks/${Uri.encodeComponent(trackId)}/download', data: body);
-    return (data as Map).cast<String, dynamic>();
+  /// `POST /api/v1/media/tracks/{trackId}/download` · built in M3.
+  Future<DownloadTicket> createDownloadTicket({required String trackId, required DownloadRequest body}) async {
+    final data = await _send('POST', '/api/v1/media/tracks/${Uri.encodeComponent(trackId)}/download', data: body.toJson());
+    return DownloadTicket.fromJson((data as Map).cast<String, dynamic>());
+  }
+
+  /// Check in with home; downloads stay playable for another 30 days, minus songs that left the library.
+  ///
+  /// `POST /api/v1/media/downloads/check` · built in M3.
+  Future<DownloadCheck> checkDownloads({required TrackIds body}) async {
+    final data = await _send('POST', '/api/v1/media/downloads/check', data: body.toJson());
+    return DownloadCheck.fromJson((data as Map).cast<String, dynamic>());
   }
 
   /// Match a short recording against the family library; the clip is deleted afterwards.
   ///
   /// `POST /api/v1/listen/match` · built in M3.
-  Future<Map<String, dynamic>> matchClip({required Map<String, dynamic> body}) async {
-    final data = await _send('POST', '/api/v1/listen/match', data: body);
-    return (data as Map).cast<String, dynamic>();
+  Future<ListenResult> matchClip() async {
+    final data = await _send('POST', '/api/v1/listen/match');
+    return ListenResult.fromJson((data as Map).cast<String, dynamic>());
   }
 
   /// The person's recognitions, labelled by source (library or Shazam).
   ///
   /// `GET /api/v1/listen/history` · built in M3.
-  Future<Map<String, dynamic>> listListenHistory() async {
+  Future<ListenHistory> listListenHistory() async {
     final data = await _send('GET', '/api/v1/listen/history');
-    return (data as Map).cast<String, dynamic>();
+    return ListenHistory.fromJson((data as Map).cast<String, dynamic>());
   }
 
   /// Save a recognition made on the device by Shazam, so history covers both sources.
@@ -3548,9 +3895,9 @@ class HiveApi {
   /// Ask the admin to add a song (from Listen or from a search with no results).
   ///
   /// `POST /api/v1/listen/requests` · built in M3.
-  Future<Map<String, dynamic>> createSongRequest({required Map<String, dynamic> body}) async {
-    final data = await _send('POST', '/api/v1/listen/requests', data: body);
-    return (data as Map).cast<String, dynamic>();
+  Future<SongRequest> createSongRequest({required SongRequestCreate body}) async {
+    final data = await _send('POST', '/api/v1/listen/requests', data: body.toJson());
+    return SongRequest.fromJson((data as Map).cast<String, dynamic>());
   }
 
   /// Short-lived Apple developer token for ShazamKit on Android.

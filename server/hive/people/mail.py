@@ -95,3 +95,11 @@ def request_note(home_name: str) -> tuple[str, str]:
         f"Someone has asked to join {home_name} on Hive.\n\n"
         "Open Hive Admin → Requests to approve or decline.\n",
     )
+
+
+def song_request_note(home_name: str) -> tuple[str, str]:
+    return (
+        "A song request is waiting on Hive",
+        f"Someone asked for a song to be added to {home_name} on Hive.\n\n"
+        "Open Hive Admin → Requests → Songs to see it.\n",
+    )

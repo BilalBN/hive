@@ -134,3 +134,63 @@ def build_library(root: Path) -> dict[str, Path]:
     p["duplicate"] = root / "Incoming" / "Copy of Dreams.flac"
     shutil.copyfile(p["dreams"], p["duplicate"])
     return p
+
+
+# ------------------------------------------------------------ M3: Listen
+
+
+def music_like(seed: int, seconds: float = 30.0, rate: int = 44100):
+    """A made-up tune: chords with overtones, a bass line and a drum hit on
+    each note, at a tempo of its own. Different seeds sound different."""
+    import numpy as np
+
+    r = np.random.default_rng(seed)
+    out = np.zeros(int(seconds * rate), np.float32)
+    beat = 60 / r.uniform(80, 140)
+    scale = 220 * 2 ** (np.array([0, 2, 3, 5, 7, 8, 10, 12, 14, 15]) / 12)
+    t = 0.0
+    while t < seconds - 1:
+        dur = beat * r.choice([0.5, 1, 1, 2])
+        n, i = int(dur * rate), int(t * rate)
+        tt = np.arange(n) / rate
+        env = np.exp(-tt * r.uniform(1, 4))
+        room = len(out) - i
+        for f in r.choice(scale, size=r.integers(1, 4)) * r.choice([1, 2]):
+            for h, a in [(1, 1), (2, 0.5), (3, 0.25), (4, 0.12)]:
+                out[i : i + n] += (a * np.sin(2 * np.pi * f * h * tt) * env * 0.15)[:room]
+        out[i : i + n] += (0.2 * np.sin(2 * np.pi * r.choice(scale) / 4 * tt) * env)[:room]
+        k = min(int(0.05 * rate), room)
+        out[i : i + k] += r.normal(0, 0.3, k) * np.exp(-np.arange(k) / 300)
+        t += dur
+    return out / np.max(np.abs(out)) * 0.8
+
+
+def in_a_room(samples, seed: int, snr_db: float, rate: int = 44100):
+    """As a phone hears it across a room: echo, talking-like noise, quieter."""
+    import numpy as np
+
+    r = np.random.default_rng(seed)
+    n = int(0.25 * rate)
+    echo = r.normal(0, 1, n) * np.exp(-np.arange(n) / (0.06 * rate))
+    echo[0] = 1
+    y = np.convolve(samples, echo)[: len(samples)]
+    y /= np.max(np.abs(y))
+    noise = np.convolve(r.normal(0, 1, len(y)), np.ones(8) / 8, "same")
+    noise *= 0.5 + 0.5 * np.abs(np.sin(np.arange(len(y)) / rate * 2 * np.pi * 3))
+    noise *= np.sqrt(np.mean(y**2) / (np.mean(noise**2) * 10 ** (snr_db / 10)))
+    return (y + noise) * r.uniform(0.2, 0.9)
+
+
+def write_audio(path: Path, samples, rate: int = 44100, args: list[str] | None = None) -> Path:
+    """Samples to a file FFmpeg makes from its extension (.flac, .m4a, .wav…)."""
+    import numpy as np
+
+    pcm = (np.clip(samples, -1, 1) * 32767).astype("<i2").tobytes()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    subprocess.run(
+        [FFMPEG, "-y", "-loglevel", "error", "-f", "s16le", "-ar", str(rate), "-ac", "1",
+         "-i", "pipe:0", *(args or []), str(path)],
+        input=pcm,
+        check=True,
+    )  # fmt: skip
+    return path

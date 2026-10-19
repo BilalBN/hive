@@ -514,10 +514,30 @@ paths:
     post:
       tags: [media]
       operationId: createDownloadTicket
-      summary: Permission to keep a song offline, with its valid-until date.
-      x-milestone: M4
-      requestBody: { $ref: "#/components/requestBodies/Pending" }
-      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+      summary: Permission to keep a song offline, with a link to fetch it and its valid-until date.
+      description: >-
+        The device downloads the link, keeps the song encrypted, and may play it until
+        validUntil without reaching home. Checking in (checkDownloads) moves the date on.
+      x-milestone: M3
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/DownloadRequest" } } }
+      responses:
+        "200": { description: The ticket., content: { application/json: { schema: { $ref: "#/components/schemas/DownloadTicket" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /api/v1/media/downloads/check:
+    post:
+      tags: [media]
+      operationId: checkDownloads
+      summary: Check in with home; downloads stay playable for another 30 days, minus songs that left the library.
+      x-milestone: M3
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/TrackIds" } } }
+      responses:
+        "200": { description: How long downloads stay playable., content: { application/json: { schema: { $ref: "#/components/schemas/DownloadCheck" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
 
   # -------------------------------------------------------------- listen (M3)
   /api/v1/listen/match:
@@ -525,16 +545,30 @@ paths:
       tags: [listen]
       operationId: matchClip
       summary: Match a short recording against the family library; the clip is deleted afterwards.
+      description: >-
+        Send 5 to 15 seconds of the microphone (WAV, M4A/AAC, Opus or MP3, up to 3 MB) as the
+        body. Matched or not, the attempt goes in the person's Listen history.
       x-milestone: M3
-      requestBody: { $ref: "#/components/requestBodies/Pending" }
-      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+      requestBody:
+        required: true
+        content:
+          audio/*: { schema: { type: string, format: binary } }
+          application/octet-stream: { schema: { type: string, format: binary } }
+      responses:
+        "200": { description: What it heard., content: { application/json: { schema: { $ref: "#/components/schemas/ListenResult" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "413": { $ref: "#/components/responses/TooLarge" }
+        "422": { $ref: "#/components/responses/Invalid" }
+        "503": { $ref: "#/components/responses/Unavailable" }
   /api/v1/listen/history:
     get:
       tags: [listen]
       operationId: listListenHistory
       summary: The person's recognitions, labelled by source (library or Shazam).
       x-milestone: M3
-      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+      responses:
+        "200": { description: "Newest first, up to 50.", content: { application/json: { schema: { $ref: "#/components/schemas/ListenHistory" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
     post:
       tags: [listen]
       operationId: recordListenResult
@@ -548,8 +582,13 @@ paths:
       operationId: createSongRequest
       summary: Ask the admin to add a song (from Listen or from a search with no results).
       x-milestone: M3
-      requestBody: { $ref: "#/components/requestBodies/Pending" }
-      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/SongRequestCreate" } } }
+      responses:
+        "200": { description: The request., content: { application/json: { schema: { $ref: "#/components/schemas/SongRequest" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "422": { $ref: "#/components/responses/Invalid" }
   /api/v1/listen/shazam-token:
     post:
       tags: [listen]
@@ -1136,14 +1175,42 @@ paths:
       operationId: adminListSongRequests
       summary: Songs the family asked to add, from Listen or search.
       x-milestone: M3
-      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+      responses:
+        "200": { description: "Waiting first, then recent.", content: { application/json: { schema: { $ref: "#/components/schemas/AdminSongRequests" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /api/v1/admin/song-requests/{songRequestId}:
+    parameters:
+      - { name: songRequestId, in: path, required: true, schema: { type: string } }
+    patch:
+      tags: [admin]
+      operationId: adminUpdateSongRequest
+      summary: Mark a song request added (the person sees it in Listen history) or dismissed.
+      x-milestone: M3
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/SongRequestDecision" } } }
+      responses:
+        "200": { description: The request., content: { application/json: { schema: { $ref: "#/components/schemas/SongRequest" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
   /api/v1/admin/recognition:
     get:
       tags: [admin]
       operationId: adminGetRecognition
       summary: Fingerprint coverage and matches this week by source.
       x-milestone: M3
-      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+      responses:
+        "200": { description: Coverage and recent matches., content: { application/json: { schema: { $ref: "#/components/schemas/RecognitionStatus" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /api/v1/admin/recognition/rebuild:
+    post:
+      tags: [admin]
+      operationId: adminRebuildRecognition
+      summary: Fingerprint every song again from scratch (in the background).
+      x-milestone: M3
+      responses:
+        "200": { description: Coverage now., content: { application/json: { schema: { $ref: "#/components/schemas/RecognitionStatus" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
   /api/v1/admin/settings:
     get:
       tags: [admin]
@@ -1287,6 +1354,9 @@ components:
       content: { application/problem+json: { schema: { $ref: "#/components/schemas/Problem" } } }
     Conflict:
       description: Can't be done in the current state; the detail says why.
+      content: { application/problem+json: { schema: { $ref: "#/components/schemas/Problem" } } }
+    TooLarge:
+      description: The upload is bigger than this operation takes.
       content: { application/problem+json: { schema: { $ref: "#/components/schemas/Problem" } } }
     Unavailable:
       description: Temporarily can't do it (for example FFmpeg is missing for a lossy quality).
@@ -1738,6 +1808,112 @@ components:
       properties:
         kind: { type: string, enum: [synced, plain, none] }
         lines: { type: array, items: { $ref: "#/components/schemas/LyricsLine" } }
+
+    # ----------------------------------------------------------- listen and downloads (M3)
+    ListenResult:
+      type: object
+      required: [id, matched, source]
+      properties:
+        id: { type: integer, description: The history entry. }
+        matched: { type: boolean }
+        source: { type: string, enum: [library, shazam] }
+        track: { $ref: "#/components/schemas/TrackSummary" }
+        positionMs:
+          type: integer
+          description: Where the song is now (the clip's start plus its length), for "Play from 1:42".
+        confidence: { type: number, minimum: 0, maximum: 1 }
+    ListenEvent:
+      type: object
+      required: [id, at, source, matched]
+      properties:
+        id: { type: integer }
+        at: { type: string, format: date-time }
+        source: { type: string, enum: [library, shazam] }
+        matched: { type: boolean }
+        track: { $ref: "#/components/schemas/TrackSummary" }
+        positionMs: { type: integer }
+        title: { type: string, description: What Shazam called a song that isn't at home (M5). }
+        artist: { type: string }
+        requested: { type: boolean, description: Asked the admin to add it. }
+    ListenHistory:
+      type: object
+      required: [items]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/ListenEvent" } }
+    SongRequestCreate:
+      type: object
+      required: [source]
+      properties:
+        source: { type: string, enum: [listen, search] }
+        title: { type: string, maxLength: 512 }
+        artist: { type: string, maxLength: 512 }
+        note: { type: string, maxLength: 500 }
+        listenEventId: { type: integer, description: The Listen attempt it came from, if any. }
+    SongRequest:
+      type: object
+      required: [id, at, source, status]
+      properties:
+        id: { type: string }
+        at: { type: string, format: date-time }
+        source: { type: string, enum: [listen, search] }
+        status: { type: string, enum: [waiting, added, dismissed] }
+        title: { type: string }
+        artist: { type: string }
+        note: { type: string }
+        heardAt: { type: string, format: date-time, description: When Listen heard it. }
+        personName: { type: string, description: Who asked (admin view). }
+        decidedAt: { type: string, format: date-time }
+    SongRequestDecision:
+      type: object
+      required: [status]
+      properties:
+        status: { type: string, enum: [waiting, added, dismissed] }
+    AdminSongRequests:
+      type: object
+      required: [items]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/SongRequest" } }
+    RecognitionStatus:
+      type: object
+      required: [tracks, fingerprinted, waiting, working, failed, ffmpeg, matchesThisWeek, noMatchThisWeek]
+      properties:
+        tracks: { type: integer }
+        fingerprinted: { type: integer }
+        waiting: { type: integer }
+        working: { type: boolean }
+        failed: { type: integer, description: Songs that couldn't be fingerprinted (silent or unreadable). }
+        landmarks: { type: integer }
+        ffmpeg: { type: boolean, description: Listen needs FFmpeg on the home PC. }
+        rebuiltAt: { type: string, format: date-time }
+        matchesThisWeek: { type: integer }
+        noMatchThisWeek: { type: integer }
+        shazamThisWeek: { type: integer, description: M5. }
+        requestsWaiting: { type: integer }
+    DownloadRequest:
+      type: object
+      required: [quality]
+      properties:
+        quality: { type: string, enum: [lossless, high, dataSaver] }
+        player: { type: string, enum: [apple, other], default: other }
+    DownloadTicket:
+      allOf:
+        - { $ref: "#/components/schemas/StreamTicket" }
+        - type: object
+          required: [validUntil]
+          properties:
+            validUntil:
+              type: string
+              format: date-time
+              description: Plays offline until then; checking in with home moves it on.
+    DownloadCheck:
+      type: object
+      required: [validUntil, gone]
+      properties:
+        validUntil: { type: string, format: date-time }
+        gone:
+          type: array
+          items: { type: string }
+          description: Songs no longer at home; the device deletes them.
 
     # ----------------------------------------------------------- admin (M1)
     ImportItem:

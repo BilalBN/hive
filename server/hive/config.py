@@ -71,6 +71,8 @@ class Settings(BaseSettings):
     acoustid_key: str | None = None
     # Run the lookup in the background (tests drive it themselves).
     lookup_worker: bool = True
+    # M3: fingerprint songs in the background for Listen (off in some tests).
+    fingerprint_worker: bool = True
 
     admin_dist: Path = Field(default_factory=lambda: REPO_ROOT / "admin" / "dist")
     log_level: str = "INFO"

@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Annotated, Any, Literal
 
 from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import FileResponse
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -87,19 +87,12 @@ def _record_play(s: Session, user_id: str, t: Track, context: PlayContext | None
     s.commit()
 
 
-@router.post("/tracks/{trackId}/stream")
-async def create_stream_ticket(
-    trackId: str,  # noqa: N803
-    body: StreamRequest,
-    request: Request,
-    caller: CallerDep,
-    s: SessionDep,
+async def _ticket(
+    request: Request, s: Session, caller, t: Track, quality: str, player: str
 ) -> dict[str, Any]:
-    t = s.get(Track, trackId)
-    if t is None:
-        raise HTTPException(404, "No such song")
+    """A signed link to the song in the quality asked for, with what it is."""
     library = request.app.state.library
-    variant = choose_variant(t, body.quality, body.player)
+    variant = choose_variant(t, quality, player)
     source = Path(t.path)
     if not source.is_file():
         raise HTTPException(404, "The song's file is missing from the music folder")
@@ -128,9 +121,6 @@ async def create_stream_ticket(
         {"t": t.id, "v": variant.key if variant else "orig", "u": caller.user_id},
         _ticket_ttl(t.duration_ms),
     )
-    if body.purpose == "play":
-        _record_play(s, caller.user_id, t, body.context)
-
     result: dict[str, Any] = {
         "url": f"/api/v1/media/stream/{ticket}",
         "expiresAt": iso(datetime.fromtimestamp(exp, UTC)),
@@ -149,6 +139,64 @@ async def create_stream_ticket(
             loud["albumLufs"] = album_lufs
         result["loudness"] = loud
     return result
+
+
+@router.post("/tracks/{trackId}/stream")
+async def create_stream_ticket(
+    trackId: str,  # noqa: N803
+    body: StreamRequest,
+    request: Request,
+    caller: CallerDep,
+    s: SessionDep,
+) -> dict[str, Any]:
+    t = s.get(Track, trackId)
+    if t is None:
+        raise HTTPException(404, "No such song")
+    result = await _ticket(request, s, caller, t, body.quality, body.player)
+    if body.purpose == "play":
+        _record_play(s, caller.user_id, t, body.context)
+    return result
+
+
+# Downloads play offline this long after the device last reached home.
+OFFLINE_DAYS = 30
+
+
+def _valid_until() -> str:
+    return iso(datetime.now(UTC) + timedelta(days=OFFLINE_DAYS))
+
+
+class DownloadRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    quality: Literal["lossless", "high", "dataSaver"]
+    player: Literal["apple", "other"] = "other"
+
+
+class TrackIdsBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    trackIds: list[str] = Field(min_length=1, max_length=5000)  # noqa: N815
+
+
+@router.post("/tracks/{trackId}/download")
+async def create_download_ticket(
+    trackId: str,  # noqa: N803
+    body: DownloadRequest,
+    request: Request,
+    caller: CallerDep,
+    s: SessionDep,
+) -> dict[str, Any]:
+    t = s.get(Track, trackId)
+    if t is None:
+        raise HTTPException(404, "No such song")
+    result = await _ticket(request, s, caller, t, body.quality, body.player)
+    result["validUntil"] = _valid_until()
+    return result
+
+
+@router.post("/downloads/check")
+def check_downloads(body: TrackIdsBody, caller: CallerDep, s: SessionDep) -> dict[str, Any]:
+    present = set(s.scalars(select(Track.id).where(Track.id.in_(body.trackIds))))
+    return {"validUntil": _valid_until(), "gone": [t for t in body.trackIds if t not in present]}
 
 
 VARIANTS = {v.key: v for v in A.ALL_VARIANTS}

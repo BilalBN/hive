@@ -394,3 +394,44 @@ class AuditEntry(Base):
     action: Mapped[str] = mapped_column(String(48))
     target_id: Mapped[str | None] = mapped_column(String(32))
     text: Mapped[str] = mapped_column(Text)
+
+
+class ListenEvent(Base):
+    """M3: one recognition someone asked for (their own history; the clip
+    itself is never kept)."""
+
+    __tablename__ = "listen_events"
+    __table_args__ = (Index("ix_listen_user_at", "user_id", "at"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[str] = mapped_column(String(32))
+    at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    # library (Hive's own fingerprints) | shazam (M5, on the device)
+    source: Mapped[str] = mapped_column(String(8), default="library")
+    track_id: Mapped[str | None] = mapped_column(ForeignKey("tracks.id", ondelete="SET NULL"))
+    position_ms: Mapped[int | None] = mapped_column(Integer)
+    confidence: Mapped[float | None] = mapped_column(Float)
+    # What Shazam said, for songs that aren't at home (M5).
+    title: Mapped[str | None] = mapped_column(String(512))
+    artist: Mapped[str | None] = mapped_column(String(512))
+
+
+class SongRequest(Base):
+    """M3: a song someone asked the admin to add, from Listen or a search."""
+
+    __tablename__ = "song_requests"
+    __table_args__ = (Index("ix_song_requests_status", "status", "at"),)
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    user_id: Mapped[str] = mapped_column(String(32))
+    at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    source: Mapped[str] = mapped_column(String(8))  # listen | search
+    title: Mapped[str | None] = mapped_column(String(512))
+    artist: Mapped[str | None] = mapped_column(String(512))
+    note: Mapped[str | None] = mapped_column(String(500))
+    heard_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    listen_event_id: Mapped[int | None] = mapped_column(Integer)
+    # waiting | added | dismissed
+    status: Mapped[str] = mapped_column(String(10), default="waiting")
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    decided_by: Mapped[str | None] = mapped_column(String(80))

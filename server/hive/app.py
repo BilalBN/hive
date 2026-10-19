@@ -19,9 +19,12 @@ from hive.contract import contract_path, load_contract, problem, register_unbuil
 from hive.db import Database, migrate
 from hive.library.admin_api import router as admin_library_router
 from hive.library.api import router as library_router
+from hive.library.listen_api import admin_router as listen_admin_router
+from hive.library.listen_api import router as listen_router
 from hive.library.lookup.http import Http
 from hive.library.lookup.service import LookupService
 from hive.library.media_api import router as media_router
+from hive.library.recognition import Recognition
 from hive.library.scanner import Library
 from hive.library.uploads import router as uploads_router
 from hive.people.admin_api import router as people_admin_router
@@ -57,6 +60,11 @@ def create_app(settings: Settings | None = None, lookup_http: Http | None = None
         )
         if settings.lookup_worker:
             app.state.lookup.start()
+        app.state.recognition = Recognition(
+            app.state.db, settings.data_dir, app.state.library.ffmpeg
+        )
+        if settings.fingerprint_worker:
+            app.state.recognition.start()
         log.info("Hive %s started for %s", __version__, settings.home_name)
         if app.state.people.admin_exists():
             log.info("apps join with invites and email codes (Hive Admin → Requests)")
@@ -67,6 +75,7 @@ def create_app(settings: Settings | None = None, lookup_http: Http | None = None
             log.info("set up the first admin in Hive Admin on this computer")
         yield
         app.state.lookup.stop()
+        app.state.recognition.stop()
         app.state.library.stop()
         app.state.db.engine.dispose()
         log.info("Hive stopped")
@@ -89,6 +98,8 @@ def create_app(settings: Settings | None = None, lookup_http: Http | None = None
     app.include_router(media_router)
     app.include_router(admin_library_router)
     app.include_router(uploads_router)
+    app.include_router(listen_router)
+    app.include_router(listen_admin_router)
     register_unbuilt_operations(app, load_contract())
 
     @app.get("/api/openapi.yaml", include_in_schema=False)

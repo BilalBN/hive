@@ -46,7 +46,7 @@ def test_health_matches_contract_schema(client) -> None:
     [
         ("get", "/api/v1/admin/backups", "M4"),
         ("post", "/api/v1/admin/session/passkey/options", "M6"),
-        ("post", "/api/v1/listen/match", "M3"),
+        ("post", "/api/v1/listen/shazam-token", "M5"),
         ("get", "/api/v1/sync/session", "M4"),
     ],
 )

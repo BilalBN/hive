@@ -460,7 +460,8 @@ class People:
             self._notify_admins()
         return req, token, name
 
-    def _notify_admins(self) -> None:
+    def _notify_admins(self, note: tuple[str, str] | None = None) -> None:
+        """A note to every admin that something is waiting; never who or what."""
         cfg = self.home.email
         if not cfg.ready:
             return
@@ -468,7 +469,7 @@ class People:
             admins = s.scalars(
                 select(User.email).where(User.role == "admin", User.status == "active")
             ).all()
-        subject, text = mail.request_note(self.home.home_name)
+        subject, text = note or mail.request_note(self.home.home_name)
         for address in admins:
             try:
                 mail.send(cfg, address, subject, text, self.home.home_name)
