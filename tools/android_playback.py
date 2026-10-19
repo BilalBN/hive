@@ -146,7 +146,17 @@ def main(apk: str, address: str, dev_key: str) -> None:
     step("address and key entered")
 
     # The test library has Rumours (Fleetwood Mac) and Premam, among others.
-    tap(find(r"^Album: .*Premam", 60))
+    # Search for the album: Home's rows scroll sideways, search doesn't.
+    tap(find(r"^Search$", 60))
+    time.sleep(1)
+    fields = edit_fields()
+    assert fields, "no search box"
+    tap(fields[0])
+    time.sleep(0.5)
+    adb("shell", "input", "text", "Premam")
+    time.sleep(1.5)
+    hide_keyboard()
+    tap(find(r"^Premam, ", 30))
     rows = []
     for title in (r"^Malare|മലരേ", r"^Aluva Puzha"):
         rows.append(find(title, 30))
