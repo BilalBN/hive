@@ -66,18 +66,19 @@ def test_a_downloaded_song_finds_its_real_album(http: Http) -> None:
     """ "Ed_Sheeran_-_Perfect[www.Mp3MaD.Com]" in a folder called English."""
     from hive.library.lookup import songs as SG
 
-    best: tuple[S.MbSong | None, float] = (None, 0.0)
+    scored: list[tuple[S.MbSong, float]] = []
     for q in SG.queries("Ed_Sheeran_-_Perfect[www.Mp3MaD.Com]", None, ["English", "Uploads"]):
-        for song in S.mb_recordings(http, q.title, q.artist, limit=5):
-            sc = SG.song_score(q, 263_000, song)
-            if sc > best[1]:
-                best = (song, sc)
-    song, score = best
+        for found in S.mb_recordings(http, q.title, q.artist, limit=10):
+            scored.append((found, SG.song_score(q, 263_000, found)))
+        if scored and max(sc for _s, sc in scored) >= 0.95:
+            break
+    song, score = SG.pick(scored)
     assert song is not None and score >= SG.SURE, (song, score)
     assert song.title == "Perfect" and "Ed Sheeran" in song.artist
     release = SG.best_release(song)
     assert release is not None
     assert "now" not in release.title.lower(), release.title  # not a compilation
+    assert not {t.lower() for t in release.secondary_types} & {"compilation"}, release
 
 
 def test_lrclib_lyrics(http: Http) -> None:

@@ -449,15 +449,13 @@ class LookupService:
         rel = path.relative_to(root).parent.parts if root in path.parents else ()
         hints = list(reversed(rel))  # the nearest folder first
         artist = None if raw.artist_from_folder else raw.artist
-        best: tuple[S.MbSong | None, float] = (None, 0.0)
+        scored: list[tuple[S.MbSong, float]] = []
         for q in SG.queries(raw.title or path.stem, artist, hints):
-            for song in S.mb_recordings(self.http, q.title, q.artist, limit=5):
-                sc = SG.song_score(q, duration_ms, song)
-                if sc > best[1]:
-                    best = (song, sc)
-            if best[1] >= 0.95:
+            for found in S.mb_recordings(self.http, q.title, q.artist, limit=10):
+                scored.append((found, SG.song_score(q, duration_ms, found)))
+            if scored and max(sc for _s, sc in scored) >= 0.95:
                 break
-        song, score = best
+        song, score = SG.pick(scored)
         refused = self._meta("acoustid_problem") is not None
         if score < SG.SURE and self.acoustid_key and self.fpcalc and not refused:
             fp = S.fingerprint(self.fpcalc, path)

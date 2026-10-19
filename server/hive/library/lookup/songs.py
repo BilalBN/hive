@@ -133,22 +133,35 @@ def song_score(q: Query, duration_ms: int, song: MbSong) -> float:
 _AVOID = {"compilation", "live", "dj-mix", "remix", "mixtape/street", "karaoke"}
 
 
+def release_rank(r: MbSongRelease) -> tuple:
+    """Lower is better: an official album first (a film's soundtrack counts),
+    then a single or EP, earliest first; compilations and live albums last."""
+    secondary = {t.lower() for t in r.secondary_types}
+    primary = (r.primary_type or "").lower()
+    return (
+        1 if secondary & _AVOID else 0,
+        0 if (r.status or "Official") == "Official" else 1,
+        {"album": 0, "single": 1, "ep": 1}.get(primary, 2),
+        r.year or 9999,
+    )
+
+
 def best_release(song: MbSong) -> MbSongRelease | None:
-    """The album the song belongs to: an official album first (a film's
-    soundtrack counts), then a single or EP, earliest first. Compilations and
-    live albums only when there's nothing else."""
+    """The album the song belongs to (see release_rank)."""
+    return min(song.releases, key=release_rank) if song.releases else None
 
-    def rank(r: MbSongRelease) -> tuple:
-        secondary = {t.lower() for t in r.secondary_types}
-        primary = (r.primary_type or "").lower()
-        return (
-            0 if (r.status or "Official") == "Official" else 1,
-            1 if secondary & _AVOID else 0,
-            {"album": 0, "single": 1, "ep": 1}.get(primary, 2),
-            r.year or 9999,
-        )
 
-    return min(song.releases, key=rank) if song.releases else None
+def pick(scored: list[tuple[MbSong, float]]) -> tuple[MbSong | None, float]:
+    """The song to use among the matches. A hit song exists as many
+    recordings (album, single, radio edit, each compilation); among the ones
+    that match about as well as the best, the one on a real album wins."""
+    if not scored:
+        return None, 0.0
+    top = max(score for _s, score in scored)
+    close = [(s, sc) for s, sc in scored if sc >= top - 0.05 and s.releases]
+    if not close:
+        return max(scored, key=lambda x: x[1])
+    return min(close, key=lambda x: (release_rank(best_release(x[0])), -x[1]))
 
 
 def found_record(song: MbSong, release: MbSongRelease | None) -> dict:

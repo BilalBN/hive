@@ -99,11 +99,37 @@ def key(code: str) -> None:
     adb("shell", "input", "keyevent", code)
 
 
+STEPS: list[str] = []
+
+
+def step(text: str) -> None:
+    STEPS.append(text)
+    print(text, flush=True)
+
+
+def in_front() -> bool:
+    focus = adb("shell", "dumpsys", "window", check=False)
+    return any(PKG in line for line in focus.splitlines() if "mCurrentFocus" in line)
+
+
+def launch() -> None:
+    out = adb("shell", "am", "start", "-W", "-n", f"{PKG}/.MainActivity", check=False)
+    step("launch: " + " ".join(line.strip() for line in out.splitlines() if line.strip())[:200])
+
+
 def main(apk: str, address: str, dev_key: str) -> None:
     adb("install", "-r", apk)
+    adb("shell", "am", "force-stop", PKG)
     adb("shell", "pm", "clear", PKG)
     adb("logcat", "-c")
-    adb("shell", "am", "start", "-W", "-n", f"{PKG}/.MainActivity")
+    time.sleep(2)
+    launch()
+    for _ in range(10):
+        if in_front():
+            break
+        time.sleep(2)
+        launch()
+    step(f"in front: {in_front()}")
 
     find(r"Connect to home", 60)
     # The on-screen keyboard covers the lower field and its toolbar catches
@@ -117,19 +143,19 @@ def main(apk: str, address: str, dev_key: str) -> None:
         adb("shell", "input", "text", text)
     key("KEYCODE_ENTER")
     hide_keyboard()
-    print("connected")
+    step("address and key entered")
 
     # The test library has Rumours (Fleetwood Mac) and Premam, among others.
     tap(find(r"^Album: .*Premam", 60))
     rows = []
     for title in (r"^Malare|മലരേ", r"^Aluva Puzha"):
         rows.append(find(title, 30))
-    print("album open")
+    step("album open")
 
     tap(rows[0])  # play the first song
     time.sleep(4)
     alive()
-    print("playing")
+    step("playing")
 
     # Switching the way people do: another song in the list, quickly again,
     # the mini player's Next, headset / lock-screen keys, and letting short
@@ -154,7 +180,7 @@ def main(apk: str, address: str, dev_key: str) -> None:
     key("KEYCODE_MEDIA_NEXT")
     time.sleep(8)  # the test songs are a few seconds long: let them run on
     alive()
-    print("switched songs without a crash")
+    step("switched songs without a crash")
 
 
 if __name__ == "__main__":
@@ -170,14 +196,20 @@ if __name__ == "__main__":
         if CRASH.search(line)
     ]
     if problems or failure:
-        if failure:
-            annotate("Playback test on the emulator", str(failure))
-        for p in problems[:4]:
-            annotate("Crash while switching songs", p)
         relevant = [
             line
             for line in log.splitlines()
-            if re.search(r"flutter|AndroidRuntime|ExoPlayer|AudioService|hivemusic", line)
+            if re.search(
+                r"flutter|AndroidRuntime|ExoPlayer|AudioService|hivemusic|ActivityTaskManager", line
+            )
         ]
+        if failure:
+            annotate(
+                "Playback test on the emulator",
+                f"{failure}\nSteps: {' | '.join(STEPS)}\nFocus now: {in_front()}",
+            )
+        for p in problems[:4]:
+            annotate("Crash while switching songs", p)
+        annotate("Device log (last lines)", "\n".join(line[-220:] for line in relevant[-25:]))
         print("\n".join(relevant[-200:]))
         sys.exit(1)

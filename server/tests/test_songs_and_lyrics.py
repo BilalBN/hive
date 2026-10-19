@@ -177,6 +177,19 @@ def test_a_dash_splits_singer_and_title_either_way() -> None:
     assert asked[0] == ("A Sky Full Of Stars", "Coldplay")
 
 
+def test_the_recording_on_a_real_album_wins() -> None:
+    from hive.library.lookup.songs import pick
+
+    def rel(i: str, *secondary: str) -> MbSongRelease:
+        return MbSongRelease(i, i, None, 2017, "Official", None, "Album", list(secondary))
+
+    on_compilation = MbSong("a", "Perfect", "Ed Sheeran", 263000, 100, [rel("now", "Compilation")])
+    on_album = MbSong("b", "Perfect", "Ed Sheeran", 263000, 98, [rel("divide")])
+    song, _score = pick([(on_compilation, 1.0), (on_album, 0.97)])
+    assert song is on_album
+    assert pick([]) == (None, 0.0)
+
+
 def test_the_real_album_beats_compilations() -> None:
     def rel(i: str, kind: str, year: int, *secondary: str) -> MbSongRelease:
         return MbSongRelease(i, i, None, year, "Official", None, kind, list(secondary))
