@@ -60,3 +60,26 @@ def test_wikidata_film_with_cast(http: Http) -> None:
     assert f.directors, "director"
     home = M.HomeAlbum("x", "Premam", "Rajesh Murugesan", 2015, "ml", True, [])
     assert M.film_score(home, f, "Q36236") >= M.FOUND
+
+
+def test_a_downloaded_song_finds_its_real_album(http: Http) -> None:
+    """ "Ed_Sheeran_-_Perfect[www.Mp3MaD.Com]" in a folder called English."""
+    from hive.library.lookup import songs as SG
+
+    best: tuple[S.MbSong | None, float] = (None, 0.0)
+    for q in SG.queries("Ed_Sheeran_-_Perfect[www.Mp3MaD.Com]", None, ["English", "Uploads"]):
+        for song in S.mb_recordings(http, q.title, q.artist, limit=5):
+            sc = SG.song_score(q, 263_000, song)
+            if sc > best[1]:
+                best = (song, sc)
+    song, score = best
+    assert song is not None and score >= SG.SURE, (song, score)
+    assert song.title == "Perfect" and "Ed Sheeran" in song.artist
+    release = SG.best_release(song)
+    assert release is not None
+    assert "now" not in release.title.lower(), release.title  # not a compilation
+
+
+def test_lrclib_lyrics(http: Http) -> None:
+    text = S.lrclib_lyrics(http, "Perfect", "Ed Sheeran", "÷", 263)
+    assert text and "dive right in" in text.lower(), text
