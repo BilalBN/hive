@@ -98,12 +98,20 @@ export function LookupPanel() {
             </Link>
           </div>
           <details className="details">
-            <summary>Recognise songs with no useful tags by their sound (optional)</summary>
+            <summary>
+              {data.acoustidKey && data.fingerprinting
+                ? "Recognising songs with no useful tags by their sound: on"
+                : "Recognise songs with no useful tags by their sound (optional)"}
+            </summary>
             <p className="note">
               With a free AcoustID application key and Chromaprint's <code>fpcalc</code> on the home computer (
               <code>brew install chromaprint</code>), Hive can recognise songs named "Track 01" by a fingerprint of their
               sound. Get a key at <span className="mono">acoustid.org/new-application</span>.
-              {data.fingerprinting ? "" : " fpcalc wasn't found on the home computer yet."}
+              {data.acoustidKey && data.fingerprinting
+                ? " Both are in place. It's used only for albums whose names alone weren't enough."
+                : data.fingerprinting
+                  ? " fpcalc is installed; add the key below."
+                  : " fpcalc wasn't found on the home computer yet."}
             </p>
             <form
               className="key-form"
