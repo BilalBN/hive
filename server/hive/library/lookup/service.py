@@ -62,7 +62,7 @@ class LookupService:
         self.artwork = artwork
         self.lock = library_lock  # the scanner's write lock: one writer at a time
         self.http = http or Http()
-        self.fpcalc = S.find_fpcalc()
+        self._fpcalc = S.find_fpcalc()
         self._wake = threading.Event()
         self._stop = threading.Event()
         self._thread: threading.Thread | None = None
@@ -96,6 +96,18 @@ class LookupService:
     @property
     def acoustid_key(self) -> str | None:
         return self._meta("acoustid_key") or self.settings.acoustid_key or None
+
+    @property
+    def fpcalc(self) -> str | None:
+        """Chromaprint's fpcalc, looked for again until found, so installing it
+        while Hive runs works without a restart."""
+        if self._fpcalc is None:
+            self._fpcalc = S.find_fpcalc()
+        return self._fpcalc
+
+    @fpcalc.setter
+    def fpcalc(self, path: str | None) -> None:
+        self._fpcalc = path
 
     def configure(self, enabled: bool | None = None, acoustid_key: str | None = None) -> None:
         if enabled is not None:

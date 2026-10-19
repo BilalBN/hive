@@ -358,6 +358,21 @@ def test_lookup_switch_and_key(looked_home: Home) -> None:
 
 
 @needs_ffmpeg
+def test_fpcalc_installed_while_running_is_found(
+    looked_home: Home, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from hive.library.lookup import sources
+
+    service = looked_home.client.app.state.lookup
+    service.fpcalc = None
+    monkeypatch.setattr(sources, "find_fpcalc", lambda: None)
+    assert _lookup(looked_home)["fingerprinting"] is False
+    # brew install chromaprint, with Hive still running:
+    monkeypatch.setattr(sources, "find_fpcalc", lambda: "/opt/homebrew/bin/fpcalc")
+    assert _lookup(looked_home)["fingerprinting"] is True
+
+
+@needs_ffmpeg
 def test_admin_edits_win_and_can_be_undone(looked_home: Home) -> None:
     home = looked_home
     aid = _album(home, "Premam")["id"]
