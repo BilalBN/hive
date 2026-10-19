@@ -139,19 +139,42 @@ class LookupService:
                 .limit(1)
             )
 
+    def _progress(self, done: int, finished: bool) -> None:
+        """One console line now and then instead of one per web request."""
+        st = self.status()
+        counts = (
+            f"{st['found']} found, {st['review']} to check, "
+            f"{st['notFound']} not found, {st['failed']} failed"
+        )
+        if finished:
+            log.info("lookup finished: %d albums looked up (%s)", done, counts)
+        else:
+            log.info("lookup: %d albums done, %d waiting (%s)", done, st["waiting"], counts)
+
     def _run(self) -> None:
+        done = 0
+        announced = False
         while not self._stop.is_set():
             if not self.enabled:
                 self._sleep(30)
                 continue
             album_id = self._next()
             if album_id is None:
+                if done:
+                    self._progress(done, finished=True)
+                done, announced = 0, False
                 self._sleep(10)
                 continue
+            if not announced:
+                log.info("lookup started: finding covers and film details online")
+                announced = True
             try:
                 self.working = True
                 self.look_up(album_id)
                 self.last_error = None
+                done += 1
+                if done % 25 == 0:
+                    self._progress(done, finished=False)
             except Offline as e:
                 self.last_error = str(e)
                 self._set_state(album_id, "waiting", None)

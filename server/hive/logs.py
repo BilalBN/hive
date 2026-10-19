@@ -51,3 +51,7 @@ def setup_logging(level: str, log_dir: Path | None) -> None:
     logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
     # Alembic is chatty at INFO; hive.db reports the outcome instead.
     logging.getLogger("alembic").setLevel(logging.WARNING)
+    # httpx logs every online lookup request with album names in the URL;
+    # hive.lookup reports progress instead.
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("httpcore").setLevel(logging.WARNING)
