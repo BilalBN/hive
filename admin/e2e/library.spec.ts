@@ -24,9 +24,11 @@ test("an uploaded song is scanned into the library", async ({ page, request }) =
   await page.getByTestId("choose-files").setInputFiles({ name, mimeType: "audio/wav", buffer: wav() });
   await expect(page.getByText("Uploaded · scanning")).toBeVisible({ timeout: 15_000 });
 
+  // At least one more: the albums test uploads a song of its own at the same time.
   await expect
     .poll(async () => (await (await request.get("/api/v1/admin/library/imports")).json()).tracks, { timeout: 20_000 })
-    .toBe(before + 1);
+    .toBeGreaterThan(before);
   await page.goto("/admin/library");
-  await expect(page.locator(".card").filter({ hasText: "Songs" })).toContainText(String(before + 1));
+  const songs = page.locator(".card").filter({ hasText: "Songs" }).locator(".card__value");
+  await expect.poll(async () => Number((await songs.textContent())?.replace(/\D/g, ""))).toBeGreaterThan(before);
 });
