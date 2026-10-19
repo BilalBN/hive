@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Release builds drop resources no Java or XML refers to. The playback
+     notification's icon is named from Dart (AudioServiceConfig), so without
+     this the release app had no icon for it and Android closed the app the
+     moment a song started playing. -->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@drawable/ic_stat_hive,@drawable/ic_launcher_foreground,@mipmap/ic_launcher" />
