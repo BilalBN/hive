@@ -181,20 +181,27 @@ class QualityChip extends StatelessWidget {
     required this.label,
     required this.lossless,
     this.icon,
+    this.onArt = false,
   });
 
   final String label;
   final bool lossless;
   final IconData? icon;
 
+  /// A soft see-through pill for the artwork backdrop (Now playing).
+  final bool onArt;
+
   @override
   Widget build(BuildContext context) {
     final p = HiveTheme.of(context);
-    final color = lossless ? p.lossless : p.textSecondary;
+    final color = onArt
+        ? Colors.white.withValues(alpha: 0.86)
+        : (lossless ? p.lossless : p.textSecondary);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      padding: EdgeInsets.symmetric(horizontal: onArt ? 8 : 6, vertical: 2),
       decoration: BoxDecoration(
-        border: Border.all(color: color),
+        color: onArt ? Colors.white.withValues(alpha: 0.14) : null,
+        border: onArt ? null : Border.all(color: color),
         borderRadius: BorderRadius.circular(HiveRadius.badge),
       ),
       child: Row(

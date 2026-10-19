@@ -70,9 +70,12 @@ class QueueList extends ConsumerWidget {
       child: Row(
         children: [
           Expanded(
-            child: Text(
-              text.toUpperCase(),
-              style: HiveType.overline.copyWith(color: p.textSecondary),
+            child: Semantics(
+              header: true,
+              child: Text(
+                text,
+                style: HiveType.headline.copyWith(color: p.textPrimary),
+              ),
             ),
           ),
           ?trailing,
@@ -84,6 +87,7 @@ class QueueList extends ConsumerWidget {
       slivers: [
         SliverToBoxAdapter(child: header('Now playing')),
         SliverToBoxAdapter(child: _EntryRow(entry: current, current: true)),
+        const SliverToBoxAdapter(child: _Modes()),
         SliverToBoxAdapter(
           child: header(
             fromYou > 0
@@ -161,6 +165,118 @@ class QueueList extends ConsumerWidget {
           ),
         const SliverToBoxAdapter(child: SizedBox(height: HiveSpace.xl)),
       ],
+    );
+  }
+}
+
+/// Shuffle, Repeat and Autoplay as three equal toggles under the song.
+class _Modes extends ConsumerWidget {
+  const _Modes();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final s = ref.watch(playerProvider);
+    final player = ref.read(playerProvider.notifier);
+    final settings = ref.watch(playbackSettingsProvider);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        HiveSpace.md,
+        HiveSpace.xs,
+        HiveSpace.md,
+        0,
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _Toggle(
+              label: 'Shuffle',
+              icon: HiveIcons.shuffle,
+              on: s.shuffled,
+              onTap: player.toggleShuffle,
+            ),
+          ),
+          const SizedBox(width: HiveSpace.xs),
+          Expanded(
+            child: _Toggle(
+              label: s.repeat == RepeatMode.one ? 'Repeat 1' : 'Repeat',
+              icon: s.repeat == RepeatMode.one
+                  ? HiveIcons.repeat1
+                  : HiveIcons.repeat,
+              on: s.repeat != RepeatMode.off,
+              onTap: player.cycleRepeat,
+            ),
+          ),
+          const SizedBox(width: HiveSpace.xs),
+          Expanded(
+            child: _Toggle(
+              label: 'Autoplay',
+              icon: HiveIcons.infinity,
+              on: settings.autoplay,
+              onTap: () => ref
+                  .read(playbackSettingsProvider.notifier)
+                  .update(settings.copyWith(autoplay: !settings.autoplay)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Toggle extends StatelessWidget {
+  const _Toggle({
+    required this.label,
+    required this.icon,
+    required this.on,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final bool on;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = HiveTheme.of(context);
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final off = dark
+        ? Colors.white.withValues(alpha: 0.07)
+        : Colors.black.withValues(alpha: 0.05);
+    return Semantics(
+      button: true,
+      toggled: on,
+      label: label,
+      excludeSemantics: true,
+      child: Material(
+        color: on ? p.accent : off,
+        borderRadius: BorderRadius.circular(10),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(10),
+          onTap: onTap,
+          child: SizedBox(
+            height: 38,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(icon, size: 16, color: on ? p.onAccent : p.textSecondary),
+                const SizedBox(width: 6),
+                Flexible(
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: HiveType.caption.copyWith(
+                      color: on ? p.onAccent : p.textSecondary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

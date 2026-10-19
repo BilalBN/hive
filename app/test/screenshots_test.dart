@@ -102,7 +102,7 @@ final Map<String, (Size, bool, Steps?)> _shots = {
       await _play(t, 'Premam');
       await t.tap(find.bySemanticsLabel(RegExp('^Now playing: ')));
       await t.pumpAndSettle();
-      await t.tap(find.text('Queue'));
+      await t.tap(find.byTooltip('Queue'));
       await t.pumpAndSettle();
     },
   ),
@@ -113,7 +113,7 @@ final Map<String, (Size, bool, Steps?)> _shots = {
       await _play(t, 'Premam');
       await t.tap(find.bySemanticsLabel(RegExp('^Now playing: ')));
       await t.pumpAndSettle();
-      await t.tap(find.text('Lyrics'));
+      await t.tap(find.byTooltip('Lyrics'));
       await t.pumpAndSettle();
     },
   ),
@@ -153,6 +153,15 @@ final Map<String, (Size, bool, Steps?)> _shots = {
       await t.pumpAndSettle();
     },
   ),
+  'desktop-full-player': (
+    const Size(1280, 800),
+    true,
+    (t) async {
+      await _play(t, 'Premam');
+      await t.tap(find.byTooltip('Open Now playing'));
+      await t.pumpAndSettle();
+    },
+  ),
 };
 
 void main() {
@@ -163,6 +172,8 @@ void main() {
         in _shots.entries) {
       final label = '$name-${dark ? 'dark' : 'light'}';
       testWidgets(label, (tester) async {
+        // Tests draw shadows as solid blocks unless told to draw them for real.
+        debugDisableShadows = false;
         tester.view.physicalSize = size;
         tester.view.devicePixelRatio = 1;
         tester.platformDispatcher.platformBrightnessTestValue = dark
@@ -178,11 +189,15 @@ void main() {
           ProviderScope(overrides: overrides, child: const HiveApp()),
         );
         await tester.pumpAndSettle();
-        if (steps != null) await steps(tester);
-        await expectLater(
-          find.byType(HiveApp),
-          matchesGoldenFile('goldens/$label.png'),
-        );
+        try {
+          if (steps != null) await steps(tester);
+          await expectLater(
+            find.byType(HiveApp),
+            matchesGoldenFile('goldens/$label.png'),
+          );
+        } finally {
+          debugDisableShadows = true;
+        }
       });
     }
   }

@@ -109,9 +109,23 @@ class Artwork extends ConsumerWidget {
                 frame == null && !sync ? placeholder : child,
             errorBuilder: (_, _, _) => placeholder,
           );
+    // A hairline edge keeps dark covers from melting into a dark page.
+    final rim = Theme.of(context).brightness == Brightness.dark
+        ? Colors.white.withValues(alpha: 0.07)
+        : Colors.black.withValues(alpha: 0.06);
     child = round
         ? ClipOval(child: child)
-        : ClipRRect(borderRadius: BorderRadius.circular(radius), child: child);
+        : DecoratedBox(
+            position: DecorationPosition.foreground,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(radius),
+              border: radius == 0 ? null : Border.all(color: rim, width: 0.5),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(radius),
+              child: child,
+            ),
+          );
     return ExcludeSemantics(
       child: size == null
           ? AspectRatio(aspectRatio: 1, child: child)

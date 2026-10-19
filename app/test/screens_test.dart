@@ -136,7 +136,6 @@ void main() {
 
     await tester.tap(find.bySemanticsLabel(RegExp('^Now playing: മലരേ')));
     await tester.pumpAndSettle();
-    expect(find.text('PLAYING FROM'), findsOneWidget);
     expect(find.text('LOSSLESS 16/44.1'), findsOneWidget);
 
     // The badge explains how the song reaches you.
@@ -147,14 +146,14 @@ void main() {
     await tester.tapAt(const Offset(10, 10));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Queue'));
+    await tester.tap(find.byTooltip('Queue'));
     await tester.pumpAndSettle();
-    expect(find.text('NEXT FROM PREMAM'), findsOneWidget);
+    expect(find.text('Next from Premam'), findsOneWidget);
     expect(find.text('ആലുവ പുഴ'), findsOneWidget);
     await tester.tap(find.byTooltip('Close'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Lyrics'));
+    await tester.tap(find.byTooltip('Lyrics'));
     await tester.pumpAndSettle();
     expect(find.text('മലരേ നിന്നെ കാണാതിരുന്നാൽ'), findsOneWidget);
   });
@@ -190,7 +189,7 @@ void main() {
 
     await tester.tap(find.byTooltip('Queue'));
     await tester.pumpAndSettle();
-    expect(find.text('NEXT FROM लगान'), findsOneWidget);
+    expect(find.text('Next from लगान'), findsOneWidget);
 
     final container = containerOf(tester);
     expect(container.read(playerProvider).playing, isTrue);

@@ -42,6 +42,7 @@ class _ArtistPage extends ConsumerWidget {
       slivers: [
         SliverToBoxAdapter(
           child: DetailHeader(
+            roundArt: true,
             art: Artwork(
               artworkId: artist.artworkId,
               title: artist.name,

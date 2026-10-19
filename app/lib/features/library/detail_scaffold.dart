@@ -46,7 +46,11 @@ class DetailScaffold extends StatelessWidget {
             actions: actions,
           ),
           ...slivers,
-          const SliverToBoxAdapter(child: SizedBox(height: 140)),
+          SliverToBoxAdapter(
+            child: SizedBox(
+              height: MediaQuery.paddingOf(context).bottom + HiveSpace.lg,
+            ),
+          ),
         ],
       ),
     );
@@ -65,9 +69,13 @@ class DetailHeader extends StatelessWidget {
     this.facts,
     this.badge,
     this.buttons,
+    this.roundArt = false,
   });
 
   final Widget art;
+
+  /// The art is a circle (artists), so its shadow is too.
+  final bool roundArt;
   final String title;
   final String? kicker;
   final String? subtitle;
@@ -80,13 +88,33 @@ class DetailHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = HiveTheme.of(context);
     final width = MediaQuery.sizeOf(context).width;
-    final artSize = (width * 0.55).clamp(160.0, 240.0);
+    final artSize = (width * 0.66).clamp(180.0, 280.0);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: HiveSpace.md),
       child: Column(
         children: [
-          SizedBox.square(dimension: artSize, child: art),
-          const SizedBox(height: HiveSpace.md),
+          const SizedBox(height: HiveSpace.xs),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              shape: roundArt ? BoxShape.circle : BoxShape.rectangle,
+              borderRadius: roundArt
+                  ? null
+                  : BorderRadius.circular(HiveRadius.art),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(
+                    alpha: Theme.of(context).brightness == Brightness.dark
+                        ? 0.5
+                        : 0.18,
+                  ),
+                  blurRadius: 30,
+                  offset: const Offset(0, 14),
+                ),
+              ],
+            ),
+            child: SizedBox.square(dimension: artSize, child: art),
+          ),
+          const SizedBox(height: HiveSpace.lg),
           if (kicker != null)
             Text(
               kicker!.toUpperCase(),
@@ -108,9 +136,10 @@ class DetailHeader extends StatelessWidget {
                 child: Text(
                   subtitle!,
                   textAlign: TextAlign.center,
-                  style: HiveType.headline.copyWith(
+                  style: HiveType.title2.copyWith(
                     color: onSubtitle == null ? p.textSecondary : p.accentText,
-                    fontWeight: FontWeight.w500,
+                    fontWeight: FontWeight.w400,
+                    fontSize: 20,
                   ),
                 ),
               ),
@@ -126,14 +155,17 @@ class DetailHeader extends StatelessWidget {
                   if (facts != null)
                     Text(
                       facts!,
-                      style: HiveType.callout.copyWith(color: p.textSecondary),
+                      style: HiveType.caption.copyWith(
+                        color: p.textSecondary,
+                        fontSize: 13,
+                      ),
                     ),
                   ?badge,
                 ],
               ),
             ),
           if (buttons != null) ...[
-            const SizedBox(height: HiveSpace.md),
+            const SizedBox(height: HiveSpace.lg),
             buttons!,
           ],
           const SizedBox(height: HiveSpace.sm),

@@ -2,17 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../design/glass.dart';
 import '../../design/icons.g.dart';
 import '../../design/theme.dart';
 import '../../design/tokens.g.dart';
+import '../../player/output_route.dart';
 import '../../player/player_controller.dart';
+import '../../ui/art_backdrop.dart';
 import '../../ui/artwork.dart';
 import '../../ui/nav.dart';
 import '../../ui/track_actions.dart';
 import 'player_parts.dart';
 
-/// Now playing: big artwork, the song, the quality badge (tap for the signal
-/// path), seek, controls, and the way to lyrics and the queue.
+/// Now playing: the cover on a wash of its own colours, the song, a slim
+/// scrubber with the quality badge, solid controls, and the way to lyrics,
+/// where the sound goes, and the queue. The cover settles back when paused.
 class NowPlayingScreen extends ConsumerWidget {
   const NowPlayingScreen({super.key});
 
@@ -32,54 +36,24 @@ class NowPlayingScreen extends ConsumerWidget {
       return Scaffold(backgroundColor: p.bg);
     }
 
-    final header = Row(
-      children: [
-        IconButton(
-          tooltip: 'Close',
-          icon: Icon(HiveIcons.chevronDown, size: 26, color: p.textPrimary),
-          onPressed: () => _close(context),
-        ),
-        Expanded(
-          child: Column(
-            children: [
-              Text(
-                'PLAYING FROM',
-                style: HiveType.overline.copyWith(
-                  color: p.textSecondary,
-                  fontSize: 10,
-                ),
-              ),
-              Text(
-                s.source?.name ?? 'Your queue',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: HiveType.callout.copyWith(
-                  color: p.textPrimary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-        ),
-        Builder(
-          builder: (b) => IconButton(
-            tooltip: 'More',
-            icon: Icon(HiveIcons.ellipsis, color: p.textPrimary),
-            onPressed: () {
-              final box = b.findRenderObject() as RenderBox?;
-              showTrackActions(
-                context,
-                ref,
-                track,
-                at: box?.localToGlobal(box.size.center(Offset.zero)),
-              );
-            },
-          ),
-        ),
-      ],
+    final more = Builder(
+      builder: (b) => GlassCircleButton(
+        tooltip: 'More',
+        child: const Icon(HiveIcons.ellipsis, size: 18, color: OnArt.primary),
+        onPressed: () {
+          final box = b.findRenderObject() as RenderBox?;
+          showTrackActions(
+            context,
+            ref,
+            track,
+            at: box?.localToGlobal(box.size.center(Offset.zero)),
+          );
+        },
+      ),
     );
 
     final titleBlock = Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Expanded(
           child: Column(
@@ -92,12 +66,14 @@ class NowPlayingScreen extends ConsumerWidget {
                 },
                 child: Text(
                   track.title,
-                  maxLines: 2,
+                  maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: HiveType.title2.copyWith(color: p.textPrimary),
+                  style: HiveType.title2.copyWith(
+                    color: OnArt.primary,
+                    fontSize: 21,
+                  ),
                 ),
               ),
-              const SizedBox(height: 2),
               GestureDetector(
                 onTap: track.artistId == null
                     ? null
@@ -109,153 +85,296 @@ class NowPlayingScreen extends ConsumerWidget {
                   track.artistName,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: HiveType.body.copyWith(color: p.textSecondary),
+                  style: HiveType.headline.copyWith(
+                    color: OnArt.secondary,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ),
               if (track.composer != null || track.lyricist != null)
-                Text(
-                  [
-                    if (track.composer != null) 'Music: ${track.composer}',
-                    if (track.lyricist != null) 'Lyrics: ${track.lyricist}',
-                  ].join(' · '),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: HiveType.caption.copyWith(color: p.textTertiary),
+                Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Text(
+                    [
+                      if (track.composer != null) 'Music: ${track.composer}',
+                      if (track.lyricist != null) 'Lyrics: ${track.lyricist}',
+                    ].join(' · '),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: HiveType.caption.copyWith(color: OnArt.tertiary),
+                  ),
                 ),
             ],
           ),
         ),
-        const LikeButton(size: 26),
+        const SizedBox(width: HiveSpace.sm),
+        const LikeButton(size: 18, onArt: true),
+        const SizedBox(width: HiveSpace.xs),
+        more,
       ],
     );
 
-    final controls = Column(
+    Widget controls({required bool wide}) => Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         titleBlock,
-        const SizedBox(height: HiveSpace.xs),
-        const Align(alignment: Alignment.centerLeft, child: BadgeButton()),
         if (s.error != null)
           Padding(
             padding: const EdgeInsets.only(top: HiveSpace.xs),
             child: Text(
               s.error!,
-              style: HiveType.callout.copyWith(color: p.danger),
+              style: HiveType.callout.copyWith(color: const Color(0xFFFFB4AB)),
             ),
           ),
-        const SizedBox(height: HiveSpace.sm),
-        const SeekBar(),
-        const SizedBox(height: HiveSpace.sm),
-        const TransportControls(),
-        const SizedBox(height: HiveSpace.lg),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            TextButton.icon(
-              onPressed: context.openLyrics,
-              icon: Icon(HiveIcons.micVocal, size: 18, color: p.textSecondary),
-              label: Text(
-                'Lyrics',
-                style: HiveType.callout.copyWith(color: p.textSecondary),
-              ),
-            ),
-            TextButton.icon(
-              onPressed: context.openQueue,
-              icon: Icon(HiveIcons.listMusic, size: 18, color: p.textSecondary),
-              label: Text(
-                'Queue',
-                style: HiveType.callout.copyWith(color: p.textSecondary),
-              ),
-            ),
-          ],
+        const SizedBox(height: HiveSpace.md),
+        const SeekBar(
+          onArt: true,
+          middle: BadgeButton(showDetail: false, onArt: true),
         ),
+        SizedBox(height: wide ? HiveSpace.md : HiveSpace.lg),
+        TransportControls(size: 44, showModes: wide, onArt: true),
+        SizedBox(height: wide ? HiveSpace.md : HiveSpace.lg),
+        if (wide)
+          const Padding(
+            padding: EdgeInsets.only(bottom: HiveSpace.md),
+            child: VolumeControl(width: null, onArt: true),
+          ),
+        _BottomRow(onLyrics: context.openLyrics, onQueue: context.openQueue),
       ],
     );
 
-    return Scaffold(
-      backgroundColor: p.bg,
-      body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, c) {
-            final wide = c.maxWidth >= 840;
-            final art = SwipeToSkip(
-              key: ValueKey(s.current?.id),
-              child: Hero(
-                tag: 'now-playing-art',
-                child: Artwork(
-                  artworkId: track.artworkId,
-                  title: track.albumTitle,
-                  pixels: 1200,
-                  radius: HiveRadius.card,
-                ),
-              ),
-            );
-            if (wide) {
-              return Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(HiveSpace.xs),
-                    child: header,
-                  ),
-                  Expanded(
-                    child: Center(
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 1000),
-                        child: Padding(
-                          padding: const EdgeInsets.all(HiveSpace.xl),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: AspectRatio(aspectRatio: 1, child: art),
-                              ),
-                              const SizedBox(width: HiveSpace.xxl),
-                              Expanded(child: controls),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              );
-            }
-            return GestureDetector(
-              // Down closes Now playing; up opens the lyrics.
-              onVerticalDragEnd: (d) {
-                final v = d.primaryVelocity ?? 0;
-                if (v > 400) _close(context);
-                if (v < -400) context.openLyrics();
-              },
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: HiveSpace.lg),
-                child: Column(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        vertical: HiveSpace.xs,
-                      ),
-                      child: header,
-                    ),
-                    Expanded(
-                      child: Center(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            vertical: HiveSpace.md,
-                          ),
-                          child: AspectRatio(aspectRatio: 1, child: art),
-                        ),
-                      ),
-                    ),
-                    controls,
-                    const SizedBox(height: HiveSpace.md),
-                  ],
-                ),
-              ),
-            );
-          },
+    final art = SwipeToSkip(
+      key: ValueKey(s.current?.id),
+      child: _BreathingArt(
+        playing: s.playing || s.loading,
+        child: Hero(
+          tag: 'now-playing-art',
+          child: Artwork(
+            artworkId: track.artworkId,
+            title: track.albumTitle,
+            pixels: 1200,
+            radius: 12,
+          ),
         ),
       ),
+    );
+
+    final grabber = Semantics(
+      button: true,
+      label: 'Close',
+      excludeSemantics: true,
+      child: Tooltip(
+        message: 'Close',
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () => _close(context),
+          child: SizedBox(
+            height: 28,
+            width: 96,
+            child: Center(
+              child: Container(
+                width: 38,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: OnArt.tertiary,
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    return Theme(
+      data: buildHiveTheme(Brightness.dark),
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        body: ArtBackdrop(
+          artworkId: track.artworkId,
+          title: track.albumTitle,
+          child: SafeArea(
+            child: LayoutBuilder(
+              builder: (context, c) {
+                final wide = c.maxWidth >= 840;
+                if (wide) {
+                  return Column(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(HiveSpace.sm),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: GlassCircleButton(
+                            tooltip: 'Close',
+                            onPressed: () => _close(context),
+                            child: const Icon(
+                              HiveIcons.chevronDown,
+                              size: 20,
+                              color: OnArt.primary,
+                            ),
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: Center(
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 1040),
+                            child: Padding(
+                              padding: const EdgeInsets.fromLTRB(
+                                HiveSpace.xxl,
+                                0,
+                                HiveSpace.xxl,
+                                HiveSpace.xxl,
+                              ),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Center(
+                                      child: AspectRatio(
+                                        aspectRatio: 1,
+                                        child: art,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 72),
+                                  Expanded(
+                                    child: ConstrainedBox(
+                                      constraints: const BoxConstraints(
+                                        maxWidth: 440,
+                                      ),
+                                      child: controls(wide: true),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                }
+                return GestureDetector(
+                  // Down closes Now playing; up opens the lyrics.
+                  onVerticalDragEnd: (d) {
+                    final v = d.primaryVelocity ?? 0;
+                    if (v > 400) _close(context);
+                    if (v < -400) context.openLyrics();
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: HiveSpace.lg + 4,
+                    ),
+                    child: Column(
+                      children: [
+                        grabber,
+                        Expanded(
+                          child: Center(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                vertical: HiveSpace.md,
+                              ),
+                              child: AspectRatio(aspectRatio: 1, child: art),
+                            ),
+                          ),
+                        ),
+                        controls(wide: false),
+                        const SizedBox(height: HiveSpace.sm),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Full size while the music plays; settles back, smaller, when paused.
+class _BreathingArt extends StatelessWidget {
+  const _BreathingArt({required this.playing, required this.child});
+  final bool playing;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedScale(
+      scale: playing ? 1 : 0.8,
+      duration: const Duration(milliseconds: 520),
+      curve: playing ? Curves.easeOutBack : Curves.easeOutCubic,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 520),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: playing ? 0.45 : 0.25),
+              blurRadius: playing ? 48 : 24,
+              offset: Offset(0, playing ? 22 : 10),
+            ),
+          ],
+        ),
+        child: child,
+      ),
+    );
+  }
+}
+
+/// Lyrics · where the sound goes · queue.
+class _BottomRow extends ConsumerWidget {
+  const _BottomRow({required this.onLyrics, required this.onQueue});
+  final VoidCallback onLyrics;
+  final VoidCallback onQueue;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final output = ref.watch(currentOutputProvider);
+    final icon = switch (output.kind) {
+      OutputKind.bluetooth => HiveIcons.bluetooth,
+      OutputKind.wired || OutputKind.usb => HiveIcons.headphones,
+      OutputKind.airplay => HiveIcons.airplay,
+      OutputKind.hdmi => HiveIcons.tv,
+      _ => HiveIcons.speaker,
+    };
+    return Row(
+      children: [
+        IconButton(
+          tooltip: 'Lyrics',
+          onPressed: onLyrics,
+          icon: Icon(
+            HiveIcons.messageSquareQuote,
+            size: 22,
+            color: OnArt.secondary,
+          ),
+        ),
+        Expanded(
+          child: Center(
+            child: TextButton.icon(
+              onPressed: () => showSignalPath(context),
+              style: TextButton.styleFrom(
+                foregroundColor: OnArt.secondary,
+                shape: const StadiumBorder(),
+              ),
+              icon: Icon(icon, size: 16, color: OnArt.secondary),
+              label: Text(
+                output.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: HiveType.caption.copyWith(color: OnArt.secondary),
+              ),
+            ),
+          ),
+        ),
+        IconButton(
+          tooltip: 'Queue',
+          onPressed: onQueue,
+          icon: Icon(HiveIcons.listMusic, size: 22, color: OnArt.secondary),
+        ),
+      ],
     );
   }
 }

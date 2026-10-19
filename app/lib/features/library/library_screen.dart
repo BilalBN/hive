@@ -181,7 +181,9 @@ class _Playlists extends ConsumerWidget {
         color: p.accent,
         onRefresh: () async => ref.invalidate(playlistsProvider),
         child: ListView(
-          padding: const EdgeInsets.only(bottom: HiveSpace.xl),
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.paddingOf(context).bottom + HiveSpace.md,
+          ),
           children: [
             liked,
             for (final pl in items)
@@ -265,11 +267,11 @@ class _Albums extends ConsumerWidget {
         text: 'Albums appear here once music is added at home (Hive Admin → Upload).',
       ),
       builder: (items) => GridView.builder(
-        padding: const EdgeInsets.fromLTRB(
+        padding: EdgeInsets.fromLTRB(
           HiveSpace.md,
           HiveSpace.xs,
           HiveSpace.md,
-          HiveSpace.xl,
+          MediaQuery.paddingOf(context).bottom + HiveSpace.md,
         ),
         gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
           maxCrossAxisExtent: 200,
@@ -312,7 +314,9 @@ class _Artists extends ConsumerWidget {
         text: 'Artists appear as music is added at home.',
       ),
       builder: (items) => ListView.builder(
-        padding: const EdgeInsets.only(bottom: HiveSpace.xl),
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.paddingOf(context).bottom + HiveSpace.md,
+        ),
         itemCount: items.length,
         itemBuilder: (context, i) {
           final a = items[i];
@@ -352,7 +356,9 @@ class _Songs extends ConsumerWidget {
         text: 'Songs appear as music is added at home.',
       ),
       builder: (items) => ListView.builder(
-        padding: const EdgeInsets.only(bottom: HiveSpace.xl),
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.paddingOf(context).bottom + HiveSpace.md,
+        ),
         itemCount: items.length,
         itemBuilder: (context, i) => TrackRow(
           track: items[i],

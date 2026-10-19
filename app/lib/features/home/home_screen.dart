@@ -155,7 +155,11 @@ class HomeScreen extends ConsumerWidget {
               data: (home) =>
                   SliverList.list(children: _shelves(context, ref, home, wide)),
             ),
-            const SliverToBoxAdapter(child: SizedBox(height: 120)),
+            SliverToBoxAdapter(
+              child: SizedBox(
+                height: MediaQuery.paddingOf(context).bottom + HiveSpace.lg,
+              ),
+            ),
           ],
         ),
       ),

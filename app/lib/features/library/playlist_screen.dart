@@ -229,7 +229,9 @@ class _PlaylistPageState extends ConsumerState<_PlaylistPage> {
           ),
           Expanded(
             child: ReorderableListView.builder(
-              padding: const EdgeInsets.only(bottom: 140),
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.paddingOf(context).bottom + HiveSpace.md,
+              ),
               itemCount: editing.length,
               onReorderItem: (from, to) => setState(() {
                 editing.insert(to, editing.removeAt(from));

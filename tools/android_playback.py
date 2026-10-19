@@ -156,7 +156,11 @@ def main(apk: str, address: str, dev_key: str) -> None:
     adb("shell", "input", "text", "Premam")
     time.sleep(1.5)
     hide_keyboard()
-    tap(find(r"^Premam, ", 30))
+    tap(into_view(r"^Premam, "))
+    # The tab bar and mini player float over the page's lower part: bring the
+    # rows up first, since once music plays the screen can't be read (it
+    # never settles while the progress moves) and these taps reuse places.
+    into_view(r"^Aluva Puzha")
     rows = []
     for title in (r"^Malare|മലരേ", r"^Aluva Puzha"):
         rows.append(find(title, 30))
@@ -195,7 +199,7 @@ def main(apk: str, address: str, dev_key: str) -> None:
     # From outside the app: the lock screen, notification and headphones.
     # "Long Songs" (CI adds it) has songs long enough not to end by themselves.
     open_album("Long Songs", r"^Long One")
-    tap(find(r"^Long One", 30))
+    tap(into_view(r"^Long One"))
     time.sleep(4)
     key("KEYCODE_HOME")
     time.sleep(2)
@@ -234,9 +238,44 @@ def wait_title(ok, timeout: float = 15):
     return title
 
 
+def screen_size() -> tuple[int, int]:
+    out = adb("shell", "wm", "size")
+    sizes = re.findall(r"(\d+)x(\d+)", out)
+    w, h = sizes[-1]  # an override, when there is one, comes last
+    return int(w), int(h)
+
+
+def into_view(pattern: str, limit: float = 0.5) -> tuple[int, int]:
+    """Scroll until the row is in the top part of the screen, clear of the
+    floating tab bar and mini player, and return where it is."""
+    w, h = screen_size()
+    xy = find(pattern, 30)
+    for _ in range(5):
+        if xy[1] <= h * limit:
+            return xy
+        start = int(h * 0.75)
+        distance = xy[1] - int(h * 0.35)
+        adb(
+            "shell",
+            "input",
+            "swipe",
+            str(w // 2),
+            str(start),
+            str(w // 2),
+            str(max(start - distance, 10)),
+            "700",
+        )
+        time.sleep(1.5)
+        xy = find(pattern, 30)
+    return xy
+
+
 def open_album(name: str, first_song: str) -> None:
     if not in_front():
         launch()
+    # Paused, the screen settles and can be read.
+    key("KEYCODE_MEDIA_PAUSE")
+    time.sleep(1.5)
     hide_keyboard()
     tap(find(r"^Search$", 30))
     time.sleep(1)
@@ -249,7 +288,7 @@ def open_album(name: str, first_song: str) -> None:
     adb("shell", "input", "text", name.replace(" ", "%s"))
     time.sleep(1.5)
     hide_keyboard()
-    tap(find(rf"^{re.escape(name)}, ", 30))
+    tap(into_view(rf"^{re.escape(name)}, "))
     find(first_song, 30)
 
 
@@ -270,7 +309,8 @@ if __name__ == "__main__":
             line
             for line in log.splitlines()
             if re.search(
-                r"flutter|AndroidRuntime|ExoPlayer|AudioService|hivemusic|ActivityTaskManager", line
+                r"flutter|AndroidRuntime|ExoPlayer|AudioService|hivemusic|ActivityTaskManager",
+                line,
             )
         ]
         if failure:

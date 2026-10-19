@@ -250,7 +250,9 @@ class _Results extends ConsumerWidget {
         }
 
         return ListView(
-          padding: const EdgeInsets.only(bottom: HiveSpace.xl),
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.paddingOf(context).bottom + HiveSpace.md,
+          ),
           keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           children: [
             if (r.tracks.isNotEmpty) ...[

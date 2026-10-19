@@ -3,47 +3,132 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../api/hive_api.g.dart';
+import '../../design/glass.dart';
 import '../../design/icons.g.dart';
 import '../../design/theme.dart';
 import '../../design/tokens.g.dart';
 import '../../library/library_providers.dart';
 import '../../player/player_controller.dart';
+import '../../ui/art_backdrop.dart';
+import '../../ui/artwork.dart';
 import '../../ui/states.dart';
+import 'player_parts.dart';
 
-/// Lyrics as their own screen (phones).
+/// Lyrics as their own screen (phones): big lines on the cover's colours,
+/// with the song's controls underneath.
 class LyricsScreen extends ConsumerWidget {
   const LyricsScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final p = HiveTheme.of(context);
     final track = ref.watch(playerProvider.select((s) => s.track));
-    return Scaffold(
-      backgroundColor: p.bg,
-      appBar: AppBar(
-        backgroundColor: p.bg,
-        surfaceTintColor: Colors.transparent,
-        leading: IconButton(
-          tooltip: 'Close',
-          icon: Icon(HiveIcons.chevronDown, color: p.textPrimary),
-          onPressed: () => context.pop(),
-        ),
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              track?.title ?? 'Lyrics',
-              style: HiveType.headline.copyWith(color: p.textPrimary),
+    return Theme(
+      data: buildHiveTheme(Brightness.dark),
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        body: ArtBackdrop(
+          artworkId: track?.artworkId,
+          title: track?.albumTitle ?? 'Lyrics',
+          child: SafeArea(
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    HiveSpace.lg,
+                    HiveSpace.sm,
+                    HiveSpace.md,
+                    HiveSpace.xs,
+                  ),
+                  child: Row(
+                    children: [
+                      if (track != null) ...[
+                        Artwork(
+                          artworkId: track.artworkId,
+                          title: track.albumTitle,
+                          size: 48,
+                          pixels: 96,
+                          radius: 8,
+                        ),
+                        const SizedBox(width: HiveSpace.sm),
+                      ],
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              track?.title ?? 'Lyrics',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: HiveType.headline.copyWith(
+                                color: OnArt.primary,
+                              ),
+                            ),
+                            if (track != null)
+                              Text(
+                                track.artistName,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: HiveType.callout.copyWith(
+                                  color: OnArt.secondary,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                      GlassCircleButton(
+                        tooltip: 'Close',
+                        onPressed: () => context.pop(),
+                        child: const Icon(
+                          HiveIcons.chevronDown,
+                          size: 20,
+                          color: OnArt.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: ShaderMask(
+                    // Lines fade in and out at the edges instead of being cut.
+                    shaderCallback: (rect) => const LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.transparent,
+                        Colors.white,
+                        Colors.white,
+                        Colors.transparent,
+                      ],
+                      stops: [0, 0.06, 0.9, 1],
+                    ).createShader(rect),
+                    blendMode: BlendMode.dstIn,
+                    child: const LyricsView(large: true),
+                  ),
+                ),
+                if (track != null)
+                  const Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      HiveSpace.lg + 4,
+                      0,
+                      HiveSpace.lg + 4,
+                      HiveSpace.sm,
+                    ),
+                    child: Column(
+                      children: [
+                        SeekBar(onArt: true),
+                        TransportControls(
+                          size: 34,
+                          showModes: false,
+                          onArt: true,
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
             ),
-            if (track != null)
-              Text(
-                track.artistName,
-                style: HiveType.caption.copyWith(color: p.textSecondary),
-              ),
-          ],
+          ),
         ),
       ),
-      body: const LyricsView(large: true),
     );
   }
 }
@@ -135,7 +220,10 @@ class _LinesState extends ConsumerState<_Lines> {
         }
       });
     }
-    final base = (widget.large ? HiveType.title2 : HiveType.headline);
+    final onArt = widget.large;
+    final base = onArt
+        ? HiveType.title1.copyWith(fontSize: 26, height: 1.25)
+        : HiveType.headline;
     return ListView.builder(
       padding: EdgeInsets.symmetric(
         horizontal: HiveSpace.lg,
@@ -148,13 +236,19 @@ class _LinesState extends ConsumerState<_Lines> {
             padding: const EdgeInsets.only(top: HiveSpace.lg),
             child: Text(
               'These lyrics aren\'t timed, so they don\'t follow the song.',
-              style: HiveType.caption.copyWith(color: p.textTertiary),
+              style: HiveType.caption.copyWith(
+                color: onArt ? OnArt.tertiary : p.textTertiary,
+              ),
             ),
           );
         }
         final line = widget.lyrics.lines[i];
         final key = _keys.putIfAbsent(i, GlobalKey.new);
-        final color = !timed
+        final color = onArt
+            ? (!timed || i == active
+                  ? OnArt.primary
+                  : Colors.white.withValues(alpha: i < active ? 0.3 : 0.45))
+            : !timed
             ? p.textPrimary
             : i == active
             ? p.textPrimary
@@ -164,10 +258,15 @@ class _LinesState extends ConsumerState<_Lines> {
           padding: EdgeInsets.symmetric(vertical: timed ? 6 : 2),
           child: AnimatedDefaultTextStyle(
             duration: HiveMotion.fast,
-            style: (timed ? base : HiveType.body).copyWith(
-              color: color,
-              height: 1.35,
-            ),
+            style:
+                (timed
+                        ? base
+                        : (onArt
+                              ? HiveType.title2.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                )
+                              : HiveType.body))
+                    .copyWith(color: color, height: 1.35),
             child: Text(line.text.isEmpty ? '♪' : line.text),
           ),
         );

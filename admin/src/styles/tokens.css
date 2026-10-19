@@ -20,7 +20,7 @@
   --hv-font: "Inter", "Noto Sans Malayalam", "Noto Sans Devanagari", system-ui, sans-serif;
   --hv-type-display: 700 34px/40px var(--hv-font);
   --hv-type-title1: 700 28px/34px var(--hv-font);
-  --hv-type-title2: 600 22px/28px var(--hv-font);
+  --hv-type-title2: 700 22px/28px var(--hv-font);
   --hv-type-headline: 600 17px/22px var(--hv-font);
   --hv-type-body: 400 15px/20px var(--hv-font);
   --hv-type-callout: 400 14px/19px var(--hv-font);
@@ -34,7 +34,7 @@
   --hv-space-xl: 32px;
   --hv-space-xxl: 48px;
   --hv-radius-badge: 4px;
-  --hv-radius-art: 8px;
+  --hv-radius-art: 10px;
   --hv-radius-card: 12px;
   --hv-radius-sheet: 20px;
   --hv-radius-pill: 999px;

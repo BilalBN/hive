@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../api/hive_api.g.dart';
+import '../design/glyphs.dart';
 import '../design/icons.g.dart';
 import '../design/theme.dart';
 import '../design/tokens.g.dart';
@@ -70,6 +71,7 @@ class TrackRow extends ConsumerWidget {
         title: track.albumTitle,
         size: 44,
         pixels: 96,
+        radius: 6,
       );
     } else {
       leading = const SizedBox.shrink();
@@ -96,63 +98,75 @@ class TrackRow extends ConsumerWidget {
         child: InkWell(
           onTap: onTap,
           onLongPress: () => actions(),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: HiveSpace.md,
-              vertical: 6,
-            ),
-            child: Row(
-              children: [
-                leading,
-                if (number != null || showArt)
-                  const SizedBox(width: HiveSpace.sm),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        track.title,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: HiveType.body.copyWith(
-                          color: titleColor,
-                          fontWeight: isCurrent
-                              ? FontWeight.w600
-                              : FontWeight.w400,
+          child: _Hairline(
+            indent:
+                HiveSpace.md +
+                (number != null ? 28 : (showArt ? 44 : 0)) +
+                (number != null || showArt ? HiveSpace.sm : 0),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: HiveSpace.md,
+                vertical: 6,
+              ),
+              child: Row(
+                children: [
+                  leading,
+                  if (number != null || showArt)
+                    const SizedBox(width: HiveSpace.sm),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          track.title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: HiveType.body.copyWith(
+                            color: titleColor,
+                            fontWeight: isCurrent
+                                ? FontWeight.w600
+                                : FontWeight.w400,
+                          ),
                         ),
-                      ),
+                        Text(
+                          subtitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: HiveType.caption.copyWith(
+                            color: p.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: HiveSpace.xs),
+                  trailing ??
                       Text(
-                        subtitle,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                        formatDuration(
+                          Duration(milliseconds: track.durationMs),
+                        ),
                         style: HiveType.caption.copyWith(
                           color: p.textSecondary,
                         ),
                       ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: HiveSpace.xs),
-                trailing ??
-                    Text(
-                      formatDuration(Duration(milliseconds: track.durationMs)),
-                      style: HiveType.caption.copyWith(color: p.textSecondary),
+                  Builder(
+                    builder: (b) => IconButton(
+                      tooltip: 'More',
+                      icon: Icon(
+                        HiveIcons.ellipsis,
+                        size: 18,
+                        color: p.textSecondary,
+                      ),
+                      onPressed: () {
+                        final box = b.findRenderObject() as RenderBox?;
+                        actions(
+                          box?.localToGlobal(box.size.center(Offset.zero)),
+                        );
+                      },
                     ),
-                Builder(
-                  builder: (b) => IconButton(
-                    tooltip: 'More',
-                    icon: Icon(
-                      HiveIcons.ellipsis,
-                      size: 18,
-                      color: p.textSecondary,
-                    ),
-                    onPressed: () {
-                      final box = b.findRenderObject() as RenderBox?;
-                      actions(box?.localToGlobal(box.size.center(Offset.zero)));
-                    },
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -194,14 +208,14 @@ class CoverTile extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             art,
-            const SizedBox(height: HiveSpace.xs),
+            const SizedBox(height: 6),
             Text(
               title,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: HiveType.callout.copyWith(
                 color: p.textPrimary,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w500,
               ),
             ),
             Text(
@@ -334,7 +348,8 @@ class SectionHeader extends StatelessWidget {
   }
 }
 
-/// Big rounded buttons under album and playlist headers: Play and Shuffle.
+/// Play and Shuffle under album and playlist headers: two equal soft
+/// buttons with the accent on the icon and word, not the fill.
 class PlayButtons extends StatelessWidget {
   const PlayButtons({
     super.key,
@@ -350,10 +365,13 @@ class PlayButtons extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = HiveTheme.of(context);
-    ButtonStyle style(bool primary) => TextButton.styleFrom(
-      backgroundColor: primary ? p.accent : p.raised,
-      foregroundColor: primary ? p.onAccent : p.textPrimary,
-      shape: const StadiumBorder(),
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final style = TextButton.styleFrom(
+      backgroundColor: dark
+          ? Colors.white.withValues(alpha: 0.08)
+          : Colors.black.withValues(alpha: 0.05),
+      foregroundColor: p.accentText,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       minimumSize: const Size(0, 48),
       textStyle: HiveType.headline,
     );
@@ -362,8 +380,8 @@ class PlayButtons extends StatelessWidget {
         Expanded(
           child: TextButton.icon(
             onPressed: onPlay,
-            style: style(true),
-            icon: const Icon(HiveIcons.play, size: 18),
+            style: style,
+            icon: HiveGlyph(Glyph.play, size: 16, color: p.accentText),
             label: const Text('Play'),
           ),
         ),
@@ -371,12 +389,36 @@ class PlayButtons extends StatelessWidget {
         Expanded(
           child: TextButton.icon(
             onPressed: onShuffle,
-            style: style(false),
+            style: style,
             icon: const Icon(HiveIcons.shuffle, size: 18),
             label: const Text('Shuffle'),
           ),
         ),
         ...?extra,
+      ],
+    );
+  }
+}
+
+/// A hairline under a list row, starting where its text starts.
+class _Hairline extends StatelessWidget {
+  const _Hairline({required this.indent, required this.child});
+  final double indent;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = HiveTheme.of(context);
+    return Stack(
+      children: [
+        child,
+        Positioned(
+          left: indent,
+          right: HiveSpace.md,
+          bottom: 0,
+          height: 0.5,
+          child: ColoredBox(color: p.border.withValues(alpha: 0.7)),
+        ),
       ],
     );
   }

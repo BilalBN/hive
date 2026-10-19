@@ -9,6 +9,7 @@ import '../player/mini_player.dart';
 import '../player/side_panel.dart';
 import '../search/search_screen.dart';
 
+import '../../design/glass.dart';
 import '../../design/icons.g.dart';
 import '../../design/theme.dart';
 import '../../design/tokens.g.dart';
@@ -127,41 +128,11 @@ class AppShell extends ConsumerWidget {
     };
   }
 
-  Widget _mobile(BuildContext context) {
-    final p = HiveTheme.of(context);
-    return Scaffold(
-      body: Column(
-        children: [
-          Expanded(child: shell),
-          const MiniPlayer(),
-        ],
-      ),
-      bottomNavigationBar: DecoratedBox(
-        decoration: BoxDecoration(
-          color: p.bg,
-          border: Border(top: BorderSide(color: p.border, width: 0.5)),
-        ),
-        child: SafeArea(
-          top: false,
-          child: SizedBox(
-            height: 58,
-            child: Row(
-              children: [
-                for (var i = 0; i < _tabs.length; i++)
-                  Expanded(
-                    child: _TabButton(
-                      tab: _tabs[i],
-                      selected: i == shell.currentIndex,
-                      onTap: () => _select(i),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+  Widget _mobile(BuildContext context) => _MobileFrame(
+    shell: shell,
+    selected: shell.currentIndex,
+    onSelect: _select,
+  );
 
   Widget _desktop(BuildContext context, WidgetRef ref) {
     final p = HiveTheme.of(context);
@@ -227,6 +198,113 @@ class AppShell extends ConsumerWidget {
   }
 }
 
+/// Phones: the tab's page fills the screen and scrolls under a floating
+/// glass tab bar, with the mini player floating just above it.
+class _MobileFrame extends ConsumerWidget {
+  const _MobileFrame({
+    required this.shell,
+    required this.selected,
+    required this.onSelect,
+  });
+
+  final Widget shell;
+  final int selected;
+  final ValueChanged<int> onSelect;
+
+  static const _barHeight = 62.0;
+  static const _gap = 8.0;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final p = HiveTheme.of(context);
+    final mq = MediaQuery.of(context);
+    final playing = ref.watch(playerProvider.select((s) => s.track != null));
+    // While typing, the keyboard takes the bottom of the screen; the tab
+    // bar and mini player step aside rather than ride on top of it.
+    final typing = mq.viewInsets.bottom > 0;
+    final safe = mq.padding.bottom;
+    final bottom = safe > 0 ? safe : _gap + 4;
+    final chrome = typing
+        ? safe
+        : bottom + _barHeight + (playing ? miniPlayerHeight + _gap : 0) + _gap;
+
+    return Scaffold(
+      body: Stack(
+        children: [
+          // Pages see the floating chrome as part of the bottom inset, so
+          // their last rows can scroll clear of it.
+          MediaQuery(
+            data: mq.copyWith(
+              padding: mq.padding.copyWith(bottom: chrome),
+              viewPadding: mq.viewPadding.copyWith(bottom: chrome),
+            ),
+            child: shell,
+          ),
+          if (!typing) ...[
+            // A soft fade so busy pages calm down behind the chrome.
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              height: chrome + 24,
+              child: IgnorePointer(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        p.bg.withValues(alpha: 0),
+                        p.bg.withValues(alpha: 0.85),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              left: HiveSpace.sm,
+              right: HiveSpace.sm,
+              bottom: bottom,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (playing) ...[
+                    const MiniPlayer(),
+                    const SizedBox(height: _gap),
+                  ],
+                  Glass(
+                    borderRadius: BorderRadius.circular(_barHeight / 2),
+                    shadow: true,
+                    child: SizedBox(
+                      height: _barHeight,
+                      child: Padding(
+                        padding: const EdgeInsets.all(5),
+                        child: Row(
+                          children: [
+                            for (var i = 0; i < _tabs.length; i++)
+                              Expanded(
+                                child: _TabButton(
+                                  tab: _tabs[i],
+                                  selected: i == selected,
+                                  onTap: () => onSelect(i),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
 class _TabButton extends StatelessWidget {
   const _TabButton({
     required this.tab,
@@ -241,24 +319,39 @@ class _TabButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = HiveTheme.of(context);
-    final color = selected ? p.accent : p.textSecondary;
+    final color = selected ? p.accentText : p.textSecondary;
     return Semantics(
       button: true,
       selected: selected,
       label: tab.label,
       excludeSemantics: true,
-      child: InkWell(
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
         onTap: onTap,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(tab.icon, size: 24, color: color),
-            const SizedBox(height: 2),
-            Text(
-              tab.label,
-              style: HiveType.caption.copyWith(color: color, fontSize: 11),
-            ),
-          ],
+        child: AnimatedContainer(
+          duration: HiveMotion.screen,
+          curve: Curves.easeOutCubic,
+          decoration: BoxDecoration(
+            color: selected
+                ? p.accent.withValues(alpha: 0.15)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(26),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(tab.icon, size: 22, color: color),
+              const SizedBox(height: 2),
+              Text(
+                tab.label,
+                style: HiveType.caption.copyWith(
+                  color: color,
+                  fontSize: 10.5,
+                  fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -279,38 +372,42 @@ class _SidebarItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = HiveTheme.of(context);
+    final dark = Theme.of(context).brightness == Brightness.dark;
     return Semantics(
       button: true,
       selected: selected,
       label: tab.label,
       excludeSemantics: true,
-      child: Material(
-        color: selected ? p.raised : Colors.transparent,
-        borderRadius: BorderRadius.circular(8),
-        child: InkWell(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 1),
+        child: Material(
+          color: selected
+              ? (dark
+                    ? Colors.white.withValues(alpha: 0.08)
+                    : Colors.black.withValues(alpha: 0.06))
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: HiveSpace.sm,
-              vertical: 10,
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  tab.icon,
-                  size: 18,
-                  color: selected ? p.accent : p.textSecondary,
-                ),
-                const SizedBox(width: HiveSpace.sm),
-                Text(
-                  tab.label,
-                  style: HiveType.callout.copyWith(
-                    color: selected ? p.textPrimary : p.textSecondary,
-                    fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(8),
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: HiveSpace.sm - 2,
+                vertical: 7,
+              ),
+              child: Row(
+                children: [
+                  Icon(tab.icon, size: 17, color: p.accentText),
+                  const SizedBox(width: HiveSpace.sm - 2),
+                  Text(
+                    tab.label,
+                    style: HiveType.callout.copyWith(
+                      color: p.textPrimary,
+                      fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
