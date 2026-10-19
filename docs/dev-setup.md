@@ -190,6 +190,51 @@ searching the lead actor's name finds it.
 - After `git pull`, restart the server: the first start reads every song once
   more (quick: unchanged files keep their loudness). No new packages.
 
+## M2: invites, approval and devices
+
+**The M2 gate:** a family member joins with an invite (QR or typed code) and
+a code sent to their email, an admin can approve or decline someone without an
+invite, and signing a device out in Hive Admin stops it within 15 minutes.
+
+1. **Update the server** (it needs one new package, so install again):
+
+   ```sh
+   git pull
+   cd server && .venv/bin/pip install -e ".[dev]"
+   .venv/bin/python -m hive serve
+   ```
+
+2. **Install the new apps first** (app 0.2.0, from the latest run) on every
+   device, and the new admin panel. The new apps still work with the
+   temporary key until the next step.
+
+3. **Set up the first admin** in Hive Admin on the Mac: Overview → **Set up**
+   (your name and email). From now on the temporary key stops working: each
+   device joins with its own sign-in. Your likes, plays and playlists so far
+   become yours.
+
+4. **Email** (so codes arrive by themselves): Settings → Email → **Use Gmail
+   settings**, your Gmail address, and an app password from
+   myaccount.google.com/apppasswords (needs 2-Step Verification). Save, then
+   **Send test email**. Until then, codes show on Requests for you to pass on.
+
+5. **Settings → Home:** check **Address for the apps** is the Mac's Tailscale
+   address (like `http://100.84.12.7:8443`), and paste your Tailscale share
+   link for the Mac under **Private-network link**.
+
+6. **Join on each device:** Invite → name and email → **Create invite**. On
+   the phone, **Scan the invite** (or type the address and code), then the
+   email and its 6-digit code. Without an invite, leave the code empty: the
+   request waits on **Requests** for you to approve.
+
+7. *Optional:* Settings → Your sign-in → **Set up authenticator** to use Hive
+   Admin from another computer (an emailed code plus the authenticator code).
+
+Also in M2: **People** (suspend, device limit, sign out everywhere),
+**Devices**, **Activity** (every admin action), **Library → Tidy song names**
+(what Hive shows; files stay as they are), search suggestions as you type,
+and a refreshed look for the apps.
+
 ## Useful commands
 
 | What | Command |
