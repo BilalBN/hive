@@ -1907,6 +1907,9 @@ components:
               album: { $ref: "#/components/schemas/AlbumSummary" }
               lookup: { $ref: "#/components/schemas/LookupState" }
               lookupNote: { type: string }
+              found:
+                $ref: "#/components/schemas/FoundAlbum"
+                description: For albums to check, what the lookup found, so it can be approved from the list.
         total: { type: integer }
         offset: { type: integer }
     AlbumEdit:

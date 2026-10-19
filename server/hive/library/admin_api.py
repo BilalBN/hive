@@ -266,6 +266,9 @@ def admin_list_albums(
         item: dict[str, Any] = {"album": summary, "lookup": state}
         if a.lookup_note:
             item["lookupNote"] = a.lookup_note
+        # What the lookup found, so it can be approved from the list.
+        if a.lookup_state == "review" and a.lookup_candidate:
+            item["found"] = json.loads(a.lookup_candidate)["found"]
         items.append(item)
     return {"items": items, "total": total, "offset": offset}
 

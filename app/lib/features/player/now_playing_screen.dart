@@ -13,6 +13,8 @@ import '../../ui/artwork.dart';
 import '../../ui/nav.dart';
 import '../../ui/track_actions.dart';
 import 'player_parts.dart';
+import 'side_panel.dart';
+import 'lyrics_view.dart';
 
 /// Now playing: the cover on a wash of its own colours, the song, a slim
 /// scrubber with the quality badge, solid controls, and the way to lyrics,
@@ -140,7 +142,20 @@ class NowPlayingScreen extends ConsumerWidget {
             padding: EdgeInsets.only(bottom: HiveSpace.md),
             child: VolumeControl(width: null, onArt: true),
           ),
-        _BottomRow(onLyrics: context.openLyrics, onQueue: context.openQueue),
+        _BottomRow(
+          lyricsOn: wide && ref.watch(wideLyricsProvider),
+          // On computers the lyrics open right here, beside the cover; the
+          // queue opens in the window's side panel, so this closes.
+          onLyrics: wide
+              ? () => ref.read(wideLyricsProvider.notifier).toggle()
+              : context.openLyrics,
+          onQueue: wide
+              ? () {
+                  ref.read(sidePanelProvider.notifier).show(SidePanel.queue);
+                  _close(context);
+                }
+              : context.openQueue,
+        ),
       ],
     );
 
@@ -227,27 +242,59 @@ class NowPlayingScreen extends ConsumerWidget {
                                 HiveSpace.xxl,
                                 HiveSpace.xxl,
                               ),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: Center(
-                                      child: AspectRatio(
-                                        aspectRatio: 1,
-                                        child: art,
-                                      ),
+                              child: ref.watch(wideLyricsProvider)
+                                  ? Row(
+                                      children: [
+                                        SizedBox(
+                                          width: 380,
+                                          child: SingleChildScrollView(
+                                            child: Column(
+                                              children: [
+                                                ConstrainedBox(
+                                                  constraints:
+                                                      const BoxConstraints(
+                                                        maxWidth: 240,
+                                                      ),
+                                                  child: AspectRatio(
+                                                    aspectRatio: 1,
+                                                    child: art,
+                                                  ),
+                                                ),
+                                                const SizedBox(
+                                                  height: HiveSpace.lg,
+                                                ),
+                                                controls(wide: true),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 72),
+                                        const Expanded(
+                                          child: LyricsView(large: true),
+                                        ),
+                                      ],
+                                    )
+                                  : Row(
+                                      children: [
+                                        Expanded(
+                                          child: Center(
+                                            child: AspectRatio(
+                                              aspectRatio: 1,
+                                              child: art,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 72),
+                                        Expanded(
+                                          child: ConstrainedBox(
+                                            constraints: const BoxConstraints(
+                                              maxWidth: 440,
+                                            ),
+                                            child: controls(wide: true),
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                  ),
-                                  const SizedBox(width: 72),
-                                  Expanded(
-                                    child: ConstrainedBox(
-                                      constraints: const BoxConstraints(
-                                        maxWidth: 440,
-                                      ),
-                                      child: controls(wide: true),
-                                    ),
-                                  ),
-                                ],
-                              ),
                             ),
                           ),
                         ),
@@ -325,10 +372,24 @@ class _BreathingArt extends StatelessWidget {
 }
 
 /// Lyrics · where the sound goes · queue.
+/// Lyrics beside the cover in the computer's full player.
+class WideLyrics extends Notifier<bool> {
+  @override
+  bool build() => false;
+  void toggle() => state = !state;
+}
+
+final wideLyricsProvider = NotifierProvider<WideLyrics, bool>(WideLyrics.new);
+
 class _BottomRow extends ConsumerWidget {
-  const _BottomRow({required this.onLyrics, required this.onQueue});
+  const _BottomRow({
+    required this.onLyrics,
+    required this.onQueue,
+    this.lyricsOn = false,
+  });
   final VoidCallback onLyrics;
   final VoidCallback onQueue;
+  final bool lyricsOn;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -345,10 +406,14 @@ class _BottomRow extends ConsumerWidget {
         IconButton(
           tooltip: 'Lyrics',
           onPressed: onLyrics,
+          isSelected: lyricsOn,
+          style: IconButton.styleFrom(
+            backgroundColor: lyricsOn ? OnArt.fill : null,
+          ),
           icon: Icon(
             HiveIcons.messageSquareQuote,
             size: 22,
-            color: OnArt.secondary,
+            color: lyricsOn ? OnArt.primary : OnArt.secondary,
           ),
         ),
         Expanded(

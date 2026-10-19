@@ -7,6 +7,7 @@ import {
   type AdminAlbum,
   type AlbumEdit,
   type AlbumFilter,
+  type AdminAlbumPage,
   decideMatch,
   fetchAdminAlbum,
   fetchAdminAlbums,
@@ -53,6 +54,150 @@ const SOURCE_LABEL: Record<string, string> = {
 export function AlbumsPage() {
   const search = useSearch({ from: "/albums" });
   return search.album ? <AlbumEditor albumId={search.album} /> : <AlbumList filter={search.filter} />;
+}
+
+type ListItem = AdminAlbumPage["items"][number];
+
+function useAlbumsChanged() {
+  const client = useQueryClient();
+  return () => {
+    client.invalidateQueries({ queryKey: ["admin-albums"] });
+    client.invalidateQueries({ queryKey: lookupQuery.queryKey });
+    client.invalidateQueries({ queryKey: ["library"] });
+  };
+}
+
+/** Accept every match on this page that Hive is fairly sure of. */
+function ApproveAll({ items }: { items: ListItem[] }) {
+  const changed = useAlbumsChanged();
+  const ready = items.filter((i) => i.lookup === "review" && i.found);
+  const all = useMutation({
+    mutationFn: async () => {
+      for (const i of ready) await decideMatch(i.album.id, true);
+    },
+    onSettled: changed,
+  });
+  if (ready.length < 2) return null;
+  return (
+    <div className="banner banner--accent" role="status">
+      <Check size={18} aria-hidden />
+      <span>
+        {ready.length} albums have a match to check. Look down the list, fix any that are wrong, then approve the rest
+        at once.
+      </span>
+      <button className="button button--primary" type="button" disabled={all.isPending} onClick={() => all.mutate()}>
+        {all.isPending ? "Approving…" : `Approve all ${ready.length}`}
+      </button>
+    </div>
+  );
+}
+
+/**
+ * One album: what Hive has, and for one to check, what the lookup found with
+ * Approve and Not this right here. A missing language can be set in the row.
+ */
+function AlbumRow({ item, filter }: { item: ListItem; filter: AlbumFilter }) {
+  const { album: a, lookup, lookupNote, found } = item;
+  const changed = useAlbumsChanged();
+  const decide = useMutation({ mutationFn: (accept: boolean) => decideMatch(a.id, accept), onSuccess: changed });
+  const language = useMutation({
+    mutationFn: (code: string) => updateAlbum(a.id, { language: code }),
+    onSuccess: changed,
+  });
+  const busy = decide.isPending || language.isPending;
+  const err = decide.error ?? language.error;
+  return (
+    <li className="row row--album">
+      <Artwork id={a.artworkId} title={a.title} />
+      <div className="row__text">
+        <p className="row__title">
+          <Link to="/albums" search={{ filter, album: a.id }} className="row__link">
+            {a.title}
+          </Link>
+        </p>
+        <p className="row__meta">
+          {[
+            a.artistName,
+            a.year,
+            languageName(a.language),
+            a.filmTitle && a.filmTitle !== a.title ? `Film: ${a.filmTitle}` : undefined,
+          ]
+            .filter(Boolean)
+            .join(" · ")}
+        </p>
+        {lookup === "notFound" && lookupNote && <p className="row__meta">{lookupNote}</p>}
+        {found && lookup === "review" && (
+          <div className="found found--row">
+            {found.artworkId && <Artwork id={found.artworkId} title={found.title} />}
+            <div className="row__text">
+              <p className="found__line">
+                <span className="found__label">Found</span> {found.title}
+                {found.artistName !== a.artistName ? ` · ${found.artistName}` : ""}
+                {found.year ? ` · ${found.year}` : ""}
+                {found.language ? ` · ${languageName(found.language)}` : ""}
+                {found.filmTitle && found.filmTitle !== found.title ? ` · Film: ${found.filmTitle}` : ""}
+              </p>
+              <p className="row__meta">
+                {found.source} · {Math.round(found.score * 100)}% sure
+                {found.link && (
+                  <>
+                    {" · "}
+                    <a href={found.link} target="_blank" rel="noreferrer" className="link">
+                      Check <ExternalLink size={12} aria-hidden />
+                    </a>
+                  </>
+                )}
+              </p>
+            </div>
+          </div>
+        )}
+        {err && <p className="note note--error">{err.message}</p>}
+      </div>
+      <div className="row__actions">
+        {!a.language && (
+          <select
+            className="input input--compact"
+            aria-label={`Language of ${a.title}`}
+            value=""
+            disabled={busy}
+            onChange={(e) => e.target.value && language.mutate(e.target.value)}
+          >
+            <option value="">Set language…</option>
+            {LANGUAGES.map((l) => (
+              <option key={l.code} value={l.code}>
+                {l.name}
+              </option>
+            ))}
+          </select>
+        )}
+        {found && lookup === "review" ? (
+          <>
+            <button
+              className="button button--secondary"
+              type="button"
+              disabled={busy}
+              onClick={() => decide.mutate(false)}
+            >
+              <X size={16} aria-hidden /> Not this
+            </button>
+            <button
+              className="button button--primary"
+              type="button"
+              disabled={busy}
+              onClick={() => decide.mutate(true)}
+            >
+              <Check size={16} aria-hidden /> Approve
+            </button>
+          </>
+        ) : (
+          <span className={`state state--${lookup}`}>{STATE_LABEL[lookup]}</span>
+        )}
+        <Link to="/albums" search={{ filter, album: a.id }} className="button button--secondary">
+          Edit
+        </Link>
+      </div>
+    </li>
+  );
 }
 
 function AlbumList({ filter }: { filter: AlbumFilter }) {
@@ -105,6 +250,7 @@ function AlbumList({ filter }: { filter: AlbumFilter }) {
       </div>
       {error && <QueryError error={error} retry={() => refetch()} busy={isFetching} />}
       {isPending && <p className="note">Loading…</p>}
+      {data && <ApproveAll items={data.items} />}
       {data && (
         <section className="panel">
           {data.items.length === 0 ? (
@@ -113,22 +259,8 @@ function AlbumList({ filter }: { filter: AlbumFilter }) {
             </p>
           ) : (
             <ul className="rows">
-              {data.items.map(({ album: a, lookup, lookupNote }) => (
-                <li key={a.id}>
-                  <Link to="/albums" search={{ filter, album: a.id }} className="row row--link">
-                    <Artwork id={a.artworkId} title={a.title} />
-                    <div className="row__text">
-                      <p className="row__title">{a.title}</p>
-                      <p className="row__meta">
-                        {[a.artistName, a.year, languageName(a.language), a.filmTitle && a.filmTitle !== a.title ? `Film: ${a.filmTitle}` : undefined]
-                          .filter(Boolean)
-                          .join(" · ")}
-                      </p>
-                      {lookup === "notFound" && lookupNote && <p className="row__meta">{lookupNote}</p>}
-                    </div>
-                    <span className={`state state--${lookup}`}>{STATE_LABEL[lookup]}</span>
-                  </Link>
-                </li>
+              {data.items.map((item) => (
+                <AlbumRow key={item.album.id} item={item} filter={filter} />
               ))}
             </ul>
           )}
@@ -214,14 +346,13 @@ function AlbumEditor({ albumId }: { albumId: string }) {
 
   const field = (f: Field, label: string, input: React.ReactNode) => {
     const edited = data.edited.includes(f);
-    const source =
-      data.sources[f] ?? (f.startsWith("film") && a.film?.wikidataId ? "lookup" : undefined);
+    const source = data.sources[f] ?? (f.startsWith("film") && a.film?.wikidataId ? "lookup" : undefined);
     return (
       <div className="field">
         <label htmlFor={`f-${f}`}>{label}</label>
         {input}
         <p className="field__hint">
-          {edited ? "Set by you" : source ? SOURCE_LABEL[source] ?? source : " "}
+          {edited ? "Set by you" : source ? (SOURCE_LABEL[source] ?? source) : " "}
           {edited && (
             <button type="button" className="link-button" onClick={() => save.mutate({ [f]: null } as AlbumEdit)}>
               <Undo2 size={12} aria-hidden /> Undo
@@ -269,7 +400,12 @@ function AlbumEditor({ albumId }: { albumId: string }) {
         <div>
           <h1 className="page__title">{a.title}</h1>
           <p className="page__summary">
-            {[a.artistName, a.year, languageName(a.language), `${a.trackCount} ${a.trackCount === 1 ? "song" : "songs"}`]
+            {[
+              a.artistName,
+              a.year,
+              languageName(a.language),
+              `${a.trackCount} ${a.trackCount === 1 ? "song" : "songs"}`,
+            ]
               .filter(Boolean)
               .join(" · ")}
           </p>
@@ -329,9 +465,7 @@ function AlbumEditor({ albumId }: { albumId: string }) {
       {a.credits && a.credits.length > 0 && (
         <section className="panel">
           <h2 className="panel__title">People</h2>
-          <p className="row__meta">
-            {a.credits.map((c) => `${c.name} (${ROLE[c.role]})`).join(" · ")}
-          </p>
+          <p className="row__meta">{a.credits.map((c) => `${c.name} (${ROLE[c.role]})`).join(" · ")}</p>
         </section>
       )}
 
@@ -404,7 +538,12 @@ function FoundCard({
         <div className="row__text">
           <p className="row__title">{found.title}</p>
           <p className="row__meta">
-            {[found.artistName, found.year, languageName(found.language), found.trackCount && `${found.trackCount} songs`]
+            {[
+              found.artistName,
+              found.year,
+              languageName(found.language),
+              found.trackCount && `${found.trackCount} songs`,
+            ]
               .filter(Boolean)
               .join(" · ")}
           </p>
@@ -412,7 +551,12 @@ function FoundCard({
             <p className="row__meta">
               Film: {found.film.title}
               {found.film.year ? ` (${found.film.year})` : ""}
-              {found.credits?.length ? ` · ${found.credits.slice(0, 5).map((c) => c.name).join(", ")}` : ""}
+              {found.credits?.length
+                ? ` · ${found.credits
+                    .slice(0, 5)
+                    .map((c) => c.name)
+                    .join(", ")}`
+                : ""}
             </p>
           )}
           <p className="row__meta">

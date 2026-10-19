@@ -9,7 +9,16 @@ afterEach(() => vi.unstubAllGlobals());
 const page = {
   items: [
     {
-      album: { id: "kn", title: "Kumbalangi Nights", artistName: "Sushin Shyam", year: 2019, language: "ml", trackCount: 2, tier: "lossless", addedAt: "2026-10-18T06:00:00Z" },
+      album: {
+        id: "kn",
+        title: "Kumbalangi Nights",
+        artistName: "Sushin Shyam",
+        year: 2019,
+        language: "ml",
+        trackCount: 2,
+        tier: "lossless",
+        addedAt: "2026-10-18T06:00:00Z",
+      },
       lookup: "review",
     },
   ],
@@ -37,14 +46,54 @@ describe("Lookup on the Library page", () => {
 });
 
 describe("Albums page", () => {
+  it("approves a match and sets a language right in the list", async () => {
+    const found = {
+      title: "Kumbalangi Nights",
+      artistName: "Sushin Shyam",
+      year: 2019,
+      language: "ml",
+      score: 0.62,
+      source: "MusicBrainz · Wikidata",
+    };
+    const items = [
+      { album: { ...page.items[0].album, language: undefined }, lookup: "review", found },
+      {
+        album: { ...page.items[0].album, id: "pm", title: "Premam", language: undefined },
+        lookup: "review",
+        found: { ...found, title: "Premam" },
+      },
+    ];
+    const fetchMock = mockApi({
+      "GET /api/v1/admin/library/albums": { body: { items, total: 2, offset: 0 } },
+      "POST /api/v1/admin/library/albums/kn/match": { body: kumbalangi },
+      "POST /api/v1/admin/library/albums/pm/match": { body: kumbalangi },
+      "PATCH /api/v1/admin/library/albums/kn": { body: kumbalangi },
+    });
+    renderAt("/albums?filter=review");
+    const row = (await screen.findByRole("link", { name: "Kumbalangi Nights" })).closest("li")!;
+    expect(row).toHaveTextContent(/Found Kumbalangi Nights · 2019 · Malayalam/);
+    expect(row).toHaveTextContent("62% sure");
+    fireEvent.change(screen.getByLabelText("Language of Kumbalangi Nights"), { target: { value: "ml" } });
+    fireEvent.click(screen.getAllByRole("button", { name: "Approve" })[0]);
+    fireEvent.click(screen.getByRole("button", { name: "Approve all 2" }));
+    await waitFor(() => {
+      const calls = fetchMock.mock.calls.map(
+        ([r]) => `${(r as Request).method} ${new URL((r as Request).url).pathname}`,
+      );
+      expect(calls).toContain("PATCH /api/v1/admin/library/albums/kn");
+      expect(calls).toContain("POST /api/v1/admin/library/albums/kn/match");
+      expect(calls).toContain("POST /api/v1/admin/library/albums/pm/match");
+    });
+  });
+
   it("lists albums to check and opens one", async () => {
     mockApi({
       "GET /api/v1/admin/library/albums": { body: page },
       "GET /api/v1/admin/library/albums/kn": { body: kumbalangi },
     });
     renderAt("/albums?filter=review");
-    const link = await screen.findByRole("link", { name: /Kumbalangi Nights/ });
-    expect(link).toHaveTextContent("To check");
+    const link = await screen.findByRole("link", { name: "Kumbalangi Nights" });
+    expect(link.closest("li")).toHaveTextContent("To check");
     expect(screen.getByRole("button", { name: "To check" })).toHaveAttribute("aria-pressed", "true");
     fireEvent.click(link);
     expect(await screen.findByText("Is this the album?")).toBeInTheDocument();
@@ -74,7 +123,10 @@ describe("Albums page", () => {
     mockApi({
       "GET /api/v1/admin/library/albums/kn": { body: { ...kumbalangi, lookup: "found", found: undefined } },
       "PATCH /api/v1/admin/library/albums/kn": (req) => {
-        void req.clone().json().then((b) => (saved = b));
+        void req
+          .clone()
+          .json()
+          .then((b) => (saved = b));
         return {
           body: {
             ...kumbalangi,

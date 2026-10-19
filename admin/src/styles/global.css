@@ -1314,3 +1314,50 @@ code {
   max-height: 480px;
   overflow: auto;
 }
+
+/* ---------------------------------------------------------------- albums: review from the list */
+.row--album {
+  align-items: flex-start;
+}
+
+.row__link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.row__link:hover {
+  text-decoration: underline;
+}
+
+.found--row {
+  margin-top: var(--hv-space-xs);
+  padding: var(--hv-space-xs) var(--hv-space-sm);
+  border-radius: var(--hv-radius-art);
+  background: var(--hv-raised);
+  align-items: center;
+  gap: var(--hv-space-sm);
+}
+
+.found__line {
+  font: var(--hv-type-callout);
+  color: var(--hv-text-primary);
+}
+
+.found__label {
+  margin-right: 4px;
+  color: var(--hv-accent-text);
+  font-weight: 600;
+}
+
+.input--compact {
+  padding: 6px 8px;
+  font: var(--hv-type-callout);
+}
+
+.row--album .row__actions {
+  align-items: center;
+}
+
+.row--album .row__actions .button {
+  text-decoration: none;
+}

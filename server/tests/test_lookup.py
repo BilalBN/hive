@@ -321,6 +321,7 @@ def test_unsure_match_waits_for_review_then_applies(looked_home: Home) -> None:
     listed = home.get("/api/v1/admin/library/albums", params={"filter": "review"}).json()
     assert_matches(listed, "AdminAlbumPage")
     assert [i["album"]["title"] for i in listed["items"]] == ["Kind of Blue"]
+    assert listed["items"][0]["found"]["title"] == "Kind of Blue"  # approve from the list
 
     aid = admin["album"]["id"]
     r = home.post(f"/api/v1/admin/library/albums/{aid}/match", json={"accept": True})

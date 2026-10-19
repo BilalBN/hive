@@ -153,6 +153,17 @@ final Map<String, (Size, bool, Steps?)> _shots = {
       await t.pumpAndSettle();
     },
   ),
+  'desktop-full-lyrics': (
+    const Size(1280, 800),
+    true,
+    (t) async {
+      await _play(t, 'Premam');
+      await t.tap(find.byTooltip('Open Now playing'));
+      await t.pumpAndSettle();
+      await t.tap(find.byTooltip('Lyrics'));
+      await t.pumpAndSettle();
+    },
+  ),
   'desktop-full-player': (
     const Size(1280, 800),
     true,

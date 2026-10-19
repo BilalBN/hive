@@ -1995,6 +1995,8 @@ export interface components {
                 album: components["schemas"]["AlbumSummary"];
                 lookup: components["schemas"]["LookupState"];
                 lookupNote?: string;
+                /** @description For albums to check, what the lookup found, so it can be approved from the list. */
+                found?: components["schemas"]["FoundAlbum"];
             }[];
             total: number;
             offset: number;
