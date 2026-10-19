@@ -166,7 +166,7 @@ def main(apk: str, address: str, dev_key: str) -> None:
     # The tab bar and mini player float over the page's lower part: bring the
     # rows up first, since once music plays the screen can't be read (it
     # never settles while the progress moves) and these taps reuse places.
-    into_view(r"^Aluva Puzha")
+    into_view(r"^Aluva Puzha", room=72)
     rows = []
     for title in (r"^Malare|മലരേ", r"^Aluva Puzha"):
         rows.append(find(title, 30))
@@ -252,17 +252,35 @@ def screen_size() -> tuple[int, int]:
     return int(w), int(h)
 
 
-def into_view(pattern: str, limit: float = 0.5) -> tuple[int, int]:
-    """Scroll until the row is in the top part of the screen, clear of the
-    floating tab bar and mini player, and return where it is."""
+def dp() -> float:
+    """Pixels per density-independent pixel."""
+    m = re.findall(r"(\d+)", adb("shell", "wm", "density"))
+    return int(m[-1]) / 160 if m else 1.0
+
+
+def chrome_top() -> int:
+    """Where the floating tab bar (or the mini player above it) starts."""
+    tops = [
+        y - int(34 * dp())
+        for label, (_, y) in screen()
+        if label == "Home" or label.startswith("Now playing:")
+    ]
+    return min(tops) if tops else screen_size()[1]
+
+
+def into_view(pattern: str, room: float = 0) -> tuple[int, int]:
+    """Scroll until the row is clear of the floating tab bar and mini player
+    (with `room` dp to spare, for a mini player that's about to appear), and
+    return where it is."""
     w, h = screen_size()
+    limit = chrome_top() - int((room + 12) * dp())
     xy = find(pattern, 30)
     for _ in range(5):
-        if xy[1] <= h * limit:
-            step(f"{pattern} at y={xy[1]} of {h}")
+        if xy[1] <= limit:
+            step(f"{pattern} at y={xy[1]} (clear above {limit} of {h})")
             return xy
-        start = int(h * 0.75)
-        distance = xy[1] - int(h * 0.35)
+        start = int(h * 0.7)
+        distance = xy[1] - limit + int(40 * dp())
         adb(
             "shell",
             "input",
@@ -276,7 +294,9 @@ def into_view(pattern: str, limit: float = 0.5) -> tuple[int, int]:
         time.sleep(1.5)
         xy = find(pattern, 30)
     screenshot("not-in-view")
-    raise AssertionError(f"Couldn't scroll {pattern!r} into view: y={xy[1]} of {h}")
+    raise AssertionError(
+        f"Couldn't scroll {pattern!r} into view: y={xy[1]}, needs <= {limit} of {h}"
+    )
 
 
 def open_album(name: str, first_song: str) -> None:
