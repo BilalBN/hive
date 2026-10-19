@@ -492,6 +492,74 @@ def list_tracks(
     return {"items": track_summaries(s, caller, rows), "total": total, "offset": offset}
 
 
+@router.get("/tracks/{trackId}/next")
+def songs_to_follow(
+    trackId: str,  # noqa: N803
+    caller: CallerDep,
+    s: SessionDep,
+    limit: Annotated[int, Query(ge=1, le=50)] = 20,
+    exclude: Annotated[str | None, Query(max_length=20000)] = None,
+    language: LanguageQ = None,
+) -> dict[str, Any]:
+    """Songs to carry on with after [trackId] when the queue runs out (and
+    after a single song from search or a one-song album): the rest of its
+    album, then the same singer, the same composer or film, the same
+    language, then anything, each group in a fresh random order."""
+    import random
+
+    seed = s.get(Track, trackId)
+    if seed is None:
+        raise HTTPException(404, "No such song")
+    album = s.get(Album, seed.album_id)
+    skip = {i for i in (exclude or "").split(",") if i} | {seed.id}
+    picked: list[Track] = []
+
+    def take(q, shuffle: bool = True) -> None:
+        if len(picked) >= limit:
+            return
+        if language:
+            q = q.where(_tracks_in_language(language))
+        rows = [t for t in s.scalars(q.limit(200)) if t.id not in skip]
+        if shuffle:
+            random.shuffle(rows)
+        for t in rows:
+            if len(picked) >= limit:
+                return
+            skip.add(t.id)
+            picked.append(t)
+
+    # The rest of the album, in order.
+    take(
+        select(Track)
+        .where(Track.album_id == seed.album_id)
+        .order_by(func.coalesce(Track.disc_no, 1), func.coalesce(Track.track_no, 999), Track.title),
+        shuffle=False,
+    )
+    if seed.artist_id:
+        take(select(Track).where(Track.artist_id == seed.artist_id))
+    people = [
+        a
+        for a in s.scalars(
+            select(Credit.artist_id).where(
+                or_(Credit.track_id == seed.id, Credit.album_id == seed.album_id),
+                Credit.role.in_(("composer", "musicDirector", "singer")),
+            )
+        )
+    ]
+    if people:
+        credited = select(Credit.track_id).where(Credit.artist_id.in_(people))
+        credited_albums = select(Credit.album_id).where(Credit.artist_id.in_(people))
+        take(select(Track).where(or_(Track.id.in_(credited), Track.album_id.in_(credited_albums))))
+    if album is not None and album.language:
+        take(
+            select(Track)
+            .where(Track.album_id.in_(select(Album.id).where(Album.language == album.language)))
+            .order_by(func.random())
+        )
+    take(select(Track).order_by(func.random()))
+    return {"items": track_summaries(s, caller, picked), "total": len(picked), "offset": 0}
+
+
 # ------------------------------------------------------------------ search
 
 

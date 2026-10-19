@@ -284,6 +284,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/library/tracks/{trackId}/next": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                trackId: components["parameters"]["TrackId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Songs to carry on with when the queue runs out (autoplay).
+         * @description The rest of the song's album, then the same singer, the same composer or film, the same language, then anything.
+         */
+        get: operations["songsToFollow"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/library/search": {
         parameters: {
             query?: never;
@@ -2242,6 +2264,36 @@ export interface operations {
                 };
             };
             401: components["responses"]["Unauthorized"];
+        };
+    };
+    songsToFollow: {
+        parameters: {
+            query?: {
+                limit?: number;
+                /** @description Ids of songs already in the queue, separated by commas. */
+                exclude?: string;
+                /** @description Only music in this language (a code from listLanguages, e.g. "ml"). */
+                language?: components["parameters"]["Language"];
+            };
+            header?: never;
+            path: {
+                trackId: components["parameters"]["TrackId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Songs to play next. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrackPage"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
         };
     };
     search: {

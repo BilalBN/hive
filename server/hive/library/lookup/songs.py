@@ -57,6 +57,23 @@ def _generic(name: str | None) -> bool:
     return any(key in (T.name_key(x.name), T.name_key(x.native)) for x in L.LANGUAGES.values())
 
 
+# Album tags download sites put on everything: "New Tamil Song 2026
+# (Koshalworld.Com)", "Single 2016 - lagudedi.wapka.mobi", "Latest Hits".
+_JUNK_ALBUM = re.compile(
+    r"^(?:new|latest|top|best|hit|hits)\b.*\b(?:songs?|hits|music|mp3)\b|"
+    r"^(?:single|singles)\b|\bsongs\.pk\b|\bwapka\b|\bmp3\b|"
+    r"^(?:[a-z]+\s+)?(?:songs?|hits)\s*\d{4}$",
+    re.IGNORECASE,
+)
+
+
+def junk_album(title: str | None) -> bool:
+    """An album tag that names a website or a batch of downloads, not an album."""
+    if not title or title == "Unknown album":
+        return True
+    return bool(_DOMAIN.search(title) or _JUNK_ALBUM.search(title))
+
+
 def tidy(text: str) -> str:
     """A file name or tag without website clutter: "Ee_Puzhayum_-Vijay_Yesudas
     [www.Mp3MaD.Com]" → "Ee Puzhayum -Vijay Yesudas"."""

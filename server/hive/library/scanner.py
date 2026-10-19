@@ -34,6 +34,7 @@ from hive.library import languages as L
 from hive.library import text as T
 from hive.library.artwork import ArtworkStore
 from hive.library.audio import Loudness, Transcoder, find_ffmpeg, measure_loudness
+from hive.library.lookup import songs as SG
 from hive.library.tags import FileInfo, UnreadableFile, is_audio, read_file
 from hive.models import Album, Artist, ImportItem, ServerMeta, Track
 
@@ -576,7 +577,7 @@ def _apply_song_lookup(info: FileInfo, found: dict) -> None:
 
 def _upsert(s, path, root, st, digest, info: FileInfo, loudness, artwork_id) -> str:
     track = s.scalar(select(Track).where(Track.path == str(path)))
-    if track is not None and track.lookup and info.album_from_folder:
+    if track is not None and track.lookup and (info.album_from_folder or SG.junk_album(info.album)):
         _apply_song_lookup(info, json.loads(track.lookup))
     credit = info.artist or "Unknown artist"
     album_title = info.album or "Unknown album"

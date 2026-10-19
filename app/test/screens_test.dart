@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive/app.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/core/home_connection.dart';
+import 'package:hive/features/player/now_playing_screen.dart';
 import 'package:hive/player/player_controller.dart';
 
 import 'app_test.dart' show health, pumpHive;
@@ -75,6 +76,29 @@ void main() {
     final s = containerOf(tester).read(playerProvider);
     expect(s.upNext.map((e) => e.track.title), ['मितवा']);
     expect(s.source!.name, 'Recently played');
+  });
+
+  testWidgets('Now playing: swipe the cover for the next or previous song, '
+      'up for lyrics', (tester) async {
+    await pumpConnected(tester);
+    await openLibraryAlbum(tester, 'Premam');
+    await tester.tap(find.bySemanticsLabel(RegExp('^മലരേ, Rajesh Murugesan')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.bySemanticsLabel(RegExp('^Now playing: ')));
+    await tester.pumpAndSettle();
+    final cover = find.byType(SwipeToSkip);
+    expect(cover, findsOneWidget);
+
+    await tester.fling(cover, const Offset(300, 0), 1500); // to the right
+    await tester.pumpAndSettle();
+    expect(containerOf(tester).read(playerProvider).track!.title, 'ആലുവ പുഴ');
+    await tester.fling(find.byType(SwipeToSkip), const Offset(-300, 0), 1500);
+    await tester.pumpAndSettle();
+    expect(containerOf(tester).read(playerProvider).track!.title, 'മലരേ');
+
+    await tester.fling(find.byType(SwipeToSkip), const Offset(0, -400), 1500);
+    await tester.pumpAndSettle();
+    expect(find.text('മലരേ നിന്നെ കാണാതിരുന്നാൽ'), findsOneWidget); // lyrics
   });
 
   testWidgets('search finds a Malayalam song and plays it', (tester) async {
@@ -174,6 +198,16 @@ void main() {
     await tester.pumpAndSettle();
     expect(container.read(playerProvider).playing, isFalse);
     expect(container.read(playerProvider).repeat, RepeatMode.off);
+
+    // In the search box, Space is a space, not play/pause.
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.metaLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyF);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.metaLeft);
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'ghanan');
+    await tester.sendKeyEvent(LogicalKeyboardKey.space);
+    await tester.pumpAndSettle();
+    expect(container.read(playerProvider).playing, isFalse);
   });
 
   testWidgets('Settings lets you choose quality per network', (tester) async {

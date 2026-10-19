@@ -262,6 +262,15 @@ jobs:
           DATA="$RUNNER_TEMP/hive-phone"
           mkdir -p "$DATA/music"
           (cd server && python -c "import sys; sys.path.insert(0, 'tests'); from pathlib import Path; from audio_fixtures import build_library; build_library(Path('$DATA/music'))")
+          # Songs long enough not to end during the lock-screen key checks.
+          for item in 1:One 2:Two 3:Three; do
+            i="${item%%:*}"; n="${item#*:}"
+            f="$DATA/music/Hive Test/Long Songs/0$i Long $n.mp3"
+            mkdir -p "$(dirname "$f")"
+            ffmpeg -hide_banner -loglevel error -f lavfi -i "sine=frequency=$((300 + i * 70)):duration=120" \
+              -ac 2 -c:a libmp3lame -b:a 96k -metadata title="Long $n" -metadata artist="Hive Test" \
+              -metadata album="Long Songs" -metadata track="$i" "$f"
+          done
           printf 'host = "127.0.0.1"\nport = 8556\nmusic_folders = ["%s"]\n' "$DATA/music" > "$DATA/hive.toml"
           HIVE_DATA_DIR="$DATA" HIVE_LOOKUP_ONLINE=false nohup python -m hive serve > "$DATA/server.log" 2>&1 &
           for i in $(seq 1 30); do curl -sf http://127.0.0.1:8556/api/v1/health >/dev/null && break; sleep 1; done

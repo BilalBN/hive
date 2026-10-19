@@ -220,6 +220,27 @@ paths:
       responses:
         "200": { description: A page of songs., content: { application/json: { schema: { $ref: "#/components/schemas/TrackPage" } } } }
         "401": { $ref: "#/components/responses/Unauthorized" }
+  /api/v1/library/tracks/{trackId}/next:
+    parameters: [{ $ref: "#/components/parameters/TrackId" }]
+    get:
+      tags: [library]
+      operationId: songsToFollow
+      summary: Songs to carry on with when the queue runs out (autoplay).
+      description: The rest of the song's album, then the same singer, the same composer or film, the same language, then anything.
+      x-milestone: M1.5
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 50, default: 20 }
+        - name: exclude
+          in: query
+          description: Ids of songs already in the queue, separated by commas.
+          schema: { type: string, maxLength: 20000 }
+        - $ref: "#/components/parameters/Language"
+      responses:
+        "200": { description: Songs to play next., content: { application/json: { schema: { $ref: "#/components/schemas/TrackPage" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
   /api/v1/library/search:
     get:
       tags: [library]

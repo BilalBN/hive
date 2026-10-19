@@ -302,6 +302,11 @@ class FakeHomeAdapter implements HttpClientAdapter {
         topTracks: own.expand((x) => x.tracks).take(5).toList(),
       ).toJson();
     }
+    if (path.startsWith('/api/v1/library/tracks/') && path.endsWith('/next')) {
+      final exclude = (o.uri.queryParameters['exclude'] ?? '').split(',');
+      final items = allTracks.where((t) => !exclude.contains(t.id)).toList();
+      return TrackPage(items: items, total: items.length, offset: 0).toJson();
+    }
     if (path == '/api/v1/library/tracks') {
       final liked = o.uri.queryParameters['liked'] == 'true';
       final items = liked ? [premam.tracks[0]] : allTracks;

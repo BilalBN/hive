@@ -192,6 +192,66 @@ def main(apk: str, address: str, dev_key: str) -> None:
     alive()
     step("switched songs without a crash")
 
+    # From outside the app: the lock screen, notification and headphones.
+    # "Long Songs" (CI adds it) has songs long enough not to end by themselves.
+    open_album("Long Songs", r"^Long One")
+    tap(find(r"^Long One", 30))
+    time.sleep(4)
+    key("KEYCODE_HOME")
+    time.sleep(2)
+    first = playing_title()
+    step(f"in the background, playing {first!r}")
+    key("KEYCODE_MEDIA_NEXT")
+    second = wait_title(lambda t: t and t != first)
+    step(f"after Next: {second!r}")
+    assert second == "Long Two", f"Next from outside the app didn't move on (still {second!r})"
+    key("KEYCODE_MEDIA_PREVIOUS")
+    back = wait_title(lambda t: t == "Long One")
+    step(f"after Previous: {back!r}")
+    assert back == "Long One", f"Previous from outside the app didn't go back ({back!r})"
+    alive()
+    step("lock-screen and headphone keys work")
+
+
+def playing_title() -> str | None:
+    """The song the system's media controls show (lock screen, notification)."""
+    out = adb("shell", "dumpsys", "media_session", check=False)
+    for line in out.splitlines():
+        m = re.search(r"metadata:.*description=([^,]+),", line)
+        if m:
+            return m.group(1).strip()
+    return None
+
+
+def wait_title(ok, timeout: float = 15):
+    deadline = time.monotonic() + timeout
+    title = None
+    while time.monotonic() < deadline:
+        title = playing_title()
+        if ok(title):
+            return title
+        time.sleep(0.5)
+    return title
+
+
+def open_album(name: str, first_song: str) -> None:
+    if not in_front():
+        launch()
+    hide_keyboard()
+    tap(find(r"^Search$", 30))
+    time.sleep(1)
+    fields = edit_fields()
+    assert fields, "no search box"
+    tap(fields[0])
+    adb("shell", "input", "keyevent", "KEYCODE_MOVE_END")
+    for _ in range(20):
+        adb("shell", "input", "keyevent", "KEYCODE_DEL")
+    adb("shell", "input", "text", name.replace(" ", "%s"))
+    time.sleep(1.5)
+    hide_keyboard()
+    tap(find(rf"^{re.escape(name)}, ", 30))
+    find(first_song, 30)
+
 
 if __name__ == "__main__":
     try:

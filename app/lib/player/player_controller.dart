@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../api/hive_api.g.dart';
 import '../core/api.dart';
+import '../core/home_connection.dart';
 import 'engine.dart';
 import 'quality.dart';
 
@@ -34,6 +35,7 @@ class QueueEntry {
     required this.id,
     required this.track,
     this.fromYou = false,
+    this.autoplay = false,
   });
 
   final int id;
@@ -41,6 +43,9 @@ class QueueEntry {
 
   /// Added with Play next / Add to queue ("Next from you").
   final bool fromYou;
+
+  /// Added by autoplay when the queue ran out ("Songs like this").
+  final bool autoplay;
 }
 
 @immutable
@@ -146,6 +151,26 @@ final ticketFetcherProvider = Provider<TicketFetcher>((ref) {
           context: context,
         ),
       );
+});
+
+/// Songs to carry on with after a song, when the queue runs out. Replaced in
+/// tests.
+typedef ContinuationFetcher = Future<List<TrackSummary>> Function(
+  String trackId, {
+  required List<String> exclude,
+  String? language,
+});
+
+final continuationFetcherProvider = Provider<ContinuationFetcher>((ref) {
+  return (trackId, {required exclude, language}) async =>
+      (await ref
+              .read(hiveApiProvider)
+              .songsToFollow(
+                trackId: trackId,
+                exclude: exclude.take(300).join(','),
+                language: language,
+              ))
+          .items;
 });
 
 final audioEngineProvider = Provider<AudioEngine>((ref) {
@@ -274,7 +299,8 @@ class PlayerController extends Notifier<PlayerState> {
   }
 
   Future<void> next() async {
-    final n = _nextIndex();
+    var n = _nextIndex();
+    if (n == null && await _topUp()) n = _nextIndex();
     if (n == null) return;
     state = state.copyWith(
       index: n,
@@ -284,9 +310,11 @@ class PlayerController extends Notifier<PlayerState> {
     await _loadCurrent(autoplay: true);
   }
 
-  /// Back to the start of the song, or the previous song in its first 3 seconds.
-  Future<void> previous() async {
-    if (state.position > const Duration(seconds: 3) || state.index <= 0) {
+  /// Back to the start of the song, or the previous song in its first 3
+  /// seconds. With [restart] false (a swipe), always the previous song.
+  Future<void> previous({bool restart = true}) async {
+    if (state.index <= 0 ||
+        (restart && state.position > const Duration(seconds: 3))) {
       await seek(Duration.zero);
       return;
     }
@@ -447,6 +475,43 @@ class PlayerController extends Notifier<PlayerState> {
 
   // ------------------------------------------------------------ internals
 
+  bool _toppingUp = false;
+
+  /// Autoplay: when nothing is left after the current song, add songs like
+  /// it (its album, singer, composer, language) so Next, the lock screen and
+  /// headphones always have somewhere to go. True when songs were added.
+  Future<bool> _topUp() async {
+    final current = state.current;
+    if (current == null || _toppingUp) return false;
+    if (state.repeat != RepeatMode.off) return false;
+    if (!ref.read(playbackSettingsProvider).autoplay) return false;
+    if (state.index + 1 < state.queue.length) return false;
+    _toppingUp = true;
+    try {
+      final more = await ref.read(continuationFetcherProvider)(
+        current.track.id,
+        exclude: [for (final e in state.queue) e.track.id],
+        // Within the language chosen on Home, Library and Search, if any.
+        language: ref
+            .read(sharedPreferencesProvider)
+            .getString('library.language'),
+      );
+      if (more.isEmpty || state.current?.id != current.id) return false;
+      state = state.copyWith(
+        queue: [
+          ...state.queue,
+          for (final t in more)
+            QueueEntry(id: _nextEntryId++, track: t, autoplay: true),
+        ],
+      );
+      return true;
+    } catch (_) {
+      return false; // tried again at the next song
+    } finally {
+      _toppingUp = false;
+    }
+  }
+
   int? _nextIndex() {
     if (state.queue.isEmpty) return null;
     if (state.index + 1 < state.queue.length) return state.index + 1;
@@ -510,6 +575,11 @@ class PlayerController extends Notifier<PlayerState> {
       if (gen != _generation) return;
       state = state.copyWith(loading: false);
       if (autoplay) unawaited(_engine.play());
+      if (_slot1 == null) {
+        // The last song in the queue: line up what comes after it, so the
+        // hand-over is gapless too.
+        unawaited(_topUp().then((added) => added ? _refillNext() : null));
+      }
     } catch (e) {
       if (gen != _generation) return;
       state = state.copyWith(
@@ -557,6 +627,7 @@ class PlayerController extends Notifier<PlayerState> {
       return; // the list was replaced under us
     }
     if (gen != _generation) return;
+    if (_nextIndex() == null) await _topUp();
     await _refillNext();
   }
 

@@ -168,6 +168,18 @@ def test_website_clutter_is_tidied() -> None:
     assert tidy("Mr. Brightside") == "Mr. Brightside"
 
 
+def test_download_site_album_tags_are_not_albums() -> None:
+    from hive.library.lookup.songs import junk_album
+
+    for junk in ("New Tamil Song 2026 (Koshalworld.Com)", "Single 2016 - lagudedi.wapka.mobi",
+                 "Latest Malayalam Hits", "Unknown album"):  # fmt: skip
+        assert junk_album(junk), junk
+    for real in ("Newton", "Skyfall", "Songs of Innocence", "Kumbalangi Nights", "Top Gun"):
+        assert not junk_album(real), real
+    assert tidy("Pesamale (Koshalworld.Com)") == "Pesamale"
+    assert tidy("Panchi Ud Gaya - Songs.pk") == "Panchi Ud Gaya"
+
+
 def test_a_dash_splits_singer_and_title_either_way() -> None:
     asked = [(q.title, q.artist) for q in queries("Ed Sheeran - Perfect", None, ["English"])]
     assert ("Perfect", "Ed Sheeran") in asked and ("Ed Sheeran", "Perfect") in asked
@@ -335,3 +347,23 @@ def test_home_rows_are_optional_for_older_apps() -> None:
     home = load_contract()["components"]["schemas"]["Home"]
     assert set(home["required"]) == {"jumpBackIn", "newAtHome", "playlists", "libraryEmpty"}
     assert {"recentlyPlayed", "onRepeat", "forYou", "films", "artists"} <= set(home["properties"])
+
+
+@needs_ffmpeg
+def test_songs_follow_when_the_queue_runs_out(home: Home) -> None:
+    malare = home.track_id("മലരേ (Malare)")
+    body = home.get(f"/api/v1/library/tracks/{malare}/next").json()
+    assert_matches(body, "TrackPage")
+    titles = [t["title"] for t in body["items"]]
+    # The rest of its album first, then other songs; never itself.
+    assert titles[0] == "Aluva Puzha"
+    assert "മലരേ (Malare)" not in titles
+    assert len(titles) == body["total"] >= 5
+    aluva = home.track_id("Aluva Puzha")
+    body = home.get(
+        f"/api/v1/library/tracks/{malare}/next", params={"exclude": aluva, "limit": 3}
+    ).json()
+    assert aluva not in [t["id"] for t in body["items"]] and len(body["items"]) == 3
+    ml = home.get(f"/api/v1/library/tracks/{malare}/next", params={"language": "ml"}).json()
+    assert all(t["title"] != "Dreams" for t in ml["items"])
+    assert home.get("/api/v1/library/tracks/nope/next").status_code == 404

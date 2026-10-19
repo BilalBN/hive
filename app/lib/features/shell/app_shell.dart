@@ -42,14 +42,45 @@ class AppShell extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final wide = MediaQuery.sizeOf(context).width >= desktopBreakpoint;
-    return CallbackShortcuts(
-      bindings: _shortcuts(ref),
+    final bindings = _shortcuts(ref);
+    return Focus(
+      onKeyEvent: (node, event) {
+        if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
+          return KeyEventResult.ignored;
+        }
+        for (final MapEntry(key: activator, value: run) in bindings.entries) {
+          if (!activator.accepts(event, HardwareKeyboard.instance)) continue;
+          // Typing wins: Space, arrows and Shift/⌘ arrows belong to the text
+          // field (a space in the search box, moving the cursor).
+          if (_typing() && !_alwaysOn.contains(activator)) {
+            return KeyEventResult.ignored;
+          }
+          run();
+          return KeyEventResult.handled;
+        }
+        return KeyEventResult.ignored;
+      },
       child: Focus(
         autofocus: true,
         child: wide ? _desktop(context, ref) : _mobile(context),
       ),
     );
   }
+
+  /// A text field has the keyboard.
+  static bool _typing() {
+    final focused = FocusManager.instance.primaryFocus?.context;
+    if (focused == null) return false;
+    return focused.widget is EditableText ||
+        focused.findAncestorWidgetOfExactType<EditableText>() != null;
+  }
+
+  /// Shortcuts that work even while typing.
+  static const _alwaysOn = <ShortcutActivator>{
+    SingleActivator(LogicalKeyboardKey.mediaPlayPause),
+    SingleActivator(LogicalKeyboardKey.keyF, meta: true),
+    SingleActivator(LogicalKeyboardKey.keyF, control: true),
+  };
 
   /// Keyboard: Space play/pause, ⌘/Ctrl ← → previous/next, Shift ← → seek 10
   /// seconds, ⌘/Ctrl F search, ⌘/Ctrl L like. Typing in a text field wins.

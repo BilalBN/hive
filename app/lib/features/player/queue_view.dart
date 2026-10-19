@@ -7,6 +7,7 @@ import '../../design/icons.g.dart';
 import '../../design/theme.dart';
 import '../../design/tokens.g.dart';
 import '../../player/player_controller.dart';
+import '../../player/quality.dart';
 import '../../ui/artwork.dart';
 import '../../ui/states.dart';
 
@@ -109,6 +110,8 @@ class QueueList extends ConsumerWidget {
               child: Text(
                 s.repeat == RepeatMode.all
                     ? 'The queue starts again after this song.'
+                    : ref.watch(playbackSettingsProvider).autoplay
+                    ? 'Songs like this one follow (autoplay).'
                     : 'Nothing after this song.',
                 style: HiveType.callout.copyWith(color: p.textSecondary),
               ),
@@ -122,6 +125,9 @@ class QueueList extends ConsumerWidget {
               final e = upNext[i];
               final showSourceHeader =
                   fromYou > 0 && i == fromYou && s.source != null;
+              // Where autoplay's songs start.
+              final showAutoplayHeader =
+                  e.autoplay && (i == 0 || !upNext[i - 1].autoplay);
               return ReorderableDelayedDragStartListener(
                 key: ValueKey(e.id),
                 index: i,
@@ -129,6 +135,8 @@ class QueueList extends ConsumerWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     if (showSourceHeader) header('Next from ${s.source!.name}'),
+                    if (showAutoplayHeader)
+                      header('Songs like this (autoplay)'),
                     Dismissible(
                       key: ValueKey('d${e.id}'),
                       direction: DismissDirection.endToStart,

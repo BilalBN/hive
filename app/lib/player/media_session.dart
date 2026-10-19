@@ -92,10 +92,20 @@ class HiveAudioHandler extends BaseAudioHandler with SeekHandler {
   Future<void> play() => _player.play();
   @override
   Future<void> pause() => _player.pause();
+  // Lock screen, notification, headphones and car: logged so a device log
+  // shows they arrived.
   @override
-  Future<void> skipToNext() => _player.next();
+  Future<void> skipToNext() {
+    debugPrint('Hive: next from outside the app');
+    return _player.next();
+  }
+
   @override
-  Future<void> skipToPrevious() => _player.previous();
+  Future<void> skipToPrevious() {
+    debugPrint('Hive: previous from outside the app');
+    return _player.previous();
+  }
+
   @override
   Future<void> seek(Duration position) => _player.seek(position);
   @override

@@ -12,6 +12,8 @@ import 'support/fakes.dart';
 
 Future<(ProviderContainer, FakeEngine, FakeTickets)> setUpPlayer({
   QualityMode mode = QualityMode.lossless,
+  List<TrackSummary> following = const [],
+  List<String>? asked,
 }) async {
   SharedPreferences.setMockInitialValues({'playback.onWifi': mode.wire});
   final prefs = await SharedPreferences.getInstance();
@@ -22,6 +24,14 @@ Future<(ProviderContainer, FakeEngine, FakeTickets)> setUpPlayer({
       sharedPreferencesProvider.overrideWithValue(prefs),
       audioEngineProvider.overrideWithValue(engine),
       ticketFetcherProvider.overrideWithValue(tickets.call),
+      continuationFetcherProvider.overrideWithValue((
+        trackId, {
+        required exclude,
+        language,
+      }) async {
+        asked?.add('$trackId after ${exclude.join(',')}');
+        return following;
+      }),
       networkKindProvider.overrideWith((ref) => Stream.value(NetworkKind.wifi)),
       homeConfigProvider.overrideWithValue(
         HomeConfig(Uri.parse('http://100.84.12.7:8443'), 'k'),
@@ -94,6 +104,54 @@ void main() {
     await pump();
     expect(c.read(playerProvider).track!.id, 't5');
     expect(engine.loaded, ['t5']);
+  });
+
+  test(
+    'autoplay: Next at the end of the queue carries on with songs like it',
+    () async {
+      final asked = <String>[];
+      final (c, engine, _) = await setUpPlayer(
+        following: [track('s1'), track('s2')],
+        asked: asked,
+      );
+      final p = c.read(playerProvider.notifier);
+      // One song from search: nothing after it in the queue.
+      await p.playTracks([track('t1')]);
+      await pump();
+      // Lined up straight away, so the hand-over is gapless.
+      expect(asked, ['t1 after t1']);
+      expect(c.read(playerProvider).upNext.map((e) => e.track.id), [
+        's1',
+        's2',
+      ]);
+      expect(c.read(playerProvider).upNext.first.autoplay, isTrue);
+      expect(engine.loaded, ['t1', 's1']);
+      await p.next(); // what the lock screen and headphones call
+      expect(c.read(playerProvider).track!.id, 's1');
+    },
+  );
+
+  test('autoplay off: the queue ends where it ends', () async {
+    final (c, engine, _) = await setUpPlayer(following: [track('s1')]);
+    final settings = c.read(playbackSettingsProvider.notifier);
+    await settings.update(
+      c.read(playbackSettingsProvider).copyWith(autoplay: false),
+    );
+    final p = c.read(playerProvider.notifier);
+    await p.playTracks([track('t1')]);
+    await pump();
+    await p.next();
+    expect(c.read(playerProvider).track!.id, 't1');
+    expect(c.read(playerProvider).upNext, isEmpty);
+  });
+
+  test('a swipe back always goes to the previous song', () async {
+    final (c, _, _) = await setUpPlayer();
+    final p = c.read(playerProvider.notifier);
+    await p.playTracks(album, start: 2);
+    await p.seek(const Duration(seconds: 30));
+    await p.previous(restart: false);
+    expect(c.read(playerProvider).track!.id, 't2');
   });
 
   test('next, previous and the 3-second rule', () async {

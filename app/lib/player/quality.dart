@@ -59,6 +59,7 @@ class PlaybackSettings {
     this.onWifi = QualityMode.lossless,
     this.onMobile = QualityMode.high,
     this.levelling = true,
+    this.autoplay = true,
   });
 
   final QualityMode onWifi;
@@ -67,6 +68,9 @@ class PlaybackSettings {
   /// Volume levelling (EBU R128). Off means the samples reach the output as sent.
   final bool levelling;
 
+  /// When the queue runs out, carry on with songs like the last one.
+  final bool autoplay;
+
   QualityMode modeFor(NetworkKind network) =>
       network == NetworkKind.mobile ? onMobile : onWifi;
 
@@ -74,10 +78,12 @@ class PlaybackSettings {
     QualityMode? onWifi,
     QualityMode? onMobile,
     bool? levelling,
+    bool? autoplay,
   }) => PlaybackSettings(
     onWifi: onWifi ?? this.onWifi,
     onMobile: onMobile ?? this.onMobile,
     levelling: levelling ?? this.levelling,
+    autoplay: autoplay ?? this.autoplay,
   );
 }
 
@@ -85,6 +91,7 @@ class PlaybackSettingsNotifier extends Notifier<PlaybackSettings> {
   static const _wifi = 'playback.onWifi';
   static const _mobile = 'playback.onMobile';
   static const _levelling = 'playback.levelling';
+  static const _autoplay = 'playback.autoplay';
 
   @override
   PlaybackSettings build() {
@@ -95,6 +102,7 @@ class PlaybackSettingsNotifier extends Notifier<PlaybackSettings> {
           ? QualityMode.high
           : QualityMode.fromWire(prefs.getString(_mobile)),
       levelling: prefs.getBool(_levelling) ?? true,
+      autoplay: prefs.getBool(_autoplay) ?? true,
     );
   }
 
@@ -103,6 +111,7 @@ class PlaybackSettingsNotifier extends Notifier<PlaybackSettings> {
     await prefs.setString(_wifi, next.onWifi.wire);
     await prefs.setString(_mobile, next.onMobile.wire);
     await prefs.setBool(_levelling, next.levelling);
+    await prefs.setBool(_autoplay, next.autoplay);
     state = next;
   }
 }

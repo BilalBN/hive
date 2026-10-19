@@ -179,13 +179,16 @@ class NowPlayingScreen extends ConsumerWidget {
         child: LayoutBuilder(
           builder: (context, c) {
             final wide = c.maxWidth >= 840;
-            final art = Hero(
-              tag: 'now-playing-art',
-              child: Artwork(
-                artworkId: track.artworkId,
-                title: track.albumTitle,
-                pixels: 1200,
-                radius: HiveRadius.card,
+            final art = SwipeToSkip(
+              key: ValueKey(s.current?.id),
+              child: Hero(
+                tag: 'now-playing-art',
+                child: Artwork(
+                  artworkId: track.artworkId,
+                  title: track.albumTitle,
+                  pixels: 1200,
+                  radius: HiveRadius.card,
+                ),
               ),
             );
             if (wide) {
@@ -218,8 +221,11 @@ class NowPlayingScreen extends ConsumerWidget {
               );
             }
             return GestureDetector(
+              // Down closes Now playing; up opens the lyrics.
               onVerticalDragEnd: (d) {
-                if ((d.primaryVelocity ?? 0) > 400) _close(context);
+                final v = d.primaryVelocity ?? 0;
+                if (v > 400) _close(context);
+                if (v < -400) context.openLyrics();
               },
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: HiveSpace.lg),
@@ -248,6 +254,56 @@ class NowPlayingScreen extends ConsumerWidget {
               ),
             );
           },
+        ),
+      ),
+    );
+  }
+}
+
+/// The artwork follows a sideways swipe: to the right plays the next song,
+/// to the left the previous one (as Bilal asked, 19 Oct 2026).
+class SwipeToSkip extends ConsumerStatefulWidget {
+  const SwipeToSkip({super.key, required this.child});
+  final Widget child;
+
+  @override
+  ConsumerState<SwipeToSkip> createState() => _SwipeToSkipState();
+}
+
+class _SwipeToSkipState extends ConsumerState<SwipeToSkip> {
+  double _dx = 0;
+
+  void _end(DragEndDetails d, double width) {
+    final v = d.primaryVelocity ?? 0;
+    final far = _dx.abs() > width * 0.25;
+    final player = ref.read(playerProvider.notifier);
+    if (v > 300 || (far && _dx > 0)) {
+      player.next();
+    } else if (v < -300 || (far && _dx < 0)) {
+      player.previous(restart: false);
+    }
+    setState(() => _dx = 0);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, c) => Semantics(
+        hint: 'Swipe right for the next song, left for the previous one',
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onHorizontalDragUpdate: (d) => setState(() => _dx += d.delta.dx),
+          onHorizontalDragEnd: (d) => _end(d, c.maxWidth),
+          onHorizontalDragCancel: () => setState(() => _dx = 0),
+          child: AnimatedContainer(
+            duration: _dx == 0 ? HiveMotion.fast : Duration.zero,
+            curve: Curves.easeOut,
+            transform: Matrix4.translationValues(_dx * 0.6, 0, 0),
+            child: Opacity(
+              opacity: (1 - (_dx.abs() / (c.maxWidth * 1.5))).clamp(0.4, 1.0),
+              child: widget.child,
+            ),
+          ),
         ),
       ),
     );

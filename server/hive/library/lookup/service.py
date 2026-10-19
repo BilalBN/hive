@@ -301,8 +301,10 @@ class LookupService:
             home = self._home_album(s, album)
             mbid = album.mbid_release
             paths = [p for p in s.scalars(select(Track.path).where(Track.album_id == album.id))][:3]
-            # No song names its album: the album is just the folder's name.
-            loose = not s.scalar(
+            # No song names its album (the album is just the folder's name),
+            # or the name is a download site's ("New Tamil Song 2026
+            # (Koshalworld.Com)"): look the songs up one by one.
+            loose = SG.junk_album(album.title) or not s.scalar(
                 select(func.count())
                 .select_from(Track)
                 .where(Track.album_id == album.id, Track.album_tagged.is_(True))

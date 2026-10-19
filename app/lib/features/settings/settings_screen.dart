@@ -121,6 +121,25 @@ class SettingsScreen extends ConsumerWidget {
                   onChanged: (v) =>
                       settings.update(playback.copyWith(levelling: v)),
                 ),
+                SwitchListTile(
+                  secondary: Icon(
+                    HiveIcons.infinity,
+                    size: 20,
+                    color: p.textSecondary,
+                  ),
+                  title: Text(
+                    'Autoplay',
+                    style: HiveType.body.copyWith(color: p.textPrimary),
+                  ),
+                  subtitle: Text(
+                    'When the queue ends, carry on with songs like the last one.',
+                    style: HiveType.caption.copyWith(color: p.textSecondary),
+                  ),
+                  value: playback.autoplay,
+                  activeThumbColor: p.accent,
+                  onChanged: (v) =>
+                      settings.update(playback.copyWith(autoplay: v)),
+                ),
               ],
             ),
             Padding(

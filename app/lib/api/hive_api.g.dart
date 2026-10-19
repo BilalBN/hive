@@ -18,7 +18,8 @@ class HiveApiException implements Exception {
   bool get unreachable => status == null;
 
   @override
-  String toString() => 'HiveApiException(${status ?? 'unreachable'}: ${problem?.title ?? cause})';
+  String toString() =>
+      'HiveApiException(${status ?? 'unreachable'}: ${problem?.title ?? cause})';
 }
 
 class Health {
@@ -33,33 +34,39 @@ class Health {
 
   /// Always "ok" when the server answers.
   final String status;
+
   /// What the family sees as the home, e.g. "Arun's home".
   final String homeName;
   final String serverVersion;
+
   /// Version of this contract the server implements.
   final String apiVersion;
+
   /// Older apps show "Time for an update".
   final String? minAppVersion;
+
   /// The server's clock; apps measure their offset from it.
   final DateTime serverTime;
 
   factory Health.fromJson(Map<String, dynamic> json) => Health(
-        status: json['status'] as String,
-        homeName: json['homeName'] as String,
-        serverVersion: json['serverVersion'] as String,
-        apiVersion: json['apiVersion'] as String,
-        minAppVersion: json['minAppVersion'] == null ? null : json['minAppVersion'] as String,
-        serverTime: DateTime.parse(json['serverTime'] as String),
-      );
+    status: json['status'] as String,
+    homeName: json['homeName'] as String,
+    serverVersion: json['serverVersion'] as String,
+    apiVersion: json['apiVersion'] as String,
+    minAppVersion: json['minAppVersion'] == null
+        ? null
+        : json['minAppVersion'] as String,
+    serverTime: DateTime.parse(json['serverTime'] as String),
+  );
 
   Map<String, dynamic> toJson() => {
-        'status': status,
-        'homeName': homeName,
-        'serverVersion': serverVersion,
-        'apiVersion': apiVersion,
-        'minAppVersion': ?minAppVersion,
-        'serverTime': serverTime.toUtc().toIso8601String(),
-      };
+    'status': status,
+    'homeName': homeName,
+    'serverVersion': serverVersion,
+    'apiVersion': apiVersion,
+    'minAppVersion': ?minAppVersion,
+    'serverTime': serverTime.toUtc().toIso8601String(),
+  };
 }
 
 /// Error body (RFC 9457 problem details).
@@ -76,24 +83,25 @@ class Problem {
   final String title;
   final int status;
   final String? detail;
+
   /// For 501 responses, the milestone that builds this operation.
   final String? milestone;
 
   factory Problem.fromJson(Map<String, dynamic> json) => Problem(
-        type: json['type'] == null ? null : json['type'] as String,
-        title: json['title'] as String,
-        status: json['status'] as int,
-        detail: json['detail'] == null ? null : json['detail'] as String,
-        milestone: json['milestone'] == null ? null : json['milestone'] as String,
-      );
+    type: json['type'] == null ? null : json['type'] as String,
+    title: json['title'] as String,
+    status: json['status'] as int,
+    detail: json['detail'] == null ? null : json['detail'] as String,
+    milestone: json['milestone'] == null ? null : json['milestone'] as String,
+  );
 
   Map<String, dynamic> toJson() => {
-        'type': ?type,
-        'title': title,
-        'status': status,
-        'detail': ?detail,
-        'milestone': ?milestone,
-      };
+    'type': ?type,
+    'title': title,
+    'status': status,
+    'detail': ?detail,
+    'milestone': ?milestone,
+  };
 }
 
 /// What a file or stream is, and how the app labels it.
@@ -112,37 +120,43 @@ class AudioFormat {
   final String codec;
   final bool lossless;
   final int sampleRate;
+
   /// Lossless only.
   final int? bitDepth;
+
   /// Average bitrate.
   final int? bitrateKbps;
   final int channels;
+
   /// hires = lossless above 16-bit or above 48 kHz.
   final String tier;
+
   /// Short badge text.
   final String label;
 
   factory AudioFormat.fromJson(Map<String, dynamic> json) => AudioFormat(
-        codec: json['codec'] as String,
-        lossless: json['lossless'] as bool,
-        sampleRate: json['sampleRate'] as int,
-        bitDepth: json['bitDepth'] == null ? null : json['bitDepth'] as int,
-        bitrateKbps: json['bitrateKbps'] == null ? null : json['bitrateKbps'] as int,
-        channels: json['channels'] as int,
-        tier: json['tier'] as String,
-        label: json['label'] as String,
-      );
+    codec: json['codec'] as String,
+    lossless: json['lossless'] as bool,
+    sampleRate: json['sampleRate'] as int,
+    bitDepth: json['bitDepth'] == null ? null : json['bitDepth'] as int,
+    bitrateKbps: json['bitrateKbps'] == null
+        ? null
+        : json['bitrateKbps'] as int,
+    channels: json['channels'] as int,
+    tier: json['tier'] as String,
+    label: json['label'] as String,
+  );
 
   Map<String, dynamic> toJson() => {
-        'codec': codec,
-        'lossless': lossless,
-        'sampleRate': sampleRate,
-        'bitDepth': ?bitDepth,
-        'bitrateKbps': ?bitrateKbps,
-        'channels': channels,
-        'tier': tier,
-        'label': label,
-      };
+    'codec': codec,
+    'lossless': lossless,
+    'sampleRate': sampleRate,
+    'bitDepth': ?bitDepth,
+    'bitrateKbps': ?bitrateKbps,
+    'channels': channels,
+    'tier': tier,
+    'label': label,
+  };
 }
 
 class TrackSummary {
@@ -167,6 +181,7 @@ class TrackSummary {
   final String id;
   final String title;
   final String? artistId;
+
   /// Everyone credited, as it should be shown ("Mithoon, Jeet Gannguli").
   final String artistName;
   final String albumId;
@@ -175,50 +190,57 @@ class TrackSummary {
   final int? discNumber;
   final int durationMs;
   final String? artworkId;
+
   /// What a file or stream is, and how the app labels it.
   final AudioFormat format;
   final bool liked;
   final bool? hasLyrics;
+
   /// Who wrote the music
   final String? composer;
+
   /// Who wrote the words
   final String? lyricist;
 
   factory TrackSummary.fromJson(Map<String, dynamic> json) => TrackSummary(
-        id: json['id'] as String,
-        title: json['title'] as String,
-        artistId: json['artistId'] == null ? null : json['artistId'] as String,
-        artistName: json['artistName'] as String,
-        albumId: json['albumId'] as String,
-        albumTitle: json['albumTitle'] as String,
-        trackNumber: json['trackNumber'] == null ? null : json['trackNumber'] as int,
-        discNumber: json['discNumber'] == null ? null : json['discNumber'] as int,
-        durationMs: json['durationMs'] as int,
-        artworkId: json['artworkId'] == null ? null : json['artworkId'] as String,
-        format: AudioFormat.fromJson((json['format'] as Map).cast<String, dynamic>()),
-        liked: json['liked'] as bool,
-        hasLyrics: json['hasLyrics'] == null ? null : json['hasLyrics'] as bool,
-        composer: json['composer'] == null ? null : json['composer'] as String,
-        lyricist: json['lyricist'] == null ? null : json['lyricist'] as String,
-      );
+    id: json['id'] as String,
+    title: json['title'] as String,
+    artistId: json['artistId'] == null ? null : json['artistId'] as String,
+    artistName: json['artistName'] as String,
+    albumId: json['albumId'] as String,
+    albumTitle: json['albumTitle'] as String,
+    trackNumber: json['trackNumber'] == null
+        ? null
+        : json['trackNumber'] as int,
+    discNumber: json['discNumber'] == null ? null : json['discNumber'] as int,
+    durationMs: json['durationMs'] as int,
+    artworkId: json['artworkId'] == null ? null : json['artworkId'] as String,
+    format: AudioFormat.fromJson(
+      (json['format'] as Map).cast<String, dynamic>(),
+    ),
+    liked: json['liked'] as bool,
+    hasLyrics: json['hasLyrics'] == null ? null : json['hasLyrics'] as bool,
+    composer: json['composer'] == null ? null : json['composer'] as String,
+    lyricist: json['lyricist'] == null ? null : json['lyricist'] as String,
+  );
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'title': title,
-        'artistId': ?artistId,
-        'artistName': artistName,
-        'albumId': albumId,
-        'albumTitle': albumTitle,
-        'trackNumber': ?trackNumber,
-        'discNumber': ?discNumber,
-        'durationMs': durationMs,
-        'artworkId': ?artworkId,
-        'format': format.toJson(),
-        'liked': liked,
-        'hasLyrics': ?hasLyrics,
-        'composer': ?composer,
-        'lyricist': ?lyricist,
-      };
+    'id': id,
+    'title': title,
+    'artistId': ?artistId,
+    'artistName': artistName,
+    'albumId': albumId,
+    'albumTitle': albumTitle,
+    'trackNumber': ?trackNumber,
+    'discNumber': ?discNumber,
+    'durationMs': durationMs,
+    'artworkId': ?artworkId,
+    'format': format.toJson(),
+    'liked': liked,
+    'hasLyrics': ?hasLyrics,
+    'composer': ?composer,
+    'lyricist': ?lyricist,
+  };
 }
 
 class AlbumSummary {
@@ -244,44 +266,47 @@ class AlbumSummary {
   final int? year;
   final String? artworkId;
   final int trackCount;
+
   /// The best quality on the album.
   final String tier;
   final DateTime addedAt;
+
   /// Language code (e.g. "ml"); missing when not known.
   final String? language;
   final String? kind;
+
   /// The film
   final String? filmTitle;
 
   factory AlbumSummary.fromJson(Map<String, dynamic> json) => AlbumSummary(
-        id: json['id'] as String,
-        title: json['title'] as String,
-        artistId: json['artistId'] == null ? null : json['artistId'] as String,
-        artistName: json['artistName'] as String,
-        year: json['year'] == null ? null : json['year'] as int,
-        artworkId: json['artworkId'] == null ? null : json['artworkId'] as String,
-        trackCount: json['trackCount'] as int,
-        tier: json['tier'] as String,
-        addedAt: DateTime.parse(json['addedAt'] as String),
-        language: json['language'] == null ? null : json['language'] as String,
-        kind: json['kind'] == null ? null : json['kind'] as String,
-        filmTitle: json['filmTitle'] == null ? null : json['filmTitle'] as String,
-      );
+    id: json['id'] as String,
+    title: json['title'] as String,
+    artistId: json['artistId'] == null ? null : json['artistId'] as String,
+    artistName: json['artistName'] as String,
+    year: json['year'] == null ? null : json['year'] as int,
+    artworkId: json['artworkId'] == null ? null : json['artworkId'] as String,
+    trackCount: json['trackCount'] as int,
+    tier: json['tier'] as String,
+    addedAt: DateTime.parse(json['addedAt'] as String),
+    language: json['language'] == null ? null : json['language'] as String,
+    kind: json['kind'] == null ? null : json['kind'] as String,
+    filmTitle: json['filmTitle'] == null ? null : json['filmTitle'] as String,
+  );
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'title': title,
-        'artistId': ?artistId,
-        'artistName': artistName,
-        'year': ?year,
-        'artworkId': ?artworkId,
-        'trackCount': trackCount,
-        'tier': tier,
-        'addedAt': addedAt.toUtc().toIso8601String(),
-        'language': ?language,
-        'kind': ?kind,
-        'filmTitle': ?filmTitle,
-      };
+    'id': id,
+    'title': title,
+    'artistId': ?artistId,
+    'artistName': artistName,
+    'year': ?year,
+    'artworkId': ?artworkId,
+    'trackCount': trackCount,
+    'tier': tier,
+    'addedAt': addedAt.toUtc().toIso8601String(),
+    'language': ?language,
+    'kind': ?kind,
+    'filmTitle': ?filmTitle,
+  };
 }
 
 class Album {
@@ -320,49 +345,58 @@ class Album {
   final String? kind;
   final String? filmTitle;
   final Film? film;
+
   /// Music directors, composers and lyricists of the album; cast and director of its film.
   final List<Credit>? credits;
   final List<TrackSummary> tracks;
 
   factory Album.fromJson(Map<String, dynamic> json) => Album(
-        id: json['id'] as String,
-        title: json['title'] as String,
-        artistId: json['artistId'] == null ? null : json['artistId'] as String,
-        artistName: json['artistName'] as String,
-        year: json['year'] == null ? null : json['year'] as int,
-        artworkId: json['artworkId'] == null ? null : json['artworkId'] as String,
-        trackCount: json['trackCount'] as int,
-        tier: json['tier'] as String,
-        addedAt: DateTime.parse(json['addedAt'] as String),
-        durationMs: json['durationMs'] as int,
-        genre: json['genre'] == null ? null : json['genre'] as String,
-        language: json['language'] == null ? null : json['language'] as String,
-        kind: json['kind'] == null ? null : json['kind'] as String,
-        filmTitle: json['filmTitle'] == null ? null : json['filmTitle'] as String,
-        film: json['film'] == null ? null : Film.fromJson((json['film'] as Map).cast<String, dynamic>()),
-        credits: json['credits'] == null ? null : (json['credits'] as List<dynamic>).map((e) => Credit.fromJson((e as Map).cast<String, dynamic>())).toList(),
-        tracks: (json['tracks'] as List<dynamic>).map((e) => TrackSummary.fromJson((e as Map).cast<String, dynamic>())).toList(),
-      );
+    id: json['id'] as String,
+    title: json['title'] as String,
+    artistId: json['artistId'] == null ? null : json['artistId'] as String,
+    artistName: json['artistName'] as String,
+    year: json['year'] == null ? null : json['year'] as int,
+    artworkId: json['artworkId'] == null ? null : json['artworkId'] as String,
+    trackCount: json['trackCount'] as int,
+    tier: json['tier'] as String,
+    addedAt: DateTime.parse(json['addedAt'] as String),
+    durationMs: json['durationMs'] as int,
+    genre: json['genre'] == null ? null : json['genre'] as String,
+    language: json['language'] == null ? null : json['language'] as String,
+    kind: json['kind'] == null ? null : json['kind'] as String,
+    filmTitle: json['filmTitle'] == null ? null : json['filmTitle'] as String,
+    film: json['film'] == null
+        ? null
+        : Film.fromJson((json['film'] as Map).cast<String, dynamic>()),
+    credits: json['credits'] == null
+        ? null
+        : (json['credits'] as List<dynamic>)
+              .map((e) => Credit.fromJson((e as Map).cast<String, dynamic>()))
+              .toList(),
+    tracks: (json['tracks'] as List<dynamic>)
+        .map((e) => TrackSummary.fromJson((e as Map).cast<String, dynamic>()))
+        .toList(),
+  );
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'title': title,
-        'artistId': ?artistId,
-        'artistName': artistName,
-        'year': ?year,
-        'artworkId': ?artworkId,
-        'trackCount': trackCount,
-        'tier': tier,
-        'addedAt': addedAt.toUtc().toIso8601String(),
-        'durationMs': durationMs,
-        'genre': ?genre,
-        'language': ?language,
-        'kind': ?kind,
-        'filmTitle': ?filmTitle,
-        'film': ?film?.toJson(),
-        'credits': ?credits?.map((e) => e.toJson()).toList(),
-        'tracks': tracks.map((e) => e.toJson()).toList(),
-      };
+    'id': id,
+    'title': title,
+    'artistId': ?artistId,
+    'artistName': artistName,
+    'year': ?year,
+    'artworkId': ?artworkId,
+    'trackCount': trackCount,
+    'tier': tier,
+    'addedAt': addedAt.toUtc().toIso8601String(),
+    'durationMs': durationMs,
+    'genre': ?genre,
+    'language': ?language,
+    'kind': ?kind,
+    'filmTitle': ?filmTitle,
+    'film': ?film?.toJson(),
+    'credits': ?credits?.map((e) => e.toJson()).toList(),
+    'tracks': tracks.map((e) => e.toJson()).toList(),
+  };
 }
 
 class ArtistSummary {
@@ -376,26 +410,27 @@ class ArtistSummary {
 
   final String id;
   final String name;
+
   /// The cover of one of their albums.
   final String? artworkId;
   final int albumCount;
   final int trackCount;
 
   factory ArtistSummary.fromJson(Map<String, dynamic> json) => ArtistSummary(
-        id: json['id'] as String,
-        name: json['name'] as String,
-        artworkId: json['artworkId'] == null ? null : json['artworkId'] as String,
-        albumCount: json['albumCount'] as int,
-        trackCount: json['trackCount'] as int,
-      );
+    id: json['id'] as String,
+    name: json['name'] as String,
+    artworkId: json['artworkId'] == null ? null : json['artworkId'] as String,
+    albumCount: json['albumCount'] as int,
+    trackCount: json['trackCount'] as int,
+  );
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'artworkId': ?artworkId,
-        'albumCount': albumCount,
-        'trackCount': trackCount,
-      };
+    'id': id,
+    'name': name,
+    'artworkId': ?artworkId,
+    'albumCount': albumCount,
+    'trackCount': trackCount,
+  };
 }
 
 class Artist {
@@ -419,93 +454,120 @@ class Artist {
   final int albumCount;
   final int trackCount;
   final List<AlbumSummary> albums;
+
   /// This person's most-played songs by the artist, then the rest by album order.
   final List<TrackSummary> topTracks;
+
   /// What they do at home, most first (singer, musicDirector, actor…).
   final List<String>? roles;
+
   /// Albums they composed or were music director for.
   final List<AlbumSummary>? musicFor;
+
   /// Soundtracks of films they acted in or directed.
   final List<AlbumSummary>? films;
+
   /// Songs they wrote the words for.
   final List<TrackSummary>? lyricsFor;
 
   factory Artist.fromJson(Map<String, dynamic> json) => Artist(
-        id: json['id'] as String,
-        name: json['name'] as String,
-        artworkId: json['artworkId'] == null ? null : json['artworkId'] as String,
-        albumCount: json['albumCount'] as int,
-        trackCount: json['trackCount'] as int,
-        albums: (json['albums'] as List<dynamic>).map((e) => AlbumSummary.fromJson((e as Map).cast<String, dynamic>())).toList(),
-        topTracks: (json['topTracks'] as List<dynamic>).map((e) => TrackSummary.fromJson((e as Map).cast<String, dynamic>())).toList(),
-        roles: json['roles'] == null ? null : (json['roles'] as List<dynamic>).map((e) => e as String).toList(),
-        musicFor: json['musicFor'] == null ? null : (json['musicFor'] as List<dynamic>).map((e) => AlbumSummary.fromJson((e as Map).cast<String, dynamic>())).toList(),
-        films: json['films'] == null ? null : (json['films'] as List<dynamic>).map((e) => AlbumSummary.fromJson((e as Map).cast<String, dynamic>())).toList(),
-        lyricsFor: json['lyricsFor'] == null ? null : (json['lyricsFor'] as List<dynamic>).map((e) => TrackSummary.fromJson((e as Map).cast<String, dynamic>())).toList(),
-      );
+    id: json['id'] as String,
+    name: json['name'] as String,
+    artworkId: json['artworkId'] == null ? null : json['artworkId'] as String,
+    albumCount: json['albumCount'] as int,
+    trackCount: json['trackCount'] as int,
+    albums: (json['albums'] as List<dynamic>)
+        .map((e) => AlbumSummary.fromJson((e as Map).cast<String, dynamic>()))
+        .toList(),
+    topTracks: (json['topTracks'] as List<dynamic>)
+        .map((e) => TrackSummary.fromJson((e as Map).cast<String, dynamic>()))
+        .toList(),
+    roles: json['roles'] == null
+        ? null
+        : (json['roles'] as List<dynamic>).map((e) => e as String).toList(),
+    musicFor: json['musicFor'] == null
+        ? null
+        : (json['musicFor'] as List<dynamic>)
+              .map(
+                (e) =>
+                    AlbumSummary.fromJson((e as Map).cast<String, dynamic>()),
+              )
+              .toList(),
+    films: json['films'] == null
+        ? null
+        : (json['films'] as List<dynamic>)
+              .map(
+                (e) =>
+                    AlbumSummary.fromJson((e as Map).cast<String, dynamic>()),
+              )
+              .toList(),
+    lyricsFor: json['lyricsFor'] == null
+        ? null
+        : (json['lyricsFor'] as List<dynamic>)
+              .map(
+                (e) =>
+                    TrackSummary.fromJson((e as Map).cast<String, dynamic>()),
+              )
+              .toList(),
+  );
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'artworkId': ?artworkId,
-        'albumCount': albumCount,
-        'trackCount': trackCount,
-        'albums': albums.map((e) => e.toJson()).toList(),
-        'topTracks': topTracks.map((e) => e.toJson()).toList(),
-        'roles': ?roles?.map((e) => e).toList(),
-        'musicFor': ?musicFor?.map((e) => e.toJson()).toList(),
-        'films': ?films?.map((e) => e.toJson()).toList(),
-        'lyricsFor': ?lyricsFor?.map((e) => e.toJson()).toList(),
-      };
+    'id': id,
+    'name': name,
+    'artworkId': ?artworkId,
+    'albumCount': albumCount,
+    'trackCount': trackCount,
+    'albums': albums.map((e) => e.toJson()).toList(),
+    'topTracks': topTracks.map((e) => e.toJson()).toList(),
+    'roles': ?roles?.map((e) => e).toList(),
+    'musicFor': ?musicFor?.map((e) => e.toJson()).toList(),
+    'films': ?films?.map((e) => e.toJson()).toList(),
+    'lyricsFor': ?lyricsFor?.map((e) => e.toJson()).toList(),
+  };
 }
 
 class Credit {
-  const Credit({
-    required this.role,
-    required this.name,
-    this.artistId,
-  });
+  const Credit({required this.role, required this.name, this.artistId});
 
   final String role;
   final String name;
+
   /// Their page at home.
   final String? artistId;
 
   factory Credit.fromJson(Map<String, dynamic> json) => Credit(
-        role: json['role'] as String,
-        name: json['name'] as String,
-        artistId: json['artistId'] == null ? null : json['artistId'] as String,
-      );
+    role: json['role'] as String,
+    name: json['name'] as String,
+    artistId: json['artistId'] == null ? null : json['artistId'] as String,
+  );
 
   Map<String, dynamic> toJson() => {
-        'role': role,
-        'name': name,
-        'artistId': ?artistId,
-      };
+    'role': role,
+    'name': name,
+    'artistId': ?artistId,
+  };
 }
 
 class Film {
-  const Film({
-    required this.title,
-    this.year,
-    this.wikidataId,
-  });
+  const Film({required this.title, this.year, this.wikidataId});
 
   final String title;
   final int? year;
   final String? wikidataId;
 
   factory Film.fromJson(Map<String, dynamic> json) => Film(
-        title: json['title'] as String,
-        year: json['year'] == null ? null : json['year'] as int,
-        wikidataId: json['wikidataId'] == null ? null : json['wikidataId'] as String,
-      );
+    title: json['title'] as String,
+    year: json['year'] == null ? null : json['year'] as int,
+    wikidataId: json['wikidataId'] == null
+        ? null
+        : json['wikidataId'] as String,
+  );
 
   Map<String, dynamic> toJson() => {
-        'title': title,
-        'year': ?year,
-        'wikidataId': ?wikidataId,
-      };
+    'title': title,
+    'year': ?year,
+    'wikidataId': ?wikidataId,
+  };
 }
 
 class Language {
@@ -522,34 +584,34 @@ class Language {
   final int albumCount;
 
   factory Language.fromJson(Map<String, dynamic> json) => Language(
-        code: json['code'] as String,
-        name: json['name'] as String,
-        nativeName: json['nativeName'] as String,
-        albumCount: json['albumCount'] as int,
-      );
+    code: json['code'] as String,
+    name: json['name'] as String,
+    nativeName: json['nativeName'] as String,
+    albumCount: json['albumCount'] as int,
+  );
 
   Map<String, dynamic> toJson() => {
-        'code': code,
-        'name': name,
-        'nativeName': nativeName,
-        'albumCount': albumCount,
-      };
+    'code': code,
+    'name': name,
+    'nativeName': nativeName,
+    'albumCount': albumCount,
+  };
 }
 
 class LanguageList {
-  const LanguageList({
-    required this.items,
-  });
+  const LanguageList({required this.items});
 
   final List<Language> items;
 
   factory LanguageList.fromJson(Map<String, dynamic> json) => LanguageList(
-        items: (json['items'] as List<dynamic>).map((e) => Language.fromJson((e as Map).cast<String, dynamic>())).toList(),
-      );
+    items: (json['items'] as List<dynamic>)
+        .map((e) => Language.fromJson((e as Map).cast<String, dynamic>()))
+        .toList(),
+  );
 
   Map<String, dynamic> toJson() => {
-        'items': items.map((e) => e.toJson()).toList(),
-      };
+    'items': items.map((e) => e.toJson()).toList(),
+  };
 }
 
 class AlbumPage {
@@ -564,16 +626,18 @@ class AlbumPage {
   final int offset;
 
   factory AlbumPage.fromJson(Map<String, dynamic> json) => AlbumPage(
-        items: (json['items'] as List<dynamic>).map((e) => AlbumSummary.fromJson((e as Map).cast<String, dynamic>())).toList(),
-        total: json['total'] as int,
-        offset: json['offset'] as int,
-      );
+    items: (json['items'] as List<dynamic>)
+        .map((e) => AlbumSummary.fromJson((e as Map).cast<String, dynamic>()))
+        .toList(),
+    total: json['total'] as int,
+    offset: json['offset'] as int,
+  );
 
   Map<String, dynamic> toJson() => {
-        'items': items.map((e) => e.toJson()).toList(),
-        'total': total,
-        'offset': offset,
-      };
+    'items': items.map((e) => e.toJson()).toList(),
+    'total': total,
+    'offset': offset,
+  };
 }
 
 class ArtistPage {
@@ -588,16 +652,18 @@ class ArtistPage {
   final int offset;
 
   factory ArtistPage.fromJson(Map<String, dynamic> json) => ArtistPage(
-        items: (json['items'] as List<dynamic>).map((e) => ArtistSummary.fromJson((e as Map).cast<String, dynamic>())).toList(),
-        total: json['total'] as int,
-        offset: json['offset'] as int,
-      );
+    items: (json['items'] as List<dynamic>)
+        .map((e) => ArtistSummary.fromJson((e as Map).cast<String, dynamic>()))
+        .toList(),
+    total: json['total'] as int,
+    offset: json['offset'] as int,
+  );
 
   Map<String, dynamic> toJson() => {
-        'items': items.map((e) => e.toJson()).toList(),
-        'total': total,
-        'offset': offset,
-      };
+    'items': items.map((e) => e.toJson()).toList(),
+    'total': total,
+    'offset': offset,
+  };
 }
 
 class TrackPage {
@@ -612,16 +678,18 @@ class TrackPage {
   final int offset;
 
   factory TrackPage.fromJson(Map<String, dynamic> json) => TrackPage(
-        items: (json['items'] as List<dynamic>).map((e) => TrackSummary.fromJson((e as Map).cast<String, dynamic>())).toList(),
-        total: json['total'] as int,
-        offset: json['offset'] as int,
-      );
+    items: (json['items'] as List<dynamic>)
+        .map((e) => TrackSummary.fromJson((e as Map).cast<String, dynamic>()))
+        .toList(),
+    total: json['total'] as int,
+    offset: json['offset'] as int,
+  );
 
   Map<String, dynamic> toJson() => {
-        'items': items.map((e) => e.toJson()).toList(),
-        'total': total,
-        'offset': offset,
-      };
+    'items': items.map((e) => e.toJson()).toList(),
+    'total': total,
+    'offset': offset,
+  };
 }
 
 /// A tile in "Jump back in".
@@ -635,28 +703,34 @@ class HomeTile {
   });
 
   final String kind;
+
   /// The album
   final String id;
   final String title;
   final String? subtitle;
+
   /// One cover, or up to four for a playlist mosaic.
   final List<String>? artworkIds;
 
   factory HomeTile.fromJson(Map<String, dynamic> json) => HomeTile(
-        kind: json['kind'] as String,
-        id: json['id'] as String,
-        title: json['title'] as String,
-        subtitle: json['subtitle'] == null ? null : json['subtitle'] as String,
-        artworkIds: json['artworkIds'] == null ? null : (json['artworkIds'] as List<dynamic>).map((e) => e as String).toList(),
-      );
+    kind: json['kind'] as String,
+    id: json['id'] as String,
+    title: json['title'] as String,
+    subtitle: json['subtitle'] == null ? null : json['subtitle'] as String,
+    artworkIds: json['artworkIds'] == null
+        ? null
+        : (json['artworkIds'] as List<dynamic>)
+              .map((e) => e as String)
+              .toList(),
+  );
 
   Map<String, dynamic> toJson() => {
-        'kind': kind,
-        'id': id,
-        'title': title,
-        'subtitle': ?subtitle,
-        'artworkIds': ?artworkIds?.map((e) => e).toList(),
-      };
+    'kind': kind,
+    'id': id,
+    'title': title,
+    'subtitle': ?subtitle,
+    'artworkIds': ?artworkIds?.map((e) => e).toList(),
+  };
 }
 
 class Home {
@@ -674,45 +748,95 @@ class Home {
 
   /// Up to 6 things this person played recently.
   final List<HomeTile> jumpBackIn;
+
   /// Albums added most recently.
   final List<AlbumSummary> newAtHome;
   final List<PlaylistSummary> playlists;
+
   /// Nothing has been added at home yet.
   final bool libraryEmpty;
+
   /// Up to 12 songs this person played, newest first.
   final List<TrackSummary>? recentlyPlayed;
+
   /// Up to 12 songs this person plays most (three plays or more).
   final List<TrackSummary>? onRepeat;
+
   /// Up to 12 albums picked for this person (their singers and languages first, not played lately); a new mix each day.
   final List<AlbumSummary>? forYou;
+
   /// Up to 12 film soundtracks, a new mix each day.
   final List<AlbumSummary>? films;
+
   /// Up to 12 artists, the ones this person plays most first.
   final List<ArtistSummary>? artists;
 
   factory Home.fromJson(Map<String, dynamic> json) => Home(
-        jumpBackIn: (json['jumpBackIn'] as List<dynamic>).map((e) => HomeTile.fromJson((e as Map).cast<String, dynamic>())).toList(),
-        newAtHome: (json['newAtHome'] as List<dynamic>).map((e) => AlbumSummary.fromJson((e as Map).cast<String, dynamic>())).toList(),
-        playlists: (json['playlists'] as List<dynamic>).map((e) => PlaylistSummary.fromJson((e as Map).cast<String, dynamic>())).toList(),
-        libraryEmpty: json['libraryEmpty'] as bool,
-        recentlyPlayed: json['recentlyPlayed'] == null ? null : (json['recentlyPlayed'] as List<dynamic>).map((e) => TrackSummary.fromJson((e as Map).cast<String, dynamic>())).toList(),
-        onRepeat: json['onRepeat'] == null ? null : (json['onRepeat'] as List<dynamic>).map((e) => TrackSummary.fromJson((e as Map).cast<String, dynamic>())).toList(),
-        forYou: json['forYou'] == null ? null : (json['forYou'] as List<dynamic>).map((e) => AlbumSummary.fromJson((e as Map).cast<String, dynamic>())).toList(),
-        films: json['films'] == null ? null : (json['films'] as List<dynamic>).map((e) => AlbumSummary.fromJson((e as Map).cast<String, dynamic>())).toList(),
-        artists: json['artists'] == null ? null : (json['artists'] as List<dynamic>).map((e) => ArtistSummary.fromJson((e as Map).cast<String, dynamic>())).toList(),
-      );
+    jumpBackIn: (json['jumpBackIn'] as List<dynamic>)
+        .map((e) => HomeTile.fromJson((e as Map).cast<String, dynamic>()))
+        .toList(),
+    newAtHome: (json['newAtHome'] as List<dynamic>)
+        .map((e) => AlbumSummary.fromJson((e as Map).cast<String, dynamic>()))
+        .toList(),
+    playlists: (json['playlists'] as List<dynamic>)
+        .map(
+          (e) => PlaylistSummary.fromJson((e as Map).cast<String, dynamic>()),
+        )
+        .toList(),
+    libraryEmpty: json['libraryEmpty'] as bool,
+    recentlyPlayed: json['recentlyPlayed'] == null
+        ? null
+        : (json['recentlyPlayed'] as List<dynamic>)
+              .map(
+                (e) =>
+                    TrackSummary.fromJson((e as Map).cast<String, dynamic>()),
+              )
+              .toList(),
+    onRepeat: json['onRepeat'] == null
+        ? null
+        : (json['onRepeat'] as List<dynamic>)
+              .map(
+                (e) =>
+                    TrackSummary.fromJson((e as Map).cast<String, dynamic>()),
+              )
+              .toList(),
+    forYou: json['forYou'] == null
+        ? null
+        : (json['forYou'] as List<dynamic>)
+              .map(
+                (e) =>
+                    AlbumSummary.fromJson((e as Map).cast<String, dynamic>()),
+              )
+              .toList(),
+    films: json['films'] == null
+        ? null
+        : (json['films'] as List<dynamic>)
+              .map(
+                (e) =>
+                    AlbumSummary.fromJson((e as Map).cast<String, dynamic>()),
+              )
+              .toList(),
+    artists: json['artists'] == null
+        ? null
+        : (json['artists'] as List<dynamic>)
+              .map(
+                (e) =>
+                    ArtistSummary.fromJson((e as Map).cast<String, dynamic>()),
+              )
+              .toList(),
+  );
 
   Map<String, dynamic> toJson() => {
-        'jumpBackIn': jumpBackIn.map((e) => e.toJson()).toList(),
-        'newAtHome': newAtHome.map((e) => e.toJson()).toList(),
-        'playlists': playlists.map((e) => e.toJson()).toList(),
-        'libraryEmpty': libraryEmpty,
-        'recentlyPlayed': ?recentlyPlayed?.map((e) => e.toJson()).toList(),
-        'onRepeat': ?onRepeat?.map((e) => e.toJson()).toList(),
-        'forYou': ?forYou?.map((e) => e.toJson()).toList(),
-        'films': ?films?.map((e) => e.toJson()).toList(),
-        'artists': ?artists?.map((e) => e.toJson()).toList(),
-      };
+    'jumpBackIn': jumpBackIn.map((e) => e.toJson()).toList(),
+    'newAtHome': newAtHome.map((e) => e.toJson()).toList(),
+    'playlists': playlists.map((e) => e.toJson()).toList(),
+    'libraryEmpty': libraryEmpty,
+    'recentlyPlayed': ?recentlyPlayed?.map((e) => e.toJson()).toList(),
+    'onRepeat': ?onRepeat?.map((e) => e.toJson()).toList(),
+    'forYou': ?forYou?.map((e) => e.toJson()).toList(),
+    'films': ?films?.map((e) => e.toJson()).toList(),
+    'artists': ?artists?.map((e) => e.toJson()).toList(),
+  };
 }
 
 class SearchResults {
@@ -732,20 +856,32 @@ class SearchResults {
   final List<PlaylistSummary> playlists;
 
   factory SearchResults.fromJson(Map<String, dynamic> json) => SearchResults(
-        top: json['top'] == null ? null : (json['top'] as Map).cast<String, dynamic>(),
-        tracks: (json['tracks'] as List<dynamic>).map((e) => TrackSummary.fromJson((e as Map).cast<String, dynamic>())).toList(),
-        albums: (json['albums'] as List<dynamic>).map((e) => AlbumSummary.fromJson((e as Map).cast<String, dynamic>())).toList(),
-        artists: (json['artists'] as List<dynamic>).map((e) => ArtistSummary.fromJson((e as Map).cast<String, dynamic>())).toList(),
-        playlists: (json['playlists'] as List<dynamic>).map((e) => PlaylistSummary.fromJson((e as Map).cast<String, dynamic>())).toList(),
-      );
+    top: json['top'] == null
+        ? null
+        : (json['top'] as Map).cast<String, dynamic>(),
+    tracks: (json['tracks'] as List<dynamic>)
+        .map((e) => TrackSummary.fromJson((e as Map).cast<String, dynamic>()))
+        .toList(),
+    albums: (json['albums'] as List<dynamic>)
+        .map((e) => AlbumSummary.fromJson((e as Map).cast<String, dynamic>()))
+        .toList(),
+    artists: (json['artists'] as List<dynamic>)
+        .map((e) => ArtistSummary.fromJson((e as Map).cast<String, dynamic>()))
+        .toList(),
+    playlists: (json['playlists'] as List<dynamic>)
+        .map(
+          (e) => PlaylistSummary.fromJson((e as Map).cast<String, dynamic>()),
+        )
+        .toList(),
+  );
 
   Map<String, dynamic> toJson() => {
-        'top': ?top,
-        'tracks': tracks.map((e) => e.toJson()).toList(),
-        'albums': albums.map((e) => e.toJson()).toList(),
-        'artists': artists.map((e) => e.toJson()).toList(),
-        'playlists': playlists.map((e) => e.toJson()).toList(),
-      };
+    'top': ?top,
+    'tracks': tracks.map((e) => e.toJson()).toList(),
+    'albums': albums.map((e) => e.toJson()).toList(),
+    'artists': artists.map((e) => e.toJson()).toList(),
+    'playlists': playlists.map((e) => e.toJson()).toList(),
+  };
 }
 
 class PlaylistSummary {
@@ -764,17 +900,21 @@ class PlaylistSummary {
   final String id;
   final String name;
   final String ownerName;
+
   /// This person can edit and delete it.
   final bool mine;
+
   /// The whole family can see and play it.
   final bool shared;
   final int trackCount;
   final int durationMs;
+
   /// Covers of up to four different albums in it, for the mosaic.
   final List<String> artworkIds;
   final DateTime updatedAt;
 
-  factory PlaylistSummary.fromJson(Map<String, dynamic> json) => PlaylistSummary(
+  factory PlaylistSummary.fromJson(Map<String, dynamic> json) =>
+      PlaylistSummary(
         id: json['id'] as String,
         name: json['name'] as String,
         ownerName: json['ownerName'] as String,
@@ -782,21 +922,23 @@ class PlaylistSummary {
         shared: json['shared'] as bool,
         trackCount: json['trackCount'] as int,
         durationMs: json['durationMs'] as int,
-        artworkIds: (json['artworkIds'] as List<dynamic>).map((e) => e as String).toList(),
+        artworkIds: (json['artworkIds'] as List<dynamic>)
+            .map((e) => e as String)
+            .toList(),
         updatedAt: DateTime.parse(json['updatedAt'] as String),
       );
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'ownerName': ownerName,
-        'mine': mine,
-        'shared': shared,
-        'trackCount': trackCount,
-        'durationMs': durationMs,
-        'artworkIds': artworkIds.map((e) => e).toList(),
-        'updatedAt': updatedAt.toUtc().toIso8601String(),
-      };
+    'id': id,
+    'name': name,
+    'ownerName': ownerName,
+    'mine': mine,
+    'shared': shared,
+    'trackCount': trackCount,
+    'durationMs': durationMs,
+    'artworkIds': artworkIds.map((e) => e).toList(),
+    'updatedAt': updatedAt.toUtc().toIso8601String(),
+  };
 }
 
 class PlaylistItem {
@@ -811,16 +953,18 @@ class PlaylistItem {
   final DateTime addedAt;
 
   factory PlaylistItem.fromJson(Map<String, dynamic> json) => PlaylistItem(
-        itemId: json['itemId'] as String,
-        track: TrackSummary.fromJson((json['track'] as Map).cast<String, dynamic>()),
-        addedAt: DateTime.parse(json['addedAt'] as String),
-      );
+    itemId: json['itemId'] as String,
+    track: TrackSummary.fromJson(
+      (json['track'] as Map).cast<String, dynamic>(),
+    ),
+    addedAt: DateTime.parse(json['addedAt'] as String),
+  );
 
   Map<String, dynamic> toJson() => {
-        'itemId': itemId,
-        'track': track.toJson(),
-        'addedAt': addedAt.toUtc().toIso8601String(),
-      };
+    'itemId': itemId,
+    'track': track.toJson(),
+    'addedAt': addedAt.toUtc().toIso8601String(),
+  };
 }
 
 class Playlist {
@@ -849,108 +993,108 @@ class Playlist {
   final List<PlaylistItem> items;
 
   factory Playlist.fromJson(Map<String, dynamic> json) => Playlist(
-        id: json['id'] as String,
-        name: json['name'] as String,
-        ownerName: json['ownerName'] as String,
-        mine: json['mine'] as bool,
-        shared: json['shared'] as bool,
-        trackCount: json['trackCount'] as int,
-        durationMs: json['durationMs'] as int,
-        artworkIds: (json['artworkIds'] as List<dynamic>).map((e) => e as String).toList(),
-        updatedAt: DateTime.parse(json['updatedAt'] as String),
-        items: (json['items'] as List<dynamic>).map((e) => PlaylistItem.fromJson((e as Map).cast<String, dynamic>())).toList(),
-      );
+    id: json['id'] as String,
+    name: json['name'] as String,
+    ownerName: json['ownerName'] as String,
+    mine: json['mine'] as bool,
+    shared: json['shared'] as bool,
+    trackCount: json['trackCount'] as int,
+    durationMs: json['durationMs'] as int,
+    artworkIds: (json['artworkIds'] as List<dynamic>)
+        .map((e) => e as String)
+        .toList(),
+    updatedAt: DateTime.parse(json['updatedAt'] as String),
+    items: (json['items'] as List<dynamic>)
+        .map((e) => PlaylistItem.fromJson((e as Map).cast<String, dynamic>()))
+        .toList(),
+  );
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'ownerName': ownerName,
-        'mine': mine,
-        'shared': shared,
-        'trackCount': trackCount,
-        'durationMs': durationMs,
-        'artworkIds': artworkIds.map((e) => e).toList(),
-        'updatedAt': updatedAt.toUtc().toIso8601String(),
-        'items': items.map((e) => e.toJson()).toList(),
-      };
+    'id': id,
+    'name': name,
+    'ownerName': ownerName,
+    'mine': mine,
+    'shared': shared,
+    'trackCount': trackCount,
+    'durationMs': durationMs,
+    'artworkIds': artworkIds.map((e) => e).toList(),
+    'updatedAt': updatedAt.toUtc().toIso8601String(),
+    'items': items.map((e) => e.toJson()).toList(),
+  };
 }
 
 class PlaylistList {
-  const PlaylistList({
-    required this.items,
-  });
+  const PlaylistList({required this.items});
 
   final List<PlaylistSummary> items;
 
   factory PlaylistList.fromJson(Map<String, dynamic> json) => PlaylistList(
-        items: (json['items'] as List<dynamic>).map((e) => PlaylistSummary.fromJson((e as Map).cast<String, dynamic>())).toList(),
-      );
+    items: (json['items'] as List<dynamic>)
+        .map(
+          (e) => PlaylistSummary.fromJson((e as Map).cast<String, dynamic>()),
+        )
+        .toList(),
+  );
 
   Map<String, dynamic> toJson() => {
-        'items': items.map((e) => e.toJson()).toList(),
-      };
+    'items': items.map((e) => e.toJson()).toList(),
+  };
 }
 
 class PlaylistCreate {
-  const PlaylistCreate({
-    required this.name,
-    this.shared,
-    this.trackIds,
-  });
+  const PlaylistCreate({required this.name, this.shared, this.trackIds});
 
   final String name;
   final bool? shared;
+
   /// Songs to start with, in order.
   final List<String>? trackIds;
 
   factory PlaylistCreate.fromJson(Map<String, dynamic> json) => PlaylistCreate(
-        name: json['name'] as String,
-        shared: json['shared'] == null ? null : json['shared'] as bool,
-        trackIds: json['trackIds'] == null ? null : (json['trackIds'] as List<dynamic>).map((e) => e as String).toList(),
-      );
+    name: json['name'] as String,
+    shared: json['shared'] == null ? null : json['shared'] as bool,
+    trackIds: json['trackIds'] == null
+        ? null
+        : (json['trackIds'] as List<dynamic>).map((e) => e as String).toList(),
+  );
 
   Map<String, dynamic> toJson() => {
-        'name': name,
-        'shared': ?shared,
-        'trackIds': ?trackIds?.map((e) => e).toList(),
-      };
+    'name': name,
+    'shared': ?shared,
+    'trackIds': ?trackIds?.map((e) => e).toList(),
+  };
 }
 
 class PlaylistUpdate {
-  const PlaylistUpdate({
-    this.name,
-    this.shared,
-  });
+  const PlaylistUpdate({this.name, this.shared});
 
   final String? name;
   final bool? shared;
 
   factory PlaylistUpdate.fromJson(Map<String, dynamic> json) => PlaylistUpdate(
-        name: json['name'] == null ? null : json['name'] as String,
-        shared: json['shared'] == null ? null : json['shared'] as bool,
-      );
+    name: json['name'] == null ? null : json['name'] as String,
+    shared: json['shared'] == null ? null : json['shared'] as bool,
+  );
 
-  Map<String, dynamic> toJson() => {
-        'name': ?name,
-        'shared': ?shared,
-      };
+  Map<String, dynamic> toJson() => {'name': ?name, 'shared': ?shared};
 }
 
 class PlaylistItemsUpdate {
-  const PlaylistItemsUpdate({
-    required this.trackIds,
-  });
+  const PlaylistItemsUpdate({required this.trackIds});
 
   /// The whole new order; a song may appear more than once.
   final List<String> trackIds;
 
-  factory PlaylistItemsUpdate.fromJson(Map<String, dynamic> json) => PlaylistItemsUpdate(
-        trackIds: (json['trackIds'] as List<dynamic>).map((e) => e as String).toList(),
+  factory PlaylistItemsUpdate.fromJson(Map<String, dynamic> json) =>
+      PlaylistItemsUpdate(
+        trackIds: (json['trackIds'] as List<dynamic>)
+            .map((e) => e as String)
+            .toList(),
       );
 
   Map<String, dynamic> toJson() => {
-        'trackIds': trackIds.map((e) => e).toList(),
-      };
+    'trackIds': trackIds.map((e) => e).toList(),
+  };
 }
 
 class StreamRequest {
@@ -963,47 +1107,46 @@ class StreamRequest {
 
   /// lossless = the original file; high = 256 kbps; dataSaver = 96 kbps (Opus, or AAC for Apple's player). A lossy original small enough is sent as it is.
   final String quality;
+
   /// Which audio engine will play it. Apple's player gets High and Data saver as AAC in MP4 (it can't stream Opus) and ALAC as it is; others get Opus in Ogg, and ALAC or AIFF originals as FLAC (bit-identical, so still lossless).
   final String? player;
+
   /// Where the song was started from; feeds "Jump back in" on Home.
   final PlayContext? context;
+
   /// play counts towards this person's recently played; prefetch doesn't.
   final String? purpose;
 
   factory StreamRequest.fromJson(Map<String, dynamic> json) => StreamRequest(
-        quality: json['quality'] as String,
-        player: json['player'] == null ? null : json['player'] as String,
-        context: json['context'] == null ? null : PlayContext.fromJson((json['context'] as Map).cast<String, dynamic>()),
-        purpose: json['purpose'] == null ? null : json['purpose'] as String,
-      );
+    quality: json['quality'] as String,
+    player: json['player'] == null ? null : json['player'] as String,
+    context: json['context'] == null
+        ? null
+        : PlayContext.fromJson(
+            (json['context'] as Map).cast<String, dynamic>(),
+          ),
+    purpose: json['purpose'] == null ? null : json['purpose'] as String,
+  );
 
   Map<String, dynamic> toJson() => {
-        'quality': quality,
-        'player': ?player,
-        'context': ?context?.toJson(),
-        'purpose': ?purpose,
-      };
+    'quality': quality,
+    'player': ?player,
+    'context': ?context?.toJson(),
+    'purpose': ?purpose,
+  };
 }
 
 /// Where the song was started from; feeds "Jump back in" on Home.
 class PlayContext {
-  const PlayContext({
-    required this.kind,
-    required this.id,
-  });
+  const PlayContext({required this.kind, required this.id});
 
   final String kind;
   final String id;
 
-  factory PlayContext.fromJson(Map<String, dynamic> json) => PlayContext(
-        kind: json['kind'] as String,
-        id: json['id'] as String,
-      );
+  factory PlayContext.fromJson(Map<String, dynamic> json) =>
+      PlayContext(kind: json['kind'] as String, id: json['id'] as String);
 
-  Map<String, dynamic> toJson() => {
-        'kind': kind,
-        'id': id,
-      };
+  Map<String, dynamic> toJson() => {'kind': kind, 'id': id};
 }
 
 /// EBU R128 measurement of the original, for volume levelling.
@@ -1016,20 +1159,23 @@ class Loudness {
 
   final double integratedLufs;
   final double truePeakDbtp;
+
   /// The whole album
   final double? albumLufs;
 
   factory Loudness.fromJson(Map<String, dynamic> json) => Loudness(
-        integratedLufs: (json['integratedLufs'] as num).toDouble(),
-        truePeakDbtp: (json['truePeakDbtp'] as num).toDouble(),
-        albumLufs: json['albumLufs'] == null ? null : (json['albumLufs'] as num).toDouble(),
-      );
+    integratedLufs: (json['integratedLufs'] as num).toDouble(),
+    truePeakDbtp: (json['truePeakDbtp'] as num).toDouble(),
+    albumLufs: json['albumLufs'] == null
+        ? null
+        : (json['albumLufs'] as num).toDouble(),
+  );
 
   Map<String, dynamic> toJson() => {
-        'integratedLufs': integratedLufs,
-        'truePeakDbtp': truePeakDbtp,
-        'albumLufs': ?albumLufs,
-      };
+    'integratedLufs': integratedLufs,
+    'truePeakDbtp': truePeakDbtp,
+    'albumLufs': ?albumLufs,
+  };
 }
 
 class StreamTicket {
@@ -1048,82 +1194,85 @@ class StreamTicket {
   /// Path on this server; fetch it with no auth header. Range requests work.
   final String url;
   final DateTime expiresAt;
+
   /// What a file or stream is, and how the app labels it.
   final AudioFormat format;
+
   /// What a file or stream is, and how the app labels it.
   final AudioFormat? source;
   final String mimeType;
   final int? sizeBytes;
   final int durationMs;
+
   /// False when the original file is sent untouched.
   final bool transcoded;
+
   /// EBU R128 measurement of the original, for volume levelling.
   final Loudness? loudness;
 
   factory StreamTicket.fromJson(Map<String, dynamic> json) => StreamTicket(
-        url: json['url'] as String,
-        expiresAt: DateTime.parse(json['expiresAt'] as String),
-        format: AudioFormat.fromJson((json['format'] as Map).cast<String, dynamic>()),
-        source: json['source'] == null ? null : AudioFormat.fromJson((json['source'] as Map).cast<String, dynamic>()),
-        mimeType: json['mimeType'] as String,
-        sizeBytes: json['sizeBytes'] == null ? null : json['sizeBytes'] as int,
-        durationMs: json['durationMs'] as int,
-        transcoded: json['transcoded'] as bool,
-        loudness: json['loudness'] == null ? null : Loudness.fromJson((json['loudness'] as Map).cast<String, dynamic>()),
-      );
+    url: json['url'] as String,
+    expiresAt: DateTime.parse(json['expiresAt'] as String),
+    format: AudioFormat.fromJson(
+      (json['format'] as Map).cast<String, dynamic>(),
+    ),
+    source: json['source'] == null
+        ? null
+        : AudioFormat.fromJson((json['source'] as Map).cast<String, dynamic>()),
+    mimeType: json['mimeType'] as String,
+    sizeBytes: json['sizeBytes'] == null ? null : json['sizeBytes'] as int,
+    durationMs: json['durationMs'] as int,
+    transcoded: json['transcoded'] as bool,
+    loudness: json['loudness'] == null
+        ? null
+        : Loudness.fromJson((json['loudness'] as Map).cast<String, dynamic>()),
+  );
 
   Map<String, dynamic> toJson() => {
-        'url': url,
-        'expiresAt': expiresAt.toUtc().toIso8601String(),
-        'format': format.toJson(),
-        'source': ?source?.toJson(),
-        'mimeType': mimeType,
-        'sizeBytes': ?sizeBytes,
-        'durationMs': durationMs,
-        'transcoded': transcoded,
-        'loudness': ?loudness?.toJson(),
-      };
+    'url': url,
+    'expiresAt': expiresAt.toUtc().toIso8601String(),
+    'format': format.toJson(),
+    'source': ?source?.toJson(),
+    'mimeType': mimeType,
+    'sizeBytes': ?sizeBytes,
+    'durationMs': durationMs,
+    'transcoded': transcoded,
+    'loudness': ?loudness?.toJson(),
+  };
 }
 
 class LyricsLine {
-  const LyricsLine({
-    this.timeMs,
-    required this.text,
-  });
+  const LyricsLine({this.timeMs, required this.text});
 
   /// Synced lyrics only.
   final int? timeMs;
   final String text;
 
   factory LyricsLine.fromJson(Map<String, dynamic> json) => LyricsLine(
-        timeMs: json['timeMs'] == null ? null : json['timeMs'] as int,
-        text: json['text'] as String,
-      );
+    timeMs: json['timeMs'] == null ? null : json['timeMs'] as int,
+    text: json['text'] as String,
+  );
 
-  Map<String, dynamic> toJson() => {
-        'timeMs': ?timeMs,
-        'text': text,
-      };
+  Map<String, dynamic> toJson() => {'timeMs': ?timeMs, 'text': text};
 }
 
 class Lyrics {
-  const Lyrics({
-    required this.kind,
-    required this.lines,
-  });
+  const Lyrics({required this.kind, required this.lines});
 
   final String kind;
   final List<LyricsLine> lines;
 
   factory Lyrics.fromJson(Map<String, dynamic> json) => Lyrics(
-        kind: json['kind'] as String,
-        lines: (json['lines'] as List<dynamic>).map((e) => LyricsLine.fromJson((e as Map).cast<String, dynamic>())).toList(),
-      );
+    kind: json['kind'] as String,
+    lines: (json['lines'] as List<dynamic>)
+        .map((e) => LyricsLine.fromJson((e as Map).cast<String, dynamic>()))
+        .toList(),
+  );
 
   Map<String, dynamic> toJson() => {
-        'kind': kind,
-        'lines': lines.map((e) => e.toJson()).toList(),
-      };
+    'kind': kind,
+    'lines': lines.map((e) => e.toJson()).toList(),
+  };
 }
 
 class ImportItem {
@@ -1136,29 +1285,32 @@ class ImportItem {
   });
 
   final String id;
+
   /// Relative to its music folder.
   final String path;
+
   /// duplicate = an exact copy of a song already in the library, so it was skipped.
   final String status;
+
   /// Plain words
   final String? problem;
   final DateTime updatedAt;
 
   factory ImportItem.fromJson(Map<String, dynamic> json) => ImportItem(
-        id: json['id'] as String,
-        path: json['path'] as String,
-        status: json['status'] as String,
-        problem: json['problem'] == null ? null : json['problem'] as String,
-        updatedAt: DateTime.parse(json['updatedAt'] as String),
-      );
+    id: json['id'] as String,
+    path: json['path'] as String,
+    status: json['status'] as String,
+    problem: json['problem'] == null ? null : json['problem'] as String,
+    updatedAt: DateTime.parse(json['updatedAt'] as String),
+  );
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'path': path,
-        'status': status,
-        'problem': ?problem,
-        'updatedAt': updatedAt.toUtc().toIso8601String(),
-      };
+    'id': id,
+    'path': path,
+    'status': status,
+    'problem': ?problem,
+    'updatedAt': updatedAt.toUtc().toIso8601String(),
+  };
 }
 
 class MusicFolder {
@@ -1173,16 +1325,16 @@ class MusicFolder {
   final int trackCount;
 
   factory MusicFolder.fromJson(Map<String, dynamic> json) => MusicFolder(
-        path: json['path'] as String,
-        exists: json['exists'] as bool,
-        trackCount: json['trackCount'] as int,
-      );
+    path: json['path'] as String,
+    exists: json['exists'] as bool,
+    trackCount: json['trackCount'] as int,
+  );
 
   Map<String, dynamic> toJson() => {
-        'path': path,
-        'exists': exists,
-        'trackCount': trackCount,
-      };
+    'path': path,
+    'exists': exists,
+    'trackCount': trackCount,
+  };
 }
 
 class LibraryStatus {
@@ -1207,6 +1359,7 @@ class LibraryStatus {
   final int tracks;
   final int albums;
   final int artists;
+
   /// Original files on disk.
   final int sizeBytes;
   final double? hoursOfMusic;
@@ -1214,96 +1367,124 @@ class LibraryStatus {
   final int queued;
   final DateTime? lastScanAt;
   final List<MusicFolder> folders;
+
   /// Where browser uploads are saved.
   final String uploadFolder;
+
   /// FFmpeg was found; without it High
   final bool? ffmpeg;
+
   /// Up to 50 files waiting or being read.
   final List<ImportItem> queue;
   final List<ImportItem> needsAttention;
+
   /// Exact copies of songs already in the library (up to 500). Not a problem; they can be deleted.
   final List<ImportItem>? duplicates;
+
   /// Up to 10 albums added most recently.
   final List<AlbumSummary>? recentlyAdded;
 
   factory LibraryStatus.fromJson(Map<String, dynamic> json) => LibraryStatus(
-        tracks: json['tracks'] as int,
-        albums: json['albums'] as int,
-        artists: json['artists'] as int,
-        sizeBytes: json['sizeBytes'] as int,
-        hoursOfMusic: json['hoursOfMusic'] == null ? null : (json['hoursOfMusic'] as num).toDouble(),
-        scanning: json['scanning'] as bool,
-        queued: json['queued'] as int,
-        lastScanAt: json['lastScanAt'] == null ? null : DateTime.parse(json['lastScanAt'] as String),
-        folders: (json['folders'] as List<dynamic>).map((e) => MusicFolder.fromJson((e as Map).cast<String, dynamic>())).toList(),
-        uploadFolder: json['uploadFolder'] as String,
-        ffmpeg: json['ffmpeg'] == null ? null : json['ffmpeg'] as bool,
-        queue: (json['queue'] as List<dynamic>).map((e) => ImportItem.fromJson((e as Map).cast<String, dynamic>())).toList(),
-        needsAttention: (json['needsAttention'] as List<dynamic>).map((e) => ImportItem.fromJson((e as Map).cast<String, dynamic>())).toList(),
-        duplicates: json['duplicates'] == null ? null : (json['duplicates'] as List<dynamic>).map((e) => ImportItem.fromJson((e as Map).cast<String, dynamic>())).toList(),
-        recentlyAdded: json['recentlyAdded'] == null ? null : (json['recentlyAdded'] as List<dynamic>).map((e) => AlbumSummary.fromJson((e as Map).cast<String, dynamic>())).toList(),
-      );
+    tracks: json['tracks'] as int,
+    albums: json['albums'] as int,
+    artists: json['artists'] as int,
+    sizeBytes: json['sizeBytes'] as int,
+    hoursOfMusic: json['hoursOfMusic'] == null
+        ? null
+        : (json['hoursOfMusic'] as num).toDouble(),
+    scanning: json['scanning'] as bool,
+    queued: json['queued'] as int,
+    lastScanAt: json['lastScanAt'] == null
+        ? null
+        : DateTime.parse(json['lastScanAt'] as String),
+    folders: (json['folders'] as List<dynamic>)
+        .map((e) => MusicFolder.fromJson((e as Map).cast<String, dynamic>()))
+        .toList(),
+    uploadFolder: json['uploadFolder'] as String,
+    ffmpeg: json['ffmpeg'] == null ? null : json['ffmpeg'] as bool,
+    queue: (json['queue'] as List<dynamic>)
+        .map((e) => ImportItem.fromJson((e as Map).cast<String, dynamic>()))
+        .toList(),
+    needsAttention: (json['needsAttention'] as List<dynamic>)
+        .map((e) => ImportItem.fromJson((e as Map).cast<String, dynamic>()))
+        .toList(),
+    duplicates: json['duplicates'] == null
+        ? null
+        : (json['duplicates'] as List<dynamic>)
+              .map(
+                (e) => ImportItem.fromJson((e as Map).cast<String, dynamic>()),
+              )
+              .toList(),
+    recentlyAdded: json['recentlyAdded'] == null
+        ? null
+        : (json['recentlyAdded'] as List<dynamic>)
+              .map(
+                (e) =>
+                    AlbumSummary.fromJson((e as Map).cast<String, dynamic>()),
+              )
+              .toList(),
+  );
 
   Map<String, dynamic> toJson() => {
-        'tracks': tracks,
-        'albums': albums,
-        'artists': artists,
-        'sizeBytes': sizeBytes,
-        'hoursOfMusic': ?hoursOfMusic,
-        'scanning': scanning,
-        'queued': queued,
-        'lastScanAt': ?lastScanAt?.toUtc().toIso8601String(),
-        'folders': folders.map((e) => e.toJson()).toList(),
-        'uploadFolder': uploadFolder,
-        'ffmpeg': ?ffmpeg,
-        'queue': queue.map((e) => e.toJson()).toList(),
-        'needsAttention': needsAttention.map((e) => e.toJson()).toList(),
-        'duplicates': ?duplicates?.map((e) => e.toJson()).toList(),
-        'recentlyAdded': ?recentlyAdded?.map((e) => e.toJson()).toList(),
-      };
+    'tracks': tracks,
+    'albums': albums,
+    'artists': artists,
+    'sizeBytes': sizeBytes,
+    'hoursOfMusic': ?hoursOfMusic,
+    'scanning': scanning,
+    'queued': queued,
+    'lastScanAt': ?lastScanAt?.toUtc().toIso8601String(),
+    'folders': folders.map((e) => e.toJson()).toList(),
+    'uploadFolder': uploadFolder,
+    'ffmpeg': ?ffmpeg,
+    'queue': queue.map((e) => e.toJson()).toList(),
+    'needsAttention': needsAttention.map((e) => e.toJson()).toList(),
+    'duplicates': ?duplicates?.map((e) => e.toJson()).toList(),
+    'recentlyAdded': ?recentlyAdded?.map((e) => e.toJson()).toList(),
+  };
 }
 
 class LookupSettings {
-  const LookupSettings({
-    this.enabled,
-    this.acoustidKey,
-  });
+  const LookupSettings({this.enabled, this.acoustidKey});
 
   /// Look up details of new and changed albums online.
   final bool? enabled;
+
   /// Optional AcoustID application key; lets Hive recognise songs with no useful tags by their sound. Empty removes it.
   final String? acoustidKey;
 
   factory LookupSettings.fromJson(Map<String, dynamic> json) => LookupSettings(
-        enabled: json['enabled'] == null ? null : json['enabled'] as bool,
-        acoustidKey: json['acoustidKey'] == null ? null : json['acoustidKey'] as String,
-      );
+    enabled: json['enabled'] == null ? null : json['enabled'] as bool,
+    acoustidKey: json['acoustidKey'] == null
+        ? null
+        : json['acoustidKey'] as String,
+  );
 
   Map<String, dynamic> toJson() => {
-        'enabled': ?enabled,
-        'acoustidKey': ?acoustidKey,
-      };
+    'enabled': ?enabled,
+    'acoustidKey': ?acoustidKey,
+  };
 }
 
 class LookupRetry {
-  const LookupRetry({
-    this.albumIds,
-    this.all,
-  });
+  const LookupRetry({this.albumIds, this.all});
 
   final List<String>? albumIds;
+
   /// Every album that found nothing or failed.
   final bool? all;
 
   factory LookupRetry.fromJson(Map<String, dynamic> json) => LookupRetry(
-        albumIds: json['albumIds'] == null ? null : (json['albumIds'] as List<dynamic>).map((e) => e as String).toList(),
-        all: json['all'] == null ? null : json['all'] as bool,
-      );
+    albumIds: json['albumIds'] == null
+        ? null
+        : (json['albumIds'] as List<dynamic>).map((e) => e as String).toList(),
+    all: json['all'] == null ? null : json['all'] as bool,
+  );
 
   Map<String, dynamic> toJson() => {
-        'albumIds': ?albumIds?.map((e) => e).toList(),
-        'all': ?all,
-      };
+    'albumIds': ?albumIds?.map((e) => e).toList(),
+    'all': ?all,
+  };
 }
 
 class LookupStatus {
@@ -1326,8 +1507,10 @@ class LookupStatus {
   });
 
   final bool enabled;
+
   /// A key is set (it's never sent back).
   final bool acoustidKey;
+
   /// fpcalc (Chromaprint) was found
   final bool? fingerprinting;
   final bool working;
@@ -1336,54 +1519,68 @@ class LookupStatus {
   final int notFound;
   final int review;
   final int failed;
+
   /// Albums you corrected by hand.
   final int edited;
+
   /// Albums recognised by the sound of their songs (AcoustID).
   final int? soundMatches;
+
   /// Why AcoustID turned Hive down last time
   final String? acoustidProblem;
+
   /// When AcoustID last answered.
   final DateTime? acoustidUsedAt;
+
   /// Why the last lookup failed
   final String? lastError;
+
   /// What leaves home, in plain words, for the admin panel to show.
   final String? sends;
 
   factory LookupStatus.fromJson(Map<String, dynamic> json) => LookupStatus(
-        enabled: json['enabled'] as bool,
-        acoustidKey: json['acoustidKey'] as bool,
-        fingerprinting: json['fingerprinting'] == null ? null : json['fingerprinting'] as bool,
-        working: json['working'] as bool,
-        waiting: json['waiting'] as int,
-        found: json['found'] as int,
-        notFound: json['notFound'] as int,
-        review: json['review'] as int,
-        failed: json['failed'] as int,
-        edited: json['edited'] as int,
-        soundMatches: json['soundMatches'] == null ? null : json['soundMatches'] as int,
-        acoustidProblem: json['acoustidProblem'] == null ? null : json['acoustidProblem'] as String,
-        acoustidUsedAt: json['acoustidUsedAt'] == null ? null : DateTime.parse(json['acoustidUsedAt'] as String),
-        lastError: json['lastError'] == null ? null : json['lastError'] as String,
-        sends: json['sends'] == null ? null : json['sends'] as String,
-      );
+    enabled: json['enabled'] as bool,
+    acoustidKey: json['acoustidKey'] as bool,
+    fingerprinting: json['fingerprinting'] == null
+        ? null
+        : json['fingerprinting'] as bool,
+    working: json['working'] as bool,
+    waiting: json['waiting'] as int,
+    found: json['found'] as int,
+    notFound: json['notFound'] as int,
+    review: json['review'] as int,
+    failed: json['failed'] as int,
+    edited: json['edited'] as int,
+    soundMatches: json['soundMatches'] == null
+        ? null
+        : json['soundMatches'] as int,
+    acoustidProblem: json['acoustidProblem'] == null
+        ? null
+        : json['acoustidProblem'] as String,
+    acoustidUsedAt: json['acoustidUsedAt'] == null
+        ? null
+        : DateTime.parse(json['acoustidUsedAt'] as String),
+    lastError: json['lastError'] == null ? null : json['lastError'] as String,
+    sends: json['sends'] == null ? null : json['sends'] as String,
+  );
 
   Map<String, dynamic> toJson() => {
-        'enabled': enabled,
-        'acoustidKey': acoustidKey,
-        'fingerprinting': ?fingerprinting,
-        'working': working,
-        'waiting': waiting,
-        'found': found,
-        'notFound': notFound,
-        'review': review,
-        'failed': failed,
-        'edited': edited,
-        'soundMatches': ?soundMatches,
-        'acoustidProblem': ?acoustidProblem,
-        'acoustidUsedAt': ?acoustidUsedAt?.toUtc().toIso8601String(),
-        'lastError': ?lastError,
-        'sends': ?sends,
-      };
+    'enabled': enabled,
+    'acoustidKey': acoustidKey,
+    'fingerprinting': ?fingerprinting,
+    'working': working,
+    'waiting': waiting,
+    'found': found,
+    'notFound': notFound,
+    'review': review,
+    'failed': failed,
+    'edited': edited,
+    'soundMatches': ?soundMatches,
+    'acoustidProblem': ?acoustidProblem,
+    'acoustidUsedAt': ?acoustidUsedAt?.toUtc().toIso8601String(),
+    'lastError': ?lastError,
+    'sends': ?sends,
+  };
 }
 
 class AdminLyrics {
@@ -1396,42 +1593,39 @@ class AdminLyrics {
 
   /// The lyrics as Hive shows them (LRC when timed); empty when there are none.
   final String text;
+
   /// admin = set in Hive Admin; file = the song's tags or .lrc file; online = found on LRCLIB.
   final String source;
   final String kind;
+
   /// The file has lyrics of its own (shown again if the admin's are removed).
   final bool fileHasLyrics;
 
   factory AdminLyrics.fromJson(Map<String, dynamic> json) => AdminLyrics(
-        text: json['text'] as String,
-        source: json['source'] as String,
-        kind: json['kind'] as String,
-        fileHasLyrics: json['fileHasLyrics'] as bool,
-      );
+    text: json['text'] as String,
+    source: json['source'] as String,
+    kind: json['kind'] as String,
+    fileHasLyrics: json['fileHasLyrics'] as bool,
+  );
 
   Map<String, dynamic> toJson() => {
-        'text': text,
-        'source': source,
-        'kind': kind,
-        'fileHasLyrics': fileHasLyrics,
-      };
+    'text': text,
+    'source': source,
+    'kind': kind,
+    'fileHasLyrics': fileHasLyrics,
+  };
 }
 
 class LyricsEdit {
-  const LyricsEdit({
-    required this.text,
-  });
+  const LyricsEdit({required this.text});
 
   /// Plain lines, or timed LRC such as "[01:23.45] a line". Empty removes the lyrics set in Hive Admin.
   final String text;
 
-  factory LyricsEdit.fromJson(Map<String, dynamic> json) => LyricsEdit(
-        text: json['text'] as String,
-      );
+  factory LyricsEdit.fromJson(Map<String, dynamic> json) =>
+      LyricsEdit(text: json['text'] as String);
 
-  Map<String, dynamic> toJson() => {
-        'text': text,
-      };
+  Map<String, dynamic> toJson() => {'text': text};
 }
 
 class LyricsFound {
@@ -1445,22 +1639,23 @@ class LyricsFound {
   final bool found;
   final String? text;
   final String? kind;
+
   /// What happened
   final String message;
 
   factory LyricsFound.fromJson(Map<String, dynamic> json) => LyricsFound(
-        found: json['found'] as bool,
-        text: json['text'] == null ? null : json['text'] as String,
-        kind: json['kind'] == null ? null : json['kind'] as String,
-        message: json['message'] as String,
-      );
+    found: json['found'] as bool,
+    text: json['text'] == null ? null : json['text'] as String,
+    kind: json['kind'] == null ? null : json['kind'] as String,
+    message: json['message'] as String,
+  );
 
   Map<String, dynamic> toJson() => {
-        'found': found,
-        'text': ?text,
-        'kind': ?kind,
-        'message': message,
-      };
+    'found': found,
+    'text': ?text,
+    'kind': ?kind,
+    'message': message,
+  };
 }
 
 class AcoustidTest {
@@ -1471,21 +1666,24 @@ class AcoustidTest {
   });
 
   final bool ok;
+
   /// What happened
   final String message;
   final LookupStatus status;
 
   factory AcoustidTest.fromJson(Map<String, dynamic> json) => AcoustidTest(
-        ok: json['ok'] as bool,
-        message: json['message'] as String,
-        status: LookupStatus.fromJson((json['status'] as Map).cast<String, dynamic>()),
-      );
+    ok: json['ok'] as bool,
+    message: json['message'] as String,
+    status: LookupStatus.fromJson(
+      (json['status'] as Map).cast<String, dynamic>(),
+    ),
+  );
 
   Map<String, dynamic> toJson() => {
-        'ok': ok,
-        'message': message,
-        'status': status.toJson(),
-      };
+    'ok': ok,
+    'message': message,
+    'status': status.toJson(),
+  };
 }
 
 class FoundAlbum {
@@ -1513,47 +1711,57 @@ class FoundAlbum {
   final String? filmTitle;
   final Film? film;
   final List<Credit>? credits;
+
   /// The cover it found
   final String? artworkId;
   final int? trackCount;
+
   /// How sure the match is.
   final double score;
+
   /// Where it came from
   final String source;
+
   /// The page on MusicBrainz or Wikidata
   final String? link;
 
   factory FoundAlbum.fromJson(Map<String, dynamic> json) => FoundAlbum(
-        title: json['title'] as String,
-        artistName: json['artistName'] as String,
-        year: json['year'] == null ? null : json['year'] as int,
-        language: json['language'] == null ? null : json['language'] as String,
-        kind: json['kind'] == null ? null : json['kind'] as String,
-        filmTitle: json['filmTitle'] == null ? null : json['filmTitle'] as String,
-        film: json['film'] == null ? null : Film.fromJson((json['film'] as Map).cast<String, dynamic>()),
-        credits: json['credits'] == null ? null : (json['credits'] as List<dynamic>).map((e) => Credit.fromJson((e as Map).cast<String, dynamic>())).toList(),
-        artworkId: json['artworkId'] == null ? null : json['artworkId'] as String,
-        trackCount: json['trackCount'] == null ? null : json['trackCount'] as int,
-        score: (json['score'] as num).toDouble(),
-        source: json['source'] as String,
-        link: json['link'] == null ? null : json['link'] as String,
-      );
+    title: json['title'] as String,
+    artistName: json['artistName'] as String,
+    year: json['year'] == null ? null : json['year'] as int,
+    language: json['language'] == null ? null : json['language'] as String,
+    kind: json['kind'] == null ? null : json['kind'] as String,
+    filmTitle: json['filmTitle'] == null ? null : json['filmTitle'] as String,
+    film: json['film'] == null
+        ? null
+        : Film.fromJson((json['film'] as Map).cast<String, dynamic>()),
+    credits: json['credits'] == null
+        ? null
+        : (json['credits'] as List<dynamic>)
+              .map((e) => Credit.fromJson((e as Map).cast<String, dynamic>()))
+              .toList(),
+    artworkId: json['artworkId'] == null ? null : json['artworkId'] as String,
+    trackCount: json['trackCount'] == null ? null : json['trackCount'] as int,
+    score: (json['score'] as num).toDouble(),
+    source: json['source'] as String,
+    link: json['link'] == null ? null : json['link'] as String,
+  );
 
   Map<String, dynamic> toJson() => {
-        'title': title,
-        'artistName': artistName,
-        'year': ?year,
-        'language': ?language,
-        'kind': ?kind,
-        'filmTitle': ?filmTitle,
-        'film': ?film?.toJson(),
-        'credits': ?credits?.map((e) => e.toJson()).toList(),
-        'artworkId': ?artworkId,
-        'trackCount': ?trackCount,
-        'score': score,
-        'source': source,
-        'link': ?link,
-      };
+    'title': title,
+    'artistName': artistName,
+    'year': ?year,
+    'language': ?language,
+    'kind': ?kind,
+    'filmTitle': ?filmTitle,
+    'film': ?film?.toJson(),
+    'credits': ?credits?.map((e) => e.toJson()).toList(),
+    'artworkId': ?artworkId,
+    'trackCount': ?trackCount,
+    'score': score,
+    'source': source,
+    'link': ?link,
+  };
 }
 
 class AdminAlbum {
@@ -1569,35 +1777,43 @@ class AdminAlbum {
 
   final Album album;
   final String lookup;
+
   /// What the lookup did or why it found nothing.
   final String? lookupNote;
   final FoundAlbum? found;
+
   /// Fields you set by hand; rescans and lookups leave them alone.
   final List<String> edited;
+
   /// Where each detail came from (tags, folder, script, lookup, you).
   final Map<String, dynamic> sources;
+
   /// Where its files are
   final String? folder;
 
   factory AdminAlbum.fromJson(Map<String, dynamic> json) => AdminAlbum(
-        album: Album.fromJson((json['album'] as Map).cast<String, dynamic>()),
-        lookup: json['lookup'] as String,
-        lookupNote: json['lookupNote'] == null ? null : json['lookupNote'] as String,
-        found: json['found'] == null ? null : FoundAlbum.fromJson((json['found'] as Map).cast<String, dynamic>()),
-        edited: (json['edited'] as List<dynamic>).map((e) => e as String).toList(),
-        sources: (json['sources'] as Map).cast<String, dynamic>(),
-        folder: json['folder'] == null ? null : json['folder'] as String,
-      );
+    album: Album.fromJson((json['album'] as Map).cast<String, dynamic>()),
+    lookup: json['lookup'] as String,
+    lookupNote: json['lookupNote'] == null
+        ? null
+        : json['lookupNote'] as String,
+    found: json['found'] == null
+        ? null
+        : FoundAlbum.fromJson((json['found'] as Map).cast<String, dynamic>()),
+    edited: (json['edited'] as List<dynamic>).map((e) => e as String).toList(),
+    sources: (json['sources'] as Map).cast<String, dynamic>(),
+    folder: json['folder'] == null ? null : json['folder'] as String,
+  );
 
   Map<String, dynamic> toJson() => {
-        'album': album.toJson(),
-        'lookup': lookup,
-        'lookupNote': ?lookupNote,
-        'found': ?found?.toJson(),
-        'edited': edited.map((e) => e).toList(),
-        'sources': sources,
-        'folder': ?folder,
-      };
+    'album': album.toJson(),
+    'lookup': lookup,
+    'lookupNote': ?lookupNote,
+    'found': ?found?.toJson(),
+    'edited': edited.map((e) => e).toList(),
+    'sources': sources,
+    'folder': ?folder,
+  };
 }
 
 class AdminAlbumPage {
@@ -1612,16 +1828,18 @@ class AdminAlbumPage {
   final int offset;
 
   factory AdminAlbumPage.fromJson(Map<String, dynamic> json) => AdminAlbumPage(
-        items: (json['items'] as List<dynamic>).map((e) => (e as Map).cast<String, dynamic>()).toList(),
-        total: json['total'] as int,
-        offset: json['offset'] as int,
-      );
+    items: (json['items'] as List<dynamic>)
+        .map((e) => (e as Map).cast<String, dynamic>())
+        .toList(),
+    total: json['total'] as int,
+    offset: json['offset'] as int,
+  );
 
   Map<String, dynamic> toJson() => {
-        'items': items.map((e) => e).toList(),
-        'total': total,
-        'offset': offset,
-      };
+    'items': items.map((e) => e).toList(),
+    'total': total,
+    'offset': offset,
+  };
 }
 
 /// Set a field to change it; set it to null to go back to what the files and lookup say.
@@ -1642,60 +1860,53 @@ class AlbumEdit {
   final String? language;
   final String? filmTitle;
   final int? filmYear;
+
   /// null puts back the cover from the files or lookup.
   final Object? artwork;
 
   factory AlbumEdit.fromJson(Map<String, dynamic> json) => AlbumEdit(
-        title: json['title'] == null ? null : json['title'] as String,
-        artistName: json['artistName'] == null ? null : json['artistName'] as String,
-        year: json['year'] == null ? null : json['year'] as int,
-        language: json['language'] == null ? null : json['language'] as String,
-        filmTitle: json['filmTitle'] == null ? null : json['filmTitle'] as String,
-        filmYear: json['filmYear'] == null ? null : json['filmYear'] as int,
-        artwork: json['artwork'] == null ? null : json['artwork'] as Object,
-      );
+    title: json['title'] == null ? null : json['title'] as String,
+    artistName: json['artistName'] == null
+        ? null
+        : json['artistName'] as String,
+    year: json['year'] == null ? null : json['year'] as int,
+    language: json['language'] == null ? null : json['language'] as String,
+    filmTitle: json['filmTitle'] == null ? null : json['filmTitle'] as String,
+    filmYear: json['filmYear'] == null ? null : json['filmYear'] as int,
+    artwork: json['artwork'] == null ? null : json['artwork'] as Object,
+  );
 
   Map<String, dynamic> toJson() => {
-        'title': ?title,
-        'artistName': ?artistName,
-        'year': ?year,
-        'language': ?language,
-        'filmTitle': ?filmTitle,
-        'filmYear': ?filmYear,
-        'artwork': ?artwork,
-      };
+    'title': ?title,
+    'artistName': ?artistName,
+    'year': ?year,
+    'language': ?language,
+    'filmTitle': ?filmTitle,
+    'filmYear': ?filmYear,
+    'artwork': ?artwork,
+  };
 }
 
 class MatchDecision {
-  const MatchDecision({
-    required this.accept,
-  });
+  const MatchDecision({required this.accept});
 
   final bool accept;
 
-  factory MatchDecision.fromJson(Map<String, dynamic> json) => MatchDecision(
-        accept: json['accept'] as bool,
-      );
+  factory MatchDecision.fromJson(Map<String, dynamic> json) =>
+      MatchDecision(accept: json['accept'] as bool);
 
-  Map<String, dynamic> toJson() => {
-        'accept': accept,
-      };
+  Map<String, dynamic> toJson() => {'accept': accept};
 }
 
 class DevelopmentKey {
-  const DevelopmentKey({
-    required this.key,
-  });
+  const DevelopmentKey({required this.key});
 
   final String key;
 
-  factory DevelopmentKey.fromJson(Map<String, dynamic> json) => DevelopmentKey(
-        key: json['key'] as String,
-      );
+  factory DevelopmentKey.fromJson(Map<String, dynamic> json) =>
+      DevelopmentKey(key: json['key'] as String);
 
-  Map<String, dynamic> toJson() => {
-        'key': key,
-      };
+  Map<String, dynamic> toJson() => {'key': key};
 }
 
 /// Every operation in the Hive API. Unbuilt ones answer 501 with their milestone.
@@ -1704,24 +1915,39 @@ class HiveApi {
 
   final Dio _dio;
 
-  Future<dynamic> _send(String method, String path, {Object? data, Map<String, Object?>? query}) async {
+  Future<dynamic> _send(
+    String method,
+    String path, {
+    Object? data,
+    Map<String, Object?>? query,
+  }) async {
     try {
       final response = await _dio.request<dynamic>(
         path,
         data: data,
-        queryParameters: query == null ? null : {for (final e in query.entries) if (e.value != null) e.key: e.value},
+        queryParameters: query == null
+            ? null
+            : {
+                for (final e in query.entries)
+                  if (e.value != null) e.key: e.value,
+              },
         options: Options(method: method),
       );
       return response.data;
     } on DioException catch (e) {
       final body = e.response?.data;
-      final problem = body is Map ? Problem.fromJson(body.cast<String, dynamic>()) : null;
+      final problem = body is Map
+          ? Problem.fromJson(body.cast<String, dynamic>())
+          : null;
       throw HiveApiException(e.response?.statusCode, problem, e);
     }
   }
 
   static Uri _withQuery(Uri uri, Map<String, Object?> query) {
-    final present = {for (final e in query.entries) if (e.value != null) e.key: '${e.value}'};
+    final present = {
+      for (final e in query.entries)
+        if (e.value != null) e.key: '${e.value}',
+    };
     return present.isEmpty ? uri : uri.replace(queryParameters: present);
   }
 
@@ -1736,15 +1962,23 @@ class HiveApi {
   /// Check an invite code from a QR or typed code, and show which home it belongs to.
   ///
   /// `POST /api/v1/auth/invites/resolve` · built in M2.
-  Future<Map<String, dynamic>> resolveInvite({required Map<String, dynamic> body}) async {
-    final data = await _send('POST', '/api/v1/auth/invites/resolve', data: body);
+  Future<Map<String, dynamic>> resolveInvite({
+    required Map<String, dynamic> body,
+  }) async {
+    final data = await _send(
+      'POST',
+      '/api/v1/auth/invites/resolve',
+      data: body,
+    );
     return (data as Map).cast<String, dynamic>();
   }
 
   /// Send a 6-digit code to an email address.
   ///
   /// `POST /api/v1/auth/email/start` · built in M2.
-  Future<Map<String, dynamic>> startEmailVerification({required Map<String, dynamic> body}) async {
+  Future<Map<String, dynamic>> startEmailVerification({
+    required Map<String, dynamic> body,
+  }) async {
     final data = await _send('POST', '/api/v1/auth/email/start', data: body);
     return (data as Map).cast<String, dynamic>();
   }
@@ -1752,7 +1986,9 @@ class HiveApi {
   /// Check the code; creates an access request (approved at once when invited).
   ///
   /// `POST /api/v1/auth/email/verify` · built in M2.
-  Future<Map<String, dynamic>> verifyEmailCode({required Map<String, dynamic> body}) async {
+  Future<Map<String, dynamic>> verifyEmailCode({
+    required Map<String, dynamic> body,
+  }) async {
     final data = await _send('POST', '/api/v1/auth/email/verify', data: body);
     return (data as Map).cast<String, dynamic>();
   }
@@ -1760,15 +1996,22 @@ class HiveApi {
   /// Poll an access request while waiting for approval.
   ///
   /// `GET /api/v1/auth/requests/{requestId}` · built in M2.
-  Future<Map<String, dynamic>> getAccessRequest({required String requestId}) async {
-    final data = await _send('GET', '/api/v1/auth/requests/${Uri.encodeComponent(requestId)}');
+  Future<Map<String, dynamic>> getAccessRequest({
+    required String requestId,
+  }) async {
+    final data = await _send(
+      'GET',
+      '/api/v1/auth/requests/${Uri.encodeComponent(requestId)}',
+    );
     return (data as Map).cast<String, dynamic>();
   }
 
   /// Register this device's public key once approved; enforces the device limit.
   ///
   /// `POST /api/v1/auth/devices` · built in M2.
-  Future<Map<String, dynamic>> registerDevice({required Map<String, dynamic> body}) async {
+  Future<Map<String, dynamic>> registerDevice({
+    required Map<String, dynamic> body,
+  }) async {
     final data = await _send('POST', '/api/v1/auth/devices', data: body);
     return (data as Map).cast<String, dynamic>();
   }
@@ -1776,7 +2019,9 @@ class HiveApi {
   /// Get a one-time challenge for the device to sign before refreshing.
   ///
   /// `POST /api/v1/auth/challenge` · built in M2.
-  Future<Map<String, dynamic>> createChallenge({required Map<String, dynamic> body}) async {
+  Future<Map<String, dynamic>> createChallenge({
+    required Map<String, dynamic> body,
+  }) async {
     final data = await _send('POST', '/api/v1/auth/challenge', data: body);
     return (data as Map).cast<String, dynamic>();
   }
@@ -1784,7 +2029,9 @@ class HiveApi {
   /// Swap a refresh token plus a signed challenge for new tokens.
   ///
   /// `POST /api/v1/auth/token` · built in M2.
-  Future<Map<String, dynamic>> refreshToken({required Map<String, dynamic> body}) async {
+  Future<Map<String, dynamic>> refreshToken({
+    required Map<String, dynamic> body,
+  }) async {
     final data = await _send('POST', '/api/v1/auth/token', data: body);
     return (data as Map).cast<String, dynamic>();
   }
@@ -1801,22 +2048,45 @@ class HiveApi {
   ///
   /// `DELETE /api/v1/me/devices/{deviceId}` · built in M2.
   Future<void> removeMyDevice({required String deviceId}) async {
-    await _send('DELETE', '/api/v1/me/devices/${Uri.encodeComponent(deviceId)}');
+    await _send(
+      'DELETE',
+      '/api/v1/me/devices/${Uri.encodeComponent(deviceId)}',
+    );
   }
 
   /// Shelves for the Home screen.
   ///
   /// `GET /api/v1/library/home` · built in M1.
   Future<Home> getHome({String? language}) async {
-    final data = await _send('GET', '/api/v1/library/home', query: {'language': ?language});
+    final data = await _send(
+      'GET',
+      '/api/v1/library/home',
+      query: {'language': ?language},
+    );
     return Home.fromJson((data as Map).cast<String, dynamic>());
   }
 
   /// Albums, paged, with sort and filters.
   ///
   /// `GET /api/v1/library/albums` · built in M1.
-  Future<AlbumPage> listAlbums({int? offset, int? limit, String? sort, String? artistId, String? language}) async {
-    final data = await _send('GET', '/api/v1/library/albums', query: {'offset': ?offset, 'limit': ?limit, 'sort': ?sort, 'artistId': ?artistId, 'language': ?language});
+  Future<AlbumPage> listAlbums({
+    int? offset,
+    int? limit,
+    String? sort,
+    String? artistId,
+    String? language,
+  }) async {
+    final data = await _send(
+      'GET',
+      '/api/v1/library/albums',
+      query: {
+        'offset': ?offset,
+        'limit': ?limit,
+        'sort': ?sort,
+        'artistId': ?artistId,
+        'language': ?language,
+      },
+    );
     return AlbumPage.fromJson((data as Map).cast<String, dynamic>());
   }
 
@@ -1824,7 +2094,10 @@ class HiveApi {
   ///
   /// `GET /api/v1/library/albums/{albumId}` · built in M1.
   Future<Album> getAlbum({required String albumId}) async {
-    final data = await _send('GET', '/api/v1/library/albums/${Uri.encodeComponent(albumId)}');
+    final data = await _send(
+      'GET',
+      '/api/v1/library/albums/${Uri.encodeComponent(albumId)}',
+    );
     return Album.fromJson((data as Map).cast<String, dynamic>());
   }
 
@@ -1832,7 +2105,11 @@ class HiveApi {
   ///
   /// `GET /api/v1/library/artists` · built in M1.
   Future<ArtistPage> listArtists({int? offset, int? limit}) async {
-    final data = await _send('GET', '/api/v1/library/artists', query: {'offset': ?offset, 'limit': ?limit});
+    final data = await _send(
+      'GET',
+      '/api/v1/library/artists',
+      query: {'offset': ?offset, 'limit': ?limit},
+    );
     return ArtistPage.fromJson((data as Map).cast<String, dynamic>());
   }
 
@@ -1840,23 +2117,67 @@ class HiveApi {
   ///
   /// `GET /api/v1/library/artists/{artistId}` · built in M1.
   Future<Artist> getArtist({required String artistId}) async {
-    final data = await _send('GET', '/api/v1/library/artists/${Uri.encodeComponent(artistId)}');
+    final data = await _send(
+      'GET',
+      '/api/v1/library/artists/${Uri.encodeComponent(artistId)}',
+    );
     return Artist.fromJson((data as Map).cast<String, dynamic>());
   }
 
   /// Songs, paged; also liked songs with a filter.
   ///
   /// `GET /api/v1/library/tracks` · built in M1.
-  Future<TrackPage> listTracks({int? offset, int? limit, String? sort, bool? liked, String? language}) async {
-    final data = await _send('GET', '/api/v1/library/tracks', query: {'offset': ?offset, 'limit': ?limit, 'sort': ?sort, 'liked': ?liked, 'language': ?language});
+  Future<TrackPage> listTracks({
+    int? offset,
+    int? limit,
+    String? sort,
+    bool? liked,
+    String? language,
+  }) async {
+    final data = await _send(
+      'GET',
+      '/api/v1/library/tracks',
+      query: {
+        'offset': ?offset,
+        'limit': ?limit,
+        'sort': ?sort,
+        'liked': ?liked,
+        'language': ?language,
+      },
+    );
+    return TrackPage.fromJson((data as Map).cast<String, dynamic>());
+  }
+
+  /// Songs to carry on with when the queue runs out (autoplay).
+  ///
+  /// `GET /api/v1/library/tracks/{trackId}/next` · built in M1.5.
+  Future<TrackPage> songsToFollow({
+    required String trackId,
+    int? limit,
+    String? exclude,
+    String? language,
+  }) async {
+    final data = await _send(
+      'GET',
+      '/api/v1/library/tracks/${Uri.encodeComponent(trackId)}/next',
+      query: {'limit': ?limit, 'exclude': ?exclude, 'language': ?language},
+    );
     return TrackPage.fromJson((data as Map).cast<String, dynamic>());
   }
 
   /// Instant search across songs, albums, artists and playlists.
   ///
   /// `GET /api/v1/library/search` · built in M1.
-  Future<SearchResults> search({required String q, int? limit, String? language}) async {
-    final data = await _send('GET', '/api/v1/library/search', query: {'q': q, 'limit': ?limit, 'language': ?language});
+  Future<SearchResults> search({
+    required String q,
+    int? limit,
+    String? language,
+  }) async {
+    final data = await _send(
+      'GET',
+      '/api/v1/library/search',
+      query: {'q': q, 'limit': ?limit, 'language': ?language},
+    );
     return SearchResults.fromJson((data as Map).cast<String, dynamic>());
   }
 
@@ -1880,7 +2201,11 @@ class HiveApi {
   ///
   /// `POST /api/v1/library/playlists` · built in M1.
   Future<Playlist> createPlaylist({required PlaylistCreate body}) async {
-    final data = await _send('POST', '/api/v1/library/playlists', data: body.toJson());
+    final data = await _send(
+      'POST',
+      '/api/v1/library/playlists',
+      data: body.toJson(),
+    );
     return Playlist.fromJson((data as Map).cast<String, dynamic>());
   }
 
@@ -1888,15 +2213,25 @@ class HiveApi {
   ///
   /// `GET /api/v1/library/playlists/{playlistId}` · built in M1.
   Future<Playlist> getPlaylist({required String playlistId}) async {
-    final data = await _send('GET', '/api/v1/library/playlists/${Uri.encodeComponent(playlistId)}');
+    final data = await _send(
+      'GET',
+      '/api/v1/library/playlists/${Uri.encodeComponent(playlistId)}',
+    );
     return Playlist.fromJson((data as Map).cast<String, dynamic>());
   }
 
   /// Rename, change cover or sharing.
   ///
   /// `PATCH /api/v1/library/playlists/{playlistId}` · built in M1.
-  Future<Playlist> updatePlaylist({required String playlistId, required PlaylistUpdate body}) async {
-    final data = await _send('PATCH', '/api/v1/library/playlists/${Uri.encodeComponent(playlistId)}', data: body.toJson());
+  Future<Playlist> updatePlaylist({
+    required String playlistId,
+    required PlaylistUpdate body,
+  }) async {
+    final data = await _send(
+      'PATCH',
+      '/api/v1/library/playlists/${Uri.encodeComponent(playlistId)}',
+      data: body.toJson(),
+    );
     return Playlist.fromJson((data as Map).cast<String, dynamic>());
   }
 
@@ -1904,14 +2239,24 @@ class HiveApi {
   ///
   /// `DELETE /api/v1/library/playlists/{playlistId}` · built in M1.
   Future<void> deletePlaylist({required String playlistId}) async {
-    await _send('DELETE', '/api/v1/library/playlists/${Uri.encodeComponent(playlistId)}');
+    await _send(
+      'DELETE',
+      '/api/v1/library/playlists/${Uri.encodeComponent(playlistId)}',
+    );
   }
 
   /// Replace the playlist's song order (add, remove, reorder).
   ///
   /// `PUT /api/v1/library/playlists/{playlistId}/items` · built in M1.
-  Future<Playlist> setPlaylistItems({required String playlistId, required PlaylistItemsUpdate body}) async {
-    final data = await _send('PUT', '/api/v1/library/playlists/${Uri.encodeComponent(playlistId)}/items', data: body.toJson());
+  Future<Playlist> setPlaylistItems({
+    required String playlistId,
+    required PlaylistItemsUpdate body,
+  }) async {
+    final data = await _send(
+      'PUT',
+      '/api/v1/library/playlists/${Uri.encodeComponent(playlistId)}/items',
+      data: body.toJson(),
+    );
     return Playlist.fromJson((data as Map).cast<String, dynamic>());
   }
 
@@ -1926,14 +2271,24 @@ class HiveApi {
   ///
   /// `DELETE /api/v1/library/likes/{trackId}` · built in M1.
   Future<void> unlikeTrack({required String trackId}) async {
-    await _send('DELETE', '/api/v1/library/likes/${Uri.encodeComponent(trackId)}');
+    await _send(
+      'DELETE',
+      '/api/v1/library/likes/${Uri.encodeComponent(trackId)}',
+    );
   }
 
   /// Get a short-lived signed URL for one song at a chosen quality.
   ///
   /// `POST /api/v1/media/tracks/{trackId}/stream` · built in M1.
-  Future<StreamTicket> createStreamTicket({required String trackId, required StreamRequest body}) async {
-    final data = await _send('POST', '/api/v1/media/tracks/${Uri.encodeComponent(trackId)}/stream', data: body.toJson());
+  Future<StreamTicket> createStreamTicket({
+    required String trackId,
+    required StreamRequest body,
+  }) async {
+    final data = await _send(
+      'POST',
+      '/api/v1/media/tracks/${Uri.encodeComponent(trackId)}/stream',
+      data: body.toJson(),
+    );
     return StreamTicket.fromJson((data as Map).cast<String, dynamic>());
   }
 
@@ -1941,34 +2296,50 @@ class HiveApi {
   ///
   /// `GET /api/v1/media/stream/{ticket}` · built in M1.
   Uri streamAudioUri({required String ticket}) =>
-      Uri.parse(_dio.options.baseUrl).resolve('/api/v1/media/stream/${Uri.encodeComponent(ticket)}');
+      Uri.parse(_dio.options.baseUrl)
+          .resolve('/api/v1/media/stream/${Uri.encodeComponent(ticket)}');
 
   /// Cover art, resized.
   ///
   /// `GET /api/v1/media/artwork/{artworkId}` · built in M1.
-  Uri getArtworkUri({required String artworkId, int? size}) =>
-      _withQuery(Uri.parse(_dio.options.baseUrl).resolve('/api/v1/media/artwork/${Uri.encodeComponent(artworkId)}'), {'size': ?size});
+  Uri getArtworkUri({required String artworkId, int? size}) => _withQuery(
+    Uri.parse(_dio.options.baseUrl)
+        .resolve('/api/v1/media/artwork/${Uri.encodeComponent(artworkId)}'),
+    {'size': ?size},
+  );
 
   /// Synced or plain lyrics when the file has them.
   ///
   /// `GET /api/v1/media/tracks/{trackId}/lyrics` · built in M1.
   Future<Lyrics> getLyrics({required String trackId}) async {
-    final data = await _send('GET', '/api/v1/media/tracks/${Uri.encodeComponent(trackId)}/lyrics');
+    final data = await _send(
+      'GET',
+      '/api/v1/media/tracks/${Uri.encodeComponent(trackId)}/lyrics',
+    );
     return Lyrics.fromJson((data as Map).cast<String, dynamic>());
   }
 
   /// Permission to keep a song offline, with its valid-until date.
   ///
   /// `POST /api/v1/media/tracks/{trackId}/download` · built in M4.
-  Future<Map<String, dynamic>> createDownloadTicket({required String trackId, required Map<String, dynamic> body}) async {
-    final data = await _send('POST', '/api/v1/media/tracks/${Uri.encodeComponent(trackId)}/download', data: body);
+  Future<Map<String, dynamic>> createDownloadTicket({
+    required String trackId,
+    required Map<String, dynamic> body,
+  }) async {
+    final data = await _send(
+      'POST',
+      '/api/v1/media/tracks/${Uri.encodeComponent(trackId)}/download',
+      data: body,
+    );
     return (data as Map).cast<String, dynamic>();
   }
 
   /// Match a short recording against the family library; the clip is deleted afterwards.
   ///
   /// `POST /api/v1/listen/match` · built in M3.
-  Future<Map<String, dynamic>> matchClip({required Map<String, dynamic> body}) async {
+  Future<Map<String, dynamic>> matchClip({
+    required Map<String, dynamic> body,
+  }) async {
     final data = await _send('POST', '/api/v1/listen/match', data: body);
     return (data as Map).cast<String, dynamic>();
   }
@@ -1984,7 +2355,9 @@ class HiveApi {
   /// Save a recognition made on the device by Shazam, so history covers both sources.
   ///
   /// `POST /api/v1/listen/history` · built in M5.
-  Future<Map<String, dynamic>> recordListenResult({required Map<String, dynamic> body}) async {
+  Future<Map<String, dynamic>> recordListenResult({
+    required Map<String, dynamic> body,
+  }) async {
     final data = await _send('POST', '/api/v1/listen/history', data: body);
     return (data as Map).cast<String, dynamic>();
   }
@@ -1992,7 +2365,9 @@ class HiveApi {
   /// Ask the admin to add a song (from Listen or from a search with no results).
   ///
   /// `POST /api/v1/listen/requests` · built in M3.
-  Future<Map<String, dynamic>> createSongRequest({required Map<String, dynamic> body}) async {
+  Future<Map<String, dynamic>> createSongRequest({
+    required Map<String, dynamic> body,
+  }) async {
     final data = await _send('POST', '/api/v1/listen/requests', data: body);
     return (data as Map).cast<String, dynamic>();
   }
@@ -2016,9 +2391,10 @@ class HiveApi {
   /// Report play, pause, seek, skip or queue changes from the playing device.
   ///
   /// `PUT /api/v1/sync/session` · built in M4.
-  Future<Map<String, dynamic>> updatePlaySession({required Map<String, dynamic> body}) async {
+  Future<Map<String, dynamic>> updatePlaySession({
+    required Map<String, dynamic> body,
+  }) async {
     final data = await _send('PUT', '/api/v1/sync/session', data: body);
     return (data as Map).cast<String, dynamic>();
   }
-
 }
