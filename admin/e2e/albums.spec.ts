@@ -30,7 +30,7 @@ test("an album can be corrected and given a cover", async ({ page, request }) =>
   await page.goto("/admin/albums");
   await expect(page.getByRole("heading", { name: "Albums" })).toBeVisible();
   await page.getByPlaceholder(/Album, artist/).fill("Uploads");
-  await page.locator(".row--link").filter({ hasText: "Uploads" }).first().click();
+  await page.locator(".row__link").filter({ hasText: "Uploads" }).first().click();
   await expect(page.getByRole("heading", { name: "Details" })).toBeVisible();
 
   await page.getByLabel("Language").selectOption("ml");

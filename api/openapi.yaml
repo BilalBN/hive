@@ -1896,15 +1896,23 @@ components:
         quality: { type: string, enum: [lossless, high, dataSaver] }
         player: { type: string, enum: [apple, other], default: other }
     DownloadTicket:
-      allOf:
-        - { $ref: "#/components/schemas/StreamTicket" }
-        - type: object
-          required: [validUntil]
-          properties:
-            validUntil:
-              type: string
-              format: date-time
-              description: Plays offline until then; checking in with home moves it on.
+      type: object
+      description: A stream ticket (see StreamTicket) plus how long the song may stay offline.
+      required: [url, expiresAt, format, mimeType, durationMs, transcoded, validUntil]
+      properties:
+        url: { type: string, description: Path on this server; fetch it with no auth header. }
+        expiresAt: { type: string, format: date-time, description: When the link stops working. }
+        format: { $ref: "#/components/schemas/AudioFormat" }
+        source: { $ref: "#/components/schemas/AudioFormat" }
+        mimeType: { type: string }
+        sizeBytes: { type: integer }
+        durationMs: { type: integer }
+        transcoded: { type: boolean }
+        loudness: { $ref: "#/components/schemas/Loudness" }
+        validUntil:
+          type: string
+          format: date-time
+          description: Plays offline until then; checking in with home moves it on.
     DownloadCheck:
       type: object
       required: [validUntil, gone]

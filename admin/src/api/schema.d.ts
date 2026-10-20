@@ -1993,7 +1993,22 @@ export interface components {
              */
             player: "apple" | "other";
         };
-        DownloadTicket: components["schemas"]["StreamTicket"] & {
+        /** @description A stream ticket (see StreamTicket) plus how long the song may stay offline. */
+        DownloadTicket: {
+            /** @description Path on this server; fetch it with no auth header. */
+            url: string;
+            /**
+             * Format: date-time
+             * @description When the link stops working.
+             */
+            expiresAt: string;
+            format: components["schemas"]["AudioFormat"];
+            source?: components["schemas"]["AudioFormat"];
+            mimeType: string;
+            sizeBytes?: number;
+            durationMs: number;
+            transcoded: boolean;
+            loudness?: components["schemas"]["Loudness"];
             /**
              * Format: date-time
              * @description Plays offline until then; checking in with home moves it on.

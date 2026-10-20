@@ -1461,15 +1461,62 @@ class DownloadRequest {
       };
 }
 
+/// A stream ticket (see StreamTicket) plus how long the song may stay offline.
 class DownloadTicket {
   const DownloadTicket({
+    required this.url,
+    required this.expiresAt,
+    required this.format,
+    this.source,
+    required this.mimeType,
+    this.sizeBytes,
+    required this.durationMs,
+    required this.transcoded,
+    this.loudness,
+    required this.validUntil,
   });
 
+  /// Path on this server; fetch it with no auth header.
+  final String url;
+  /// When the link stops working.
+  final DateTime expiresAt;
+  /// What a file or stream is, and how the app labels it.
+  final AudioFormat format;
+  /// What a file or stream is, and how the app labels it.
+  final AudioFormat? source;
+  final String mimeType;
+  final int? sizeBytes;
+  final int durationMs;
+  final bool transcoded;
+  /// EBU R128 measurement of the original, for volume levelling.
+  final Loudness? loudness;
+  /// Plays offline until then; checking in with home moves it on.
+  final DateTime validUntil;
 
   factory DownloadTicket.fromJson(Map<String, dynamic> json) => DownloadTicket(
+        url: json['url'] as String,
+        expiresAt: DateTime.parse(json['expiresAt'] as String),
+        format: AudioFormat.fromJson((json['format'] as Map).cast<String, dynamic>()),
+        source: json['source'] == null ? null : AudioFormat.fromJson((json['source'] as Map).cast<String, dynamic>()),
+        mimeType: json['mimeType'] as String,
+        sizeBytes: json['sizeBytes'] == null ? null : json['sizeBytes'] as int,
+        durationMs: json['durationMs'] as int,
+        transcoded: json['transcoded'] as bool,
+        loudness: json['loudness'] == null ? null : Loudness.fromJson((json['loudness'] as Map).cast<String, dynamic>()),
+        validUntil: DateTime.parse(json['validUntil'] as String),
       );
 
   Map<String, dynamic> toJson() => {
+        'url': url,
+        'expiresAt': expiresAt.toUtc().toIso8601String(),
+        'format': format.toJson(),
+        'source': ?source?.toJson(),
+        'mimeType': mimeType,
+        'sizeBytes': ?sizeBytes,
+        'durationMs': durationMs,
+        'transcoded': transcoded,
+        'loudness': ?loudness?.toJson(),
+        'validUntil': validUntil.toUtc().toIso8601String(),
       };
 }
 
