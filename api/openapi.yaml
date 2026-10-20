@@ -2375,6 +2375,7 @@ components:
         code: { type: string, description: Only when just created. }
         joinLink: { type: string, description: 'Only when just created: hive://join?… for the QR code and the app.' }
         privateNetworkLink: { type: string, description: 'The Tailscale share link saved in Settings, sent along with the invite.' }
+        emailSent: { type: boolean, description: "Only when just created with an email: whether Hive emailed them the invite." }
     AdminInvites:
       type: object
       required: [items]

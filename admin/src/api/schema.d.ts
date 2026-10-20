@@ -2461,6 +2461,8 @@ export interface components {
             joinLink?: string;
             /** @description The Tailscale share link saved in Settings, sent along with the invite. */
             privateNetworkLink?: string;
+            /** @description Only when just created with an email: whether Hive emailed them the invite. */
+            emailSent?: boolean;
         };
         AdminInvites: {
             items: components["schemas"]["AdminInvite"][];

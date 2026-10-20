@@ -187,6 +187,7 @@ describe("Invite", () => {
           expiresAt: new Date(Date.now() + 7 * 86400_000).toISOString(),
           code: "HIVE-7K2Q-9MXP",
           joinLink: "hive://join?a=http%3A%2F%2F100.84.12.7%3A8443&c=HIVE-7K2Q-9MXP",
+          emailSent: true,
         },
       },
     });
@@ -199,8 +200,13 @@ describe("Invite", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Create invite" }));
     expect(await screen.findByText("HIVE-7K2Q-9MXP")).toBeInTheDocument();
-    expect(screen.getByText(/let in as soon as they confirm this email/)).toBeInTheDocument();
+    expect(screen.getByText(/Hive emailed amma@example.com the code/)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Invite sent for Amma" })).toBeInTheDocument();
     expect(screen.getByRole("img", { name: /QR code for the Hive invite/ })).toBeInTheDocument();
+    // The next person can be invited straight away.
+    expect(screen.getByRole("heading", { name: "Invite someone else" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Name")).toHaveValue("");
+    expect(screen.getByRole("button", { name: "Create invite" })).toBeEnabled();
   });
 });
 

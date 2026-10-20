@@ -57,6 +57,7 @@ function joinAddress(link?: string): string {
 }
 
 function Created({ invite, onDone }: { invite: AdminInvite; onDone: () => void }) {
+  const who = invite.name ?? invite.email;
   const address = joinAddress(invite.joinLink);
   const steps = [
     invite.privateNetworkLink
@@ -67,13 +68,29 @@ function Created({ invite, onDone }: { invite: AdminInvite; onDone: () => void }
   ];
   return (
     <section className="panel panel--accent" aria-labelledby="created-h">
-      <h2 id="created-h" className="panel__title">
-        Invite ready
-        {invite.name ? ` for ${invite.name}` : invite.email ? ` for ${invite.email}` : ""}
-      </h2>
+      <div className="panel__head">
+        <h2 id="created-h" className="panel__title">
+          {invite.emailSent ? "Invite sent" : "Invite ready"}
+          {who ? ` for ${who}` : ""}
+        </h2>
+        <button className="button button--secondary" type="button" onClick={onDone}>
+          Close
+        </button>
+      </div>
+      {invite.emailSent && (
+        <p className="note">
+          Hive emailed {invite.email} the code, the QR and the steps. Nothing else to do: they're let in as soon as they
+          confirm their email. You can also show them the QR below.
+        </p>
+      )}
+      {invite.email && invite.emailSent === false && (
+        <p className="note">
+          Email isn't set up (or didn't send), so pass on the code or QR yourself. They're let in as soon as they
+          confirm {invite.email}.
+        </p>
+      )}
       <p className="note">
-        The code is shown once. {until(invite.expiresAt)}.
-        {invite.email ? " They're let in as soon as they confirm this email." : " You'll approve them on Requests."}
+        The code is shown once. {until(invite.expiresAt)}.{!invite.email && " You'll approve them on Requests."}
       </p>
       {isLoopback(address) && (
         <p className="note note--warning">
@@ -103,9 +120,6 @@ function Created({ invite, onDone }: { invite: AdminInvite; onDone: () => void }
             {invite.privateNetworkLink && (
               <CopyButton text={invite.privateNetworkLink} label="Copy private-network link" />
             )}
-            <button className="button button--secondary" type="button" onClick={onDone}>
-              Done
-            </button>
           </div>
           {!invite.privateNetworkLink && (
             <p className="note">
@@ -186,56 +200,56 @@ export function InvitePage() {
         <p className="page__summary">Invite someone with a private-network link and a Hive code.</p>
       </header>
 
-      {created ? (
-        <Created invite={created} onDone={() => setCreated(null)} />
-      ) : (
-        <form className="panel form" onSubmit={submit}>
-          <div className="form__grid">
-            <label className="field">
-              <span>Name</span>
-              <input className="input" maxLength={80} value={name} onChange={(e) => setName(e.target.value)} />
+      {created && <Created invite={created} onDone={() => setCreated(null)} />}
+      <form className="panel form" onSubmit={submit} aria-labelledby="new-h">
+        <h2 id="new-h" className="panel__title">
+          {created ? "Invite someone else" : "New invite"}
+        </h2>
+        <div className="form__grid">
+          <label className="field">
+            <span>Name</span>
+            <input className="input" maxLength={80} value={name} onChange={(e) => setName(e.target.value)} />
+          </label>
+          <div className="field">
+            <label className="field__control">
+              <span>Email</span>
+              <input
+                className="input"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                aria-describedby="email-hint"
+              />
             </label>
-            <div className="field">
-              <label className="field__control">
-                <span>Email</span>
-                <input
-                  className="input"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  aria-describedby="email-hint"
-                />
-              </label>
-              <span className="field__hint" id="email-hint">
-                With an email, they're let in when they confirm it. Without one, you approve them.
-              </span>
-            </div>
-            <label className="field">
-              <span>Role</span>
-              <select className="input" value={role} onChange={(e) => setRole(e.target.value as "member" | "admin")}>
-                <option value="member">Member: listens</option>
-                <option value="admin">Admin: also runs Hive Admin</option>
-              </select>
-            </label>
-            <label className="field">
-              <span>Works for</span>
-              <select className="input" value={days} onChange={(e) => setDays(Number(e.target.value))}>
-                {[1, 3, 7, 14, 30].map((d) => (
-                  <option key={d} value={d}>
-                    {d === 1 ? "1 day" : `${d} days`}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <span className="field__hint" id="email-hint">
+              With an email, they're let in when they confirm it. Without one, you approve them.
+            </span>
           </div>
-          {create.error && <p className="note note--error">{create.error.message}</p>}
-          <div className="actions">
-            <button className="button button--primary" type="submit" disabled={create.isPending}>
-              <UserPlus size={16} aria-hidden /> {create.isPending ? "Creating…" : "Create invite"}
-            </button>
-          </div>
-        </form>
-      )}
+          <label className="field">
+            <span>Role</span>
+            <select className="input" value={role} onChange={(e) => setRole(e.target.value as "member" | "admin")}>
+              <option value="member">Member: listens</option>
+              <option value="admin">Admin: also runs Hive Admin</option>
+            </select>
+          </label>
+          <label className="field">
+            <span>Works for</span>
+            <select className="input" value={days} onChange={(e) => setDays(Number(e.target.value))}>
+              {[1, 3, 7, 14, 30].map((d) => (
+                <option key={d} value={d}>
+                  {d === 1 ? "1 day" : `${d} days`}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        {create.error && <p className="note note--error">{create.error.message}</p>}
+        <div className="actions">
+          <button className="button button--primary" type="submit" disabled={create.isPending}>
+            <UserPlus size={16} aria-hidden /> {create.isPending ? "Creating…" : "Create invite"}
+          </button>
+        </div>
+      </form>
 
       <section className="panel" aria-labelledby="open-h">
         <h2 id="open-h" className="panel__title">

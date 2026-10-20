@@ -2993,6 +2993,7 @@ class AdminInvite {
     this.code,
     this.joinLink,
     this.privateNetworkLink,
+    this.emailSent,
   });
 
   final String id;
@@ -3008,6 +3009,8 @@ class AdminInvite {
   final String? joinLink;
   /// The Tailscale share link saved in Settings, sent along with the invite.
   final String? privateNetworkLink;
+  /// Only when just created with an email: whether Hive emailed them the invite.
+  final bool? emailSent;
 
   factory AdminInvite.fromJson(Map<String, dynamic> json) => AdminInvite(
         id: json['id'] as String,
@@ -3020,6 +3023,7 @@ class AdminInvite {
         code: json['code'] == null ? null : json['code'] as String,
         joinLink: json['joinLink'] == null ? null : json['joinLink'] as String,
         privateNetworkLink: json['privateNetworkLink'] == null ? null : json['privateNetworkLink'] as String,
+        emailSent: json['emailSent'] == null ? null : json['emailSent'] as bool,
       );
 
   Map<String, dynamic> toJson() => {
@@ -3033,6 +3037,7 @@ class AdminInvite {
         'code': ?code,
         'joinLink': ?joinLink,
         'privateNetworkLink': ?privateNetworkLink,
+        'emailSent': ?emailSent,
       };
 }
 

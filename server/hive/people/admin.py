@@ -208,6 +208,8 @@ class Admin:
 
             join = f"hive://join?a={quote(address, safe='')}&c={code}"
             out = self.invite_body(inv, {"code": code, "joinLink": join})
+        if email:
+            out["emailSent"] = False
         if email and self.p.home.email.ready:
             subject, text = mail.invite_text(
                 self.p.home.home_name,
@@ -219,6 +221,7 @@ class Admin:
             # If it fails, the admin still has the code and QR to share.
             with contextlib.suppress(mail.MailError):
                 mail.send(self.p.home.email, email, subject, text, self.p.home.home_name)
+                out["emailSent"] = True
         return out
 
     def revoke_invite(self, invite_id: str) -> None:

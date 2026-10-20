@@ -195,6 +195,23 @@ def test_join_with_an_invite(server: TestClient) -> None:
     assert phone.start("amma@example.com", code).status_code == 404
 
 
+def test_one_invite_after_another(server: TestClient, monkeypatch) -> None:
+    """Each person gets their own invite; making one doesn't stop the next."""
+    set_up_admin(server)
+    sent: list[str] = []
+    monkeypatch.setattr(server.app.state.people.home.email.__class__, "ready", property(lambda _: True))
+    monkeypatch.setattr("hive.people.mail.send", lambda cfg, to, *a, **k: sent.append(to))
+    first = server.post("/api/v1/admin/invites", json={"email": "amma@example.com", "name": "Amma"}).json()
+    second = server.post("/api/v1/admin/invites", json={"email": "basith@example.com"}).json()
+    no_email = server.post("/api/v1/admin/invites", json={"name": "Uncle"}).json()
+    assert first["emailSent"] is True and second["emailSent"] is True
+    assert "emailSent" not in no_email
+    assert sent == ["amma@example.com", "basith@example.com"]
+    assert first["code"] != second["code"]
+    listed = server.get("/api/v1/admin/invites").json()["items"]
+    assert len(listed) == 3
+
+
 def test_join_without_an_invite_waits_for_approval(server: TestClient) -> None:
     set_up_admin(server)
     phone = Phone(away(server), name="Ammu's iPhone", platform="ios")
