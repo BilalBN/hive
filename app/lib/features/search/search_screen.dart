@@ -15,6 +15,7 @@ import '../../ui/language_chips.dart';
 import '../../ui/nav.dart';
 import '../../ui/states.dart';
 import '../../ui/tiles.dart';
+import '../listen/listen_screen.dart' show askForSong;
 
 /// Recent searches, kept on this device only.
 class RecentSearches extends Notifier<List<String>> {
@@ -366,7 +367,13 @@ class _Results extends ConsumerWidget {
             title: 'Nothing found for "$query"',
             text: lang != null
                 ? 'Only ${languageName(ref, lang) ?? 'one language'} is shown. Choose All to search everything.'
-                : 'Try fewer words, or another spelling. Not at home yet? Ask whoever runs your home to add it.',
+                : 'Try fewer words, or another spelling. Not at home yet? Ask for it.',
+            action: lang != null
+                ? null
+                : TextButton(
+                    onPressed: () => askForSong(context, ref, title: query),
+                    child: const Text('Ask to add it'),
+                  ),
           );
         }
         final player = ref.read(playerProvider.notifier);

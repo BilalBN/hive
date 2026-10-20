@@ -4,12 +4,12 @@ import 'package:go_router/go_router.dart';
 
 import 'auth/device_auth.dart';
 import 'core/home_connection.dart';
-import 'design/icons.g.dart';
 import 'design/theme.dart';
 import 'design/tokens.g.dart';
 import 'features/connect/connect_screen.dart';
 import 'features/home/home_screen.dart';
 import 'features/library/album_screen.dart';
+import 'features/listen/listen_screen.dart';
 import 'features/library/artist_screen.dart';
 import 'features/library/library_screen.dart';
 import 'features/library/playlist_screen.dart';
@@ -17,7 +17,6 @@ import 'features/player/lyrics_view.dart';
 import 'features/player/now_playing_screen.dart';
 import 'features/player/queue_view.dart';
 import 'features/search/search_screen.dart';
-import 'features/placeholder_screen.dart';
 import 'features/settings/settings_screen.dart';
 import 'features/shell/app_shell.dart';
 
@@ -129,15 +128,7 @@ GoRouter buildRouter(
         ),
         StatefulShellBranch(
           routes: [
-            GoRoute(
-              path: '/listen',
-              builder: (_, _) => const PlaceholderScreen(
-                title: 'Listen',
-                icon: HiveIcons.audioWaveform,
-                milestone: 'M3',
-                text: 'Find out what song is playing near you.',
-              ),
-            ),
+            GoRoute(path: '/listen', builder: (_, _) => const ListenScreen()),
           ],
         ),
       ],

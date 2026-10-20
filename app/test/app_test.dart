@@ -147,7 +147,7 @@ void main() {
     expect(find.text('Road trip'), findsOneWidget);
     await tester.tap(find.bySemanticsLabel('Listen'));
     await tester.pumpAndSettle();
-    expect(find.text('Arrives in M3'), findsOneWidget);
+    expect(find.text('Tap to listen'), findsOneWidget);
     await tester.tap(find.bySemanticsLabel('Home'));
     await tester.pumpAndSettle();
     expect(find.text('Connected to home'), findsOneWidget);

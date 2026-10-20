@@ -221,6 +221,10 @@ def main(apk: str, address: str, dev_key: str) -> None:
     second = wait_title(lambda t: t and t != first)
     step(f"after Next: {second!r}")
     assert second == "Long Two", f"Next from outside the app didn't move on (still {second!r})"
+    # Previous restarts a song a few seconds in, like any player; twice goes
+    # back whatever the timing ("Long One" is first, so it can't go further).
+    key("KEYCODE_MEDIA_PREVIOUS")
+    time.sleep(0.3)
     key("KEYCODE_MEDIA_PREVIOUS")
     back = wait_title(lambda t: t == "Long One")
     step(f"after Previous: {back!r}")
