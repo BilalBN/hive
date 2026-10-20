@@ -9,6 +9,7 @@ import '../../design/icons.g.dart';
 import '../../design/theme.dart';
 import '../../design/tokens.g.dart';
 import '../../design/widgets.dart';
+import '../../downloads/downloads.dart';
 import '../../library/library_providers.dart';
 import '../../player/player_controller.dart';
 import '../../ui/artwork.dart';
@@ -36,6 +37,9 @@ class HomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final p = HiveTheme.of(context);
     final status = ref.watch(homeStatusProvider);
+    final hasDownloads = ref.watch(
+      downloadsProvider.select((s) => s.tracks.isNotEmpty),
+    );
     final shelves = ref.watch(homeShelvesProvider);
     final wide = MediaQuery.sizeOf(context).width >= desktopBreakpoint;
 
@@ -135,20 +139,33 @@ class HomeScreen extends ConsumerWidget {
                   ),
                   HomeUnreachable(:final reason) => HiveBanner(
                     title: "Can't reach home right now",
-                    body: reason,
-                    action: TextButton(
-                      onPressed: () {
-                        ref.read(homeStatusProvider.notifier).check();
-                        ref.invalidate(homeShelvesProvider);
-                      },
-                      child: Text(
-                        'Try again',
-                        style: HiveType.callout.copyWith(
-                          color: p.accentText,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
+                    body: hasDownloads
+                        ? '$reason Your downloads still play.'
+                        : reason,
+                    action: hasDownloads
+                        ? TextButton(
+                            onPressed: () => context.go('/library/downloads'),
+                            child: Text(
+                              'Downloads',
+                              style: HiveType.callout.copyWith(
+                                color: p.accentText,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          )
+                        : TextButton(
+                            onPressed: () {
+                              ref.read(homeStatusProvider.notifier).check();
+                              ref.invalidate(homeShelvesProvider);
+                            },
+                            child: Text(
+                              'Try again',
+                              style: HiveType.callout.copyWith(
+                                color: p.accentText,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
                   ),
                 },
               ),

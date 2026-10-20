@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../api/hive_api.g.dart';
 import '../../core/api.dart';
 import '../../design/icons.g.dart';
+import '../../downloads/downloads.dart';
+import '../downloads/downloads_screen.dart';
 import '../../design/theme.dart';
 import '../../design/tokens.g.dart';
 import '../../library/library_providers.dart';
@@ -305,6 +307,14 @@ class _PlaylistPageState extends ConsumerState<_PlaylistPage> {
 
     return DetailScaffold(
       actions: [
+        DownloadSetButton(
+          kind: 'playlist',
+          id: pl.id,
+          name: pl.name,
+          onDownload: tracks.isEmpty
+              ? null
+              : () => ref.read(downloadsProvider.notifier).downloadPlaylist(pl),
+        ),
         if (pl.mine)
           IconButton(
             tooltip: 'Playlist options',

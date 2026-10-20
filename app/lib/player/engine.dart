@@ -1,11 +1,63 @@
+// StreamAudioSource is marked experimental, but it is how just_audio plays
+// bytes the app supplies itself (downloads, unlocked as they're read).
+// ignore_for_file: experimental_member_use
+
 import 'dart:async';
 
 import 'package:just_audio/just_audio.dart';
 
+/// Unlocks a downloaded song's bytes [start]..[end] for the player.
+typedef LocalBytes = Stream<List<int>> Function(
+  String trackId,
+  int start, [
+  int? end,
+]);
+
+/// A downloaded song played straight from the vault: the player asks for
+/// byte ranges and gets them unlocked, so seeking works and nothing unlocked
+/// is ever written to disk.
+class DownloadedAudioSource extends StreamAudioSource {
+  DownloadedAudioSource({
+    required this.trackId,
+    required this.size,
+    required this.mimeType,
+    required this.bytes,
+    super.tag,
+  });
+
+  final String trackId;
+  final int size;
+  final String mimeType;
+  final LocalBytes bytes;
+
+  @override
+  Future<StreamAudioResponse> request([int? start, int? end]) async {
+    final from = start ?? 0;
+    final to = end ?? size;
+    return StreamAudioResponse(
+      rangeRequestsSupported: true,
+      sourceLength: size,
+      contentLength: to - from,
+      offset: from,
+      contentType: mimeType,
+      stream: bytes(trackId, from, to),
+    );
+  }
+}
+
 /// One song the engine can play: a stream URL from a ticket.
 class EngineSource {
-  const EngineSource({required this.uri, required this.entryId});
+  const EngineSource({
+    required this.uri,
+    required this.entryId,
+    this.sizeBytes,
+    this.mimeType,
+  });
   final Uri uri;
+
+  /// For downloaded songs (hive-download:…), which the engine reads itself.
+  final int? sizeBytes;
+  final String? mimeType;
 
   /// The queue entry this source plays, so index changes can be matched up.
   final int entryId;
@@ -48,7 +100,7 @@ abstract class AudioEngine {
 /// just_audio: ExoPlayer on Android, AVQueuePlayer on Apple, media_kit (mpv)
 /// on Windows. Keeping the next song loaded is what makes playback gapless.
 class JustAudioEngine implements AudioEngine {
-  JustAudioEngine()
+  JustAudioEngine({this.local})
     : _player = AudioPlayer(
         // Buffer well ahead so a short network dip doesn't stop lossless.
         audioLoadConfiguration: const AudioLoadConfiguration(
@@ -64,6 +116,9 @@ class JustAudioEngine implements AudioEngine {
 
   final AudioPlayer _player;
   int _length = 0;
+
+  /// Reads downloaded songs; without it they can't be played.
+  final LocalBytes? local;
 
   @override
   Stream<int?> get indexStream => _player.currentIndexStream;
@@ -99,7 +154,18 @@ class JustAudioEngine implements AudioEngine {
   @override
   int get length => _length;
 
-  AudioSource _source(EngineSource s) => AudioSource.uri(s.uri, tag: s.entryId);
+  AudioSource _source(EngineSource s) {
+    if (s.uri.scheme == 'hive-download' && local != null) {
+      return DownloadedAudioSource(
+        trackId: Uri.decodeComponent(s.uri.path),
+        size: s.sizeBytes ?? 0,
+        mimeType: s.mimeType ?? 'audio/mpeg',
+        bytes: local!,
+        tag: s.entryId,
+      );
+    }
+    return AudioSource.uri(s.uri, tag: s.entryId);
+  }
 
   @override
   Future<void> setSources(

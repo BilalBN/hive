@@ -6,7 +6,9 @@ import 'auth/device_auth.dart';
 import 'core/home_connection.dart';
 import 'design/theme.dart';
 import 'design/tokens.g.dart';
+import 'downloads/downloads.dart';
 import 'features/connect/connect_screen.dart';
+import 'features/downloads/downloads_screen.dart';
 import 'features/home/home_screen.dart';
 import 'features/library/album_screen.dart';
 import 'features/listen/listen_screen.dart';
@@ -122,7 +124,22 @@ GoRouter buildRouter(
             GoRoute(
               path: '/library',
               builder: (_, _) => const LibraryScreen(),
-              routes: _details(),
+              routes: [
+                ..._details(),
+                GoRoute(
+                  path: 'downloads',
+                  builder: (_, _) => const DownloadsScreen(),
+                  routes: [
+                    GoRoute(
+                      path: ':kind/:id',
+                      builder: (_, s) => DownloadedSetScreen(
+                        kind: s.pathParameters['kind']!,
+                        id: s.pathParameters['id']!,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ],
         ),
@@ -165,6 +182,9 @@ class HiveApp extends ConsumerWidget {
     // Keep the home check running for as long as the app is open.
     ref.watch(homeStatusProvider);
     ref.watch(authLoadedProvider);
+    // Downloads check in with home and carry on downloading in the
+    // background; listening keeps them going without rebuilding the app.
+    ref.listen(downloadsProvider, (_, _) {});
     return MaterialApp.router(
       title: 'Hive',
       debugShowCheckedModeBanner: false,

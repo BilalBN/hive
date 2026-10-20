@@ -171,6 +171,19 @@ String formatLength(int ms) {
   return m == 0 ? '$h hr' : '$h hr $m min';
 }
 
+/// "820 KB", "1.4 GB".
+String formatBytes(int bytes) {
+  const units = ['bytes', 'KB', 'MB', 'GB', 'TB'];
+  var v = bytes.toDouble();
+  var u = 0;
+  while (v >= 1000 && u < units.length - 1) {
+    v /= 1024;
+    u++;
+  }
+  if (u == 0) return '$bytes bytes';
+  return '${v >= 100 || u == 1 ? v.round() : v.toStringAsFixed(1)} ${units[u]}';
+}
+
 String plural(int n, String one, [String? many]) =>
     '$n ${n == 1 ? one : (many ?? '${one}s')}';
 

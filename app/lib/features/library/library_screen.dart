@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../api/hive_api.g.dart';
 import '../../core/api.dart';
 import '../../design/icons.g.dart';
+import '../../downloads/downloads.dart';
+import '../downloads/downloads_screen.dart';
 import '../../design/theme.dart';
 import '../../design/tokens.g.dart';
 import '../../library/library_providers.dart';
@@ -19,7 +22,8 @@ enum _Section {
   playlists('Playlists'),
   albums('Albums'),
   artists('Artists'),
-  songs('Songs');
+  songs('Songs'),
+  downloads('Downloads');
 
   const _Section(this.label);
   final String label;
@@ -61,6 +65,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
       _Section.albums => _Albums(sort: _sort),
       _Section.artists => const _Artists(),
       _Section.songs => const _Songs(),
+      _Section.downloads => const _Downloads(),
     };
     return SafeArea(
       bottom: false,
@@ -153,6 +158,23 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   }
 }
 
+/// Works with home off: everything here is on the device.
+class _Downloads extends ConsumerWidget {
+  const _Downloads();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final s = ref.watch(downloadsProvider);
+    return ListView(
+      padding: EdgeInsets.only(
+        top: HiveSpace.xs,
+        bottom: MediaQuery.paddingOf(context).bottom + HiveSpace.md,
+      ),
+      children: downloadRows(context, ref, s),
+    );
+  }
+}
+
 class _Playlists extends ConsumerWidget {
   const _Playlists();
 
@@ -160,6 +182,9 @@ class _Playlists extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final p = HiveTheme.of(context);
     final lists = ref.watch(playlistsProvider);
+    final downloads = ref.watch(
+      downloadsProvider.select((s) => s.tracks.length),
+    );
     final liked = ListRow(
       leading: Container(
         width: 48,
@@ -186,6 +211,25 @@ class _Playlists extends ConsumerWidget {
           ),
           children: [
             liked,
+            if (downloads > 0)
+              ListRow(
+                leading: Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: p.raised,
+                    borderRadius: BorderRadius.circular(HiveRadius.art),
+                  ),
+                  child: Icon(
+                    HiveIcons.circleArrowDown,
+                    color: p.accentText,
+                    size: 22,
+                  ),
+                ),
+                title: 'Downloads',
+                subtitle: '${plural(downloads, 'song')} on this device',
+                onTap: () => context.push('/library/downloads'),
+              ),
             for (final pl in items)
               ListRow(
                 leading: Mosaic(

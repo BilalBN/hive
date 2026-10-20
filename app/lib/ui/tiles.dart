@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../api/hive_api.g.dart';
 import '../design/glyphs.dart';
 import '../design/icons.g.dart';
+import '../downloads/downloads.dart';
 import '../design/theme.dart';
 import '../design/tokens.g.dart';
 import '../player/player_controller.dart';
@@ -44,6 +45,9 @@ class TrackRow extends ConsumerWidget {
       playerProvider.select((s) => s.track?.id == track.id),
     );
     final playing = ref.watch(playerProvider.select((s) => s.playing));
+    final downloaded = ref.watch(
+      downloadsProvider.select((s) => s.has(track.id)),
+    );
     final titleColor = isCurrent ? p.accentText : p.textPrimary;
     final subtitle = showAlbum
         ? '${track.artistName} · ${track.albumTitle}'
@@ -88,7 +92,7 @@ class TrackRow extends ConsumerWidget {
     return Semantics(
       button: true,
       label:
-          '${track.title}, ${track.artistName}${isCurrent ? ', playing' : ''}',
+          '${track.title}, ${track.artistName}${downloaded ? ', downloaded' : ''}${isCurrent ? ', playing' : ''}',
       excludeSemantics: true,
       customSemanticsActions: {
         const CustomSemanticsAction(label: 'More actions'): () => actions(),
@@ -128,13 +132,29 @@ class TrackRow extends ConsumerWidget {
                                 : FontWeight.w400,
                           ),
                         ),
-                        Text(
-                          subtitle,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: HiveType.caption.copyWith(
-                            color: p.textSecondary,
-                          ),
+                        Row(
+                          children: [
+                            if (downloaded)
+                              Padding(
+                                padding: const EdgeInsets.only(right: 4),
+                                child: Icon(
+                                  HiveIcons.circleArrowDown,
+                                  size: 12,
+                                  color: p.accentText,
+                                  semanticLabel: 'Downloaded',
+                                ),
+                              ),
+                            Flexible(
+                              child: Text(
+                                subtitle,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: HiveType.caption.copyWith(
+                                  color: p.textSecondary,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),

@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/api/hive_api.g.dart';
 import 'package:hive/core/api.dart';
 import 'package:hive/core/home_connection.dart';
+import 'package:hive/downloads/vault.dart';
 import 'package:hive/player/engine.dart';
 import 'package:hive/player/player_controller.dart';
 import 'package:hive/player/quality.dart';
@@ -35,6 +36,10 @@ Future<(ProviderContainer, FakeEngine, FakeTickets)> setUpPlayer({
       networkKindProvider.overrideWith((ref) => Stream.value(NetworkKind.wifi)),
       homeConfigProvider.overrideWithValue(
         HomeConfig(Uri.parse('http://100.84.12.7:8443'), 'k'),
+      ),
+      downloadVaultProvider.overrideWithValue(MemoryVault()),
+      healthCheckProvider.overrideWithValue(
+        (_) async => throw HiveApiException(null, null, 'offline'),
       ),
     ],
   );

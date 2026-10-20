@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/app.dart';
+import 'package:hive/downloads/downloads.dart';
 
 import 'app_test.dart' show health;
 import 'screens_test.dart' show openLibraryAlbum;
@@ -131,6 +132,40 @@ final Map<String, (Size, bool, Steps?)> _shots = {
     true,
     (t) async {
       await t.tap(find.byKey(const Key('open-settings')));
+      await t.pumpAndSettle();
+    },
+  ),
+  'phone-album-downloaded': (
+    const Size(390, 844),
+    true,
+    (t) async {
+      await openLibraryAlbum(t, 'Premam');
+      await t.tap(find.byTooltip('Download'));
+      await t.pumpAndSettle();
+      ScaffoldMessenger.of(t.element(find.byType(Scaffold).first))
+          .removeCurrentSnackBar();
+      await t.pumpAndSettle();
+    },
+  ),
+  'phone-downloads': (
+    const Size(390, 844),
+    true,
+    (t) async {
+      final c = ProviderScope.containerOf(t.element(find.byType(HiveApp)));
+      await c.read(downloadsProvider.notifier).downloadAlbum(premam);
+      await c.read(downloadsProvider.notifier).downloadTrack(lagaan.tracks[0]);
+      await t.pumpAndSettle();
+      await t.tap(find.bySemanticsLabel('Library'));
+      await t.pumpAndSettle();
+      await t.tap(find.textContaining('on this device'));
+      await t.pumpAndSettle();
+    },
+  ),
+  'phone-listen': (
+    const Size(390, 844),
+    true,
+    (t) async {
+      await t.tap(find.bySemanticsLabel('Listen'));
       await t.pumpAndSettle();
     },
   ),

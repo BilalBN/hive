@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../api/hive_api.g.dart';
 import '../core/api.dart';
 import '../core/home_connection.dart';
+import '../downloads/downloads.dart';
 import 'engine.dart';
 import 'quality.dart';
 
@@ -174,7 +175,10 @@ final continuationFetcherProvider = Provider<ContinuationFetcher>((ref) {
 });
 
 final audioEngineProvider = Provider<AudioEngine>((ref) {
-  final engine = JustAudioEngine();
+  final engine = JustAudioEngine(
+    local: (id, start, [end]) =>
+        ref.read(downloadsProvider.notifier).open(id, start, end),
+  );
   ref.onDispose(engine.dispose);
   return engine;
 });
@@ -520,6 +524,13 @@ class PlayerController extends Notifier<PlayerState> {
   }
 
   Future<StreamTicket> _ticketFor(QueueEntry e, {required bool play}) async {
+    // Downloaded: play it from the device, home or not.
+    final local = ref.read(downloadsProvider.notifier).ticketFor(e.track.id);
+    if (local != null) {
+      _tickets[e.id] = local;
+      if (play) _countPlay(e.track.id);
+      return local;
+    }
     final cached = _tickets[e.id];
     final fresh =
         cached != null &&
@@ -537,8 +548,30 @@ class PlayerController extends Notifier<PlayerState> {
     return t;
   }
 
-  Uri _uriOf(StreamTicket t) =>
-      ref.read(homeConfigProvider)!.address.resolve(t.url);
+  /// Tell home a downloaded song was played (when it can be reached), so it
+  /// still counts for Recently played.
+  void _countPlay(String trackId) {
+    if (ref.read(homeStatusProvider) is! HomeConnected) return;
+    unawaited(
+      _fetch(
+        trackId,
+        state.mode,
+        play: true,
+        context: state.source?.context,
+      ).then((_) {}, onError: (_) {}),
+    );
+  }
+
+  Uri _uriOf(StreamTicket t) => t.url.startsWith('$downloadScheme:')
+      ? Uri.parse(t.url)
+      : ref.read(homeConfigProvider)!.address.resolve(t.url);
+
+  EngineSource _sourceOf(StreamTicket t, int entryId) => EngineSource(
+    uri: _uriOf(t),
+    entryId: entryId,
+    sizeBytes: t.sizeBytes,
+    mimeType: t.mimeType,
+  );
 
   Future<void> _loadCurrent({
     required bool autoplay,
@@ -551,7 +584,7 @@ class PlayerController extends Notifier<PlayerState> {
     try {
       final ticket = await _ticketFor(entry, play: true);
       if (gen != _generation) return;
-      final sources = [EngineSource(uri: _uriOf(ticket), entryId: entry.id)];
+      final sources = [_sourceOf(ticket, entry.id)];
       _slot0 = entry.id;
       _slot1 = null;
       final n = _nextIndex();
@@ -560,7 +593,7 @@ class PlayerController extends Notifier<PlayerState> {
         try {
           final nt = await _ticketFor(nextEntry, play: false);
           if (gen != _generation) return;
-          sources.add(EngineSource(uri: _uriOf(nt), entryId: nextEntry.id));
+          sources.add(_sourceOf(nt, nextEntry.id));
           _slot1 = nextEntry.id;
         } catch (_) {
           // The next song is fetched again when it's needed.
@@ -613,14 +646,18 @@ class PlayerController extends Notifier<PlayerState> {
     await _applyVolume();
     if (gen != _generation) return;
     // Count it as played (the stream was fetched ahead as a prefetch).
-    unawaited(
-      _fetch(
-        state.queue[i].track.id,
-        state.mode,
-        play: true,
-        context: state.source?.context,
-      ).then((t) => _tickets[playingId] = t, onError: (_) => null),
-    );
+    if (ticket != null && ticket.url.startsWith('$downloadScheme:')) {
+      _countPlay(state.queue[i].track.id);
+    } else {
+      unawaited(
+        _fetch(
+          state.queue[i].track.id,
+          state.mode,
+          play: true,
+          context: state.source?.context,
+        ).then((t) => _tickets[playingId] = t, onError: (_) => null),
+      );
+    }
     try {
       await _engine.removeAt(0);
     } catch (_) {
@@ -662,7 +699,7 @@ class PlayerController extends Notifier<PlayerState> {
       final t = await _ticketFor(wanted, play: false);
       if (gen != _generation || _slot1 != null) return;
       _slot1 = wanted.id;
-      await _engine.addSource(EngineSource(uri: _uriOf(t), entryId: wanted.id));
+      await _engine.addSource(_sourceOf(t, wanted.id));
     } catch (_) {
       // Tried again on the next queue change or skip.
     }

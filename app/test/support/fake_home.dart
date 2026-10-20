@@ -8,6 +8,8 @@ import 'package:hive/auth/device_auth.dart';
 import 'package:hive/auth/secret_store.dart';
 import 'package:hive/core/api.dart';
 import 'package:hive/core/home_connection.dart';
+import 'package:hive/downloads/downloads.dart';
+import 'package:hive/downloads/vault.dart';
 import 'package:hive/player/player_controller.dart';
 import 'package:hive/player/quality.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -191,6 +193,27 @@ class FakeHomeAdapter implements HttpClientAdapter {
     final path = o.uri.path;
     final hook = extra['${o.method} $path'];
     if (hook != null) return hook(o);
+    if (path == '/api/v1/listen/history') {
+      return ListenHistory(
+        items: [
+          ListenEvent(
+            id: 2,
+            at: DateTime.now().subtract(const Duration(minutes: 20)),
+            source: 'library',
+            matched: true,
+            track: premam.tracks[0],
+            positionMs: 62000,
+          ),
+          ListenEvent(
+            id: 1,
+            at: DateTime.now().subtract(const Duration(days: 1)),
+            source: 'library',
+            matched: false,
+            requested: true,
+          ),
+        ],
+      ).toJson();
+    }
     if (path == '/api/v1/library/suggest') {
       final q = (o.uri.queryParameters['q'] ?? '').toLowerCase();
       return Suggestions(
@@ -423,6 +446,8 @@ Future<List<Override>> fakeHomeOverrides({
   bool connected = true,
   Map<String, Object> prefs = const {},
   MemorySecretStore? secrets,
+  MemoryVault? vault,
+  FakeDownloadTransport? downloads,
 }) async {
   SharedPreferences.setMockInitialValues({
     if (connected) 'home.address': 'http://100.84.12.7:8443',
@@ -451,5 +476,9 @@ Future<List<Override>> fakeHomeOverrides({
     audioEngineProvider.overrideWithValue(engine ?? FakeEngine()),
     ticketFetcherProvider.overrideWithValue(tickets.call),
     networkKindProvider.overrideWith((ref) => Stream.value(NetworkKind.wifi)),
+    downloadVaultProvider.overrideWithValue(vault ?? MemoryVault()),
+    downloadTransportProvider.overrideWithValue(
+      downloads ?? FakeDownloadTransport(),
+    ),
   ];
 }

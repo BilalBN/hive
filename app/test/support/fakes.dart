@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:hive/api/hive_api.g.dart';
+import 'package:hive/downloads/downloads.dart';
 import 'package:hive/player/engine.dart';
 import 'package:hive/player/quality.dart';
 
@@ -176,4 +177,61 @@ Future<void> pump() async {
   for (var i = 0; i < 10; i++) {
     await Future<void>.delayed(Duration.zero);
   }
+}
+
+/// Home's side of downloads without a network: tickets, the audio bytes
+/// (each song is its id repeated), check-ins and playlists.
+class FakeDownloadTransport implements DownloadTransport {
+  final tickets = <String>[];
+  final checks = <List<String>>[];
+  Set<String> gone = {};
+  bool down = false;
+  DateTime validUntil = DateTime.now().add(const Duration(days: 30));
+  final playlists = <String, Playlist>{};
+
+  static List<int> bytesOf(String id) =>
+      List<int>.generate(70000, (i) => id.codeUnitAt(i % id.length));
+
+  @override
+  Future<DownloadTicket> ticket(String trackId, QualityMode quality) async {
+    if (down) throw HiveApiException(null, null, 'down');
+    tickets.add('$trackId@${quality.wire}');
+    return DownloadTicket(
+      url: '/api/v1/media/file/$trackId',
+      expiresAt: DateTime.now().add(const Duration(minutes: 10)),
+      format: opus256,
+      mimeType: 'audio/ogg',
+      sizeBytes: 70000,
+      durationMs: 240000,
+      transcoded: true,
+      validUntil: validUntil,
+    );
+  }
+
+  @override
+  Future<Stream<List<int>>> fetch(
+    String url, {
+    void Function(int total)? onTotal,
+  }) async {
+    final b = bytesOf(url.split('/').last);
+    onTotal?.call(b.length);
+    return Stream.fromIterable([b.sublist(0, 30000), b.sublist(30000)]);
+  }
+
+  @override
+  Future<DownloadCheck> check(List<String> trackIds) async {
+    if (down) throw HiveApiException(null, null, 'down');
+    checks.add(trackIds);
+    return DownloadCheck(
+      validUntil: validUntil,
+      gone: trackIds.where(gone.contains).toList(),
+    );
+  }
+
+  @override
+  Future<List<int>?> art(String artworkId) async => [1, 2, 3];
+
+  @override
+  Future<Playlist> playlist(String playlistId) async =>
+      playlists[playlistId] ?? (throw HiveApiException(404, null, 'gone'));
 }

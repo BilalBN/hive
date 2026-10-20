@@ -1,9 +1,12 @@
+import 'dart:io';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../api/hive_api.g.dart';
 import '../auth/device_auth.dart';
+import '../downloads/vault.dart';
 import 'home_connection.dart';
 
 /// Where home is and, for homes still on M1's development key, that key.
@@ -116,6 +119,9 @@ ImageProvider? artworkImage(
   int size = 300,
 }) {
   if (artworkId == null) return null;
+  // Kept with downloads: shows with home off, and costs home nothing.
+  final kept = ref.watch(downloadedArtProvider)[artworkId];
+  if (kept != null) return FileImage(File(kept));
   final config = ref.watch(homeConfigProvider);
   if (config == null) return null;
   final auth = ref.watch(deviceAuthProvider);

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../api/hive_api.g.dart';
 import '../core/api.dart';
 import '../design/icons.g.dart';
+import '../downloads/downloads.dart';
 import '../design/theme.dart';
 import '../design/tokens.g.dart';
 import '../library/library_providers.dart';
@@ -27,6 +28,11 @@ List<_Action> _actionsFor(
 }) {
   final player = ref.read(playerProvider.notifier);
   final liked = ref.read(likesProvider.notifier).isLiked(track);
+  final downloads = ref.read(downloadsProvider);
+  final single =
+      downloads.tracks[track.id]?.single ??
+      downloads.jobs[track.id]?.single ??
+      false;
   return [
     _Action(HiveIcons.listStart, 'Play next', () async {
       player.playNext(track);
@@ -52,6 +58,16 @@ List<_Action> _actionsFor(
         }
       },
     ),
+    if (single)
+      _Action(HiveIcons.circleX, 'Remove download', () async {
+        await ref.read(downloadsProvider.notifier).removeTrack(track.id);
+        if (context.mounted) _toast(context, 'Download removed');
+      })
+    else if (!downloads.has(track.id))
+      _Action(HiveIcons.circleArrowDown, 'Download', () async {
+        await ref.read(downloadsProvider.notifier).downloadTrack(track);
+        if (context.mounted) _toast(context, 'Downloading');
+      }),
     _Action(
       HiveIcons.discAlbum,
       'Go to album',
@@ -142,69 +158,76 @@ Future<void> showTrackActions(
     backgroundColor: p.surface,
     showDragHandle: true,
     useRootNavigator: true,
+    // Taller than the default when needed, and scrolls on small phones.
+    isScrollControlled: true,
+    constraints: BoxConstraints(
+      maxHeight: MediaQuery.sizeOf(context).height * 0.85,
+    ),
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(
         top: Radius.circular(HiveRadius.sheet),
       ),
     ),
     builder: (sheet) => SafeArea(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-              HiveSpace.md,
-              0,
-              HiveSpace.md,
-              HiveSpace.sm,
-            ),
-            child: Row(
-              children: [
-                Artwork(
-                  artworkId: track.artworkId,
-                  title: track.albumTitle,
-                  size: 48,
-                  pixels: 96,
-                ),
-                const SizedBox(width: HiveSpace.sm),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        track.title,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: HiveType.body.copyWith(
-                          color: p.textPrimary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      Text(
-                        track.artistName,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: HiveType.callout.copyWith(
-                          color: p.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Divider(height: 1, color: p.border),
-          for (final a in actions)
-            ListTile(
-              leading: Icon(a.icon, size: 20, color: p.textSecondary),
-              title: Text(
-                a.label,
-                style: HiveType.body.copyWith(color: p.textPrimary),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                HiveSpace.md,
+                0,
+                HiveSpace.md,
+                HiveSpace.sm,
               ),
-              onTap: () => Navigator.of(sheet).pop(a),
+              child: Row(
+                children: [
+                  Artwork(
+                    artworkId: track.artworkId,
+                    title: track.albumTitle,
+                    size: 48,
+                    pixels: 96,
+                  ),
+                  const SizedBox(width: HiveSpace.sm),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          track.title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: HiveType.body.copyWith(
+                            color: p.textPrimary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        Text(
+                          track.artistName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: HiveType.callout.copyWith(
+                            color: p.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
-        ],
+            Divider(height: 1, color: p.border),
+            for (final a in actions)
+              ListTile(
+                leading: Icon(a.icon, size: 20, color: p.textSecondary),
+                title: Text(
+                  a.label,
+                  style: HiveType.body.copyWith(color: p.textPrimary),
+                ),
+                onTap: () => Navigator.of(sheet).pop(a),
+              ),
+          ],
+        ),
       ),
     ),
   );

@@ -9,6 +9,7 @@ import '../../core/app_info.dart';
 import '../../core/home_connection.dart';
 import '../../player/quality.dart';
 import '../../design/icons.g.dart';
+import '../../downloads/downloads.dart';
 import '../../design/theme.dart';
 import '../../design/tokens.g.dart';
 
@@ -109,6 +110,22 @@ class SettingsScreen extends ConsumerWidget {
                     }
                   },
                 ),
+                _Row(
+                  icon: HiveIcons.circleArrowDown,
+                  title: 'Downloads',
+                  value: ref.watch(
+                    downloadsProvider.select((s) => s.quality.label),
+                  ),
+                  onTap: () async {
+                    final dl = ref.read(downloadsProvider.notifier);
+                    final m = await _pickQuality(
+                      context,
+                      'Quality for downloads',
+                      ref.read(downloadsProvider).quality,
+                    );
+                    if (m != null) await dl.setQuality(m);
+                  },
+                ),
                 SwitchListTile(
                   secondary: Icon(
                     HiveIcons.slidersHorizontal,
@@ -157,7 +174,7 @@ class SettingsScreen extends ConsumerWidget {
                 0,
               ),
               child: Text(
-                'Changes apply from the next song. Bluetooth headphones always receive High quality: Bluetooth can\'t carry lossless.',
+                'Changes apply from the next song (downloads: from the next one downloaded). Bluetooth headphones always receive High quality: Bluetooth can\'t carry lossless.',
                 style: HiveType.caption.copyWith(color: p.textSecondary),
               ),
             ),
@@ -173,7 +190,7 @@ class SettingsScreen extends ConsumerWidget {
             ),
             const SizedBox(height: HiveSpace.md),
             Text(
-              'Listen and appearance arrive with the milestones that build them.',
+              'Hive follows your phone or computer for light and dark.',
               style: HiveType.caption.copyWith(color: p.textSecondary),
             ),
           ],

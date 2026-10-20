@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../api/hive_api.g.dart';
 import '../../design/icons.g.dart';
+import '../../downloads/downloads.dart';
+import '../downloads/downloads_screen.dart';
 import '../../design/theme.dart';
 import '../../design/tokens.g.dart';
 import '../../library/library_providers.dart';
@@ -92,6 +94,14 @@ class _AlbumPage extends ConsumerWidget {
 
     return DetailScaffold(
       actions: [
+        DownloadSetButton(
+          kind: 'album',
+          id: album.id,
+          name: album.title,
+          onDownload: album.tracks.isEmpty
+              ? null
+              : () => ref.read(downloadsProvider.notifier).downloadAlbum(album),
+        ),
         IconButton(
           tooltip: 'Add album to playlist',
           icon: Icon(HiveIcons.listPlus, color: p.textSecondary),
