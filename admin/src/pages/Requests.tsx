@@ -165,6 +165,8 @@ function SongRow({ r }: { r: SongRequest }) {
   });
   const name = r.title ? (r.artist ? `${r.title} · ${r.artist}` : r.title) : "A song Listen heard";
   const how = r.source === "listen" ? "from Listen" : "from Search";
+  const who = r.personName ?? "Someone";
+  const nameless = !r.title && !r.artist && !r.note;
   return (
     <li className="row row--request">
       <span className="row__icon" aria-hidden>
@@ -173,14 +175,23 @@ function SongRow({ r }: { r: SongRequest }) {
       <div className="row__text">
         <p className="row__title">{name}</p>
         <p className="row__meta">
-          {r.personName ?? "Someone"} · {how} · {ago(r.at)}
-          {r.status === "added" ? " · added" : r.status === "dismissed" ? " · not adding" : ""}
+          {who} · {how} · {ago(r.at)}
         </p>
         {r.heardAt && <p className="row__meta">Heard {dateTime.format(new Date(r.heardAt))}</p>}
         {r.note && <p className="row__meta">“{r.note}”</p>}
+        {nameless && r.status === "waiting" && (
+          <p className="row__meta">
+            Listen didn't recognise it and no name was given. Ask {r.personName ?? "them"} which song it was.
+          </p>
+        )}
         {decide.error && <p className="note note--error">{decide.error.message}</p>}
       </div>
       <div className="row__actions">
+        {r.status !== "waiting" && (
+          <span className={`state ${r.status === "added" ? "state--found" : ""}`}>
+            {r.status === "added" ? "Added" : "Won't add"}
+          </span>
+        )}
         {r.status === "waiting" ? (
           <>
             <button
@@ -189,7 +200,7 @@ function SongRow({ r }: { r: SongRequest }) {
               disabled={decide.isPending}
               onClick={() => decide.mutate("dismissed")}
             >
-              <X size={16} aria-hidden /> Not adding
+              <X size={16} aria-hidden /> Won't add
             </button>
             <button
               className="button button--primary"
@@ -197,7 +208,7 @@ function SongRow({ r }: { r: SongRequest }) {
               disabled={decide.isPending}
               onClick={() => decide.mutate("added")}
             >
-              <Check size={16} aria-hidden /> Added
+              <Check size={16} aria-hidden /> Mark as added
             </button>
           </>
         ) : (
@@ -230,14 +241,26 @@ function SongRequests() {
         (data.length ? (
           <>
             <p className="note">
-              Add the song to your music (Upload, or the music folder), then mark it added. They aren't told
-              automatically yet.
+              Hive can't fetch songs: add the song yourself (Upload, or copy it into the music folder), then mark it
+              added here. {waiting.length ? "" : "Nothing waiting."}
             </p>
-            <ul className="rows">
-              {[...waiting, ...decided].map((r) => (
-                <SongRow key={r.id} r={r} />
-              ))}
-            </ul>
+            {waiting.length > 0 && (
+              <ul className="rows">
+                {waiting.map((r) => (
+                  <SongRow key={r.id} r={r} />
+                ))}
+              </ul>
+            )}
+            {decided.length > 0 && (
+              <>
+                <h3 className="panel__subtitle">Done lately</h3>
+                <ul className="rows">
+                  {decided.map((r) => (
+                    <SongRow key={r.id} r={r} />
+                  ))}
+                </ul>
+              </>
+            )}
           </>
         ) : (
           <p className="note">

@@ -118,6 +118,42 @@ class People:
         self._starts: dict[str, deque[float]] = defaultdict(deque)
         self.resend_seconds = RESEND_SECONDS  # tests turn the waiting off
         self.codes_per_hour = CODES_PER_HOUR
+        self.tidy_repeated_devices()
+
+    def tidy_repeated_devices(self) -> int:
+        """Devices that joined again before Hive replaced their earlier entry
+        (M2) left that entry signed in. Remove an earlier entry with the same
+        person, name and platform once it hasn't been seen since the newer
+        one joined: that install is gone. Returns how many were removed."""
+        removed = 0
+        with self.lock, Session(self.db.engine) as s:
+            devices = list(
+                s.scalars(
+                    select(Device).where(Device.status == "active").order_by(Device.created_at)
+                )
+            )
+            newest: dict[tuple[str, str, str], Device] = {}
+            for d in reversed(devices):
+                key = (d.user_id, d.name, d.platform)
+                newer = newest.get(key)
+                if newer is None:
+                    newest[key] = d
+                    continue
+                last = aware(d.last_seen_at or d.created_at)
+                if last <= aware(newer.created_at):
+                    d.status, d.revoked_at, d.revoked_by = "revoked", now(), "replaced"
+                    d.refresh_hash = None
+                    removed += 1
+            if removed:
+                self.audit(
+                    s,
+                    "device.tidy",
+                    f"Hive removed {removed} earlier sign-in{'s' if removed != 1 else ''} "
+                    "of devices that joined again.",
+                    actor="Hive",
+                )
+                s.commit()
+        return removed
 
     # ------------------------------------------------------------ basics
     def _secret(self, key: str) -> str:
@@ -545,6 +581,23 @@ class People:
             user = s.get(User, req.user_id)
             if user is None or user.status != "active":
                 raise Problem(403, "Access paused", "Ask whoever runs this home.", code="suspended")
+            # The same phone or computer joining again (reinstalled, or its
+            # sign-in reset) replaces its earlier entry instead of sitting
+            # beside it, and doesn't count as a device change.
+            name = body["name"].strip()[:80]
+            for old in self.active_devices(s, user.id):
+                if old.name == name and old.platform == body["platform"]:
+                    old.status, old.revoked_at, old.revoked_by = "revoked", now(), "replaced"
+                    old.refresh_hash = None
+                    self.audit(
+                        s,
+                        "device.replace",
+                        f"{user.name} signed in again on {name}; its earlier sign-in was removed.",
+                        actor=user.name,
+                        actor_id=user.id,
+                        target_id=old.id,
+                    )
+            s.flush()
             devices = self.active_devices(s, user.id)
             if len(devices) >= self.limit_for(user):
                 replace = body.get("replaceDeviceId")

@@ -199,9 +199,13 @@ def test_one_invite_after_another(server: TestClient, monkeypatch) -> None:
     """Each person gets their own invite; making one doesn't stop the next."""
     set_up_admin(server)
     sent: list[str] = []
-    monkeypatch.setattr(server.app.state.people.home.email.__class__, "ready", property(lambda _: True))
+    monkeypatch.setattr(
+        server.app.state.people.home.email.__class__, "ready", property(lambda _: True)
+    )
     monkeypatch.setattr("hive.people.mail.send", lambda cfg, to, *a, **k: sent.append(to))
-    first = server.post("/api/v1/admin/invites", json={"email": "amma@example.com", "name": "Amma"}).json()
+    first = server.post(
+        "/api/v1/admin/invites", json={"email": "amma@example.com", "name": "Amma"}
+    ).json()
     second = server.post("/api/v1/admin/invites", json={"email": "basith@example.com"}).json()
     no_email = server.post("/api/v1/admin/invites", json={"name": "Uncle"}).json()
     assert first["emailSent"] is True and second["emailSent"] is True
@@ -318,6 +322,71 @@ def test_refresh_needs_the_device_key(server: TestClient) -> None:
     )
     assert r.status_code == 401
     assert phone.client.get("/api/v1/library/home", headers=phone.auth).status_code == 200
+
+
+def test_the_same_device_joining_again_replaces_itself(server: TestClient) -> None:
+    """Reinstalling the app on a phone doesn't leave a second Pixel 8 behind."""
+    set_up_admin(server)
+    server.patch("/api/v1/admin/settings", json={"devicesPerPerson": 1, "swapsPerMonth": 0})
+    old = join(server, "amma@example.com", invite(server, "amma@example.com"))
+    again = join(server, "amma@example.com")  # same name and platform; no limit hit
+    devices = again.client.get("/api/v1/me/devices", headers=again.auth).json()
+    assert [d["name"] for d in devices["items"]] == ["Pixel 8"]
+    assert devices["items"][0]["current"] is True
+    assert devices["swapsLeft"] == 0  # not counted as a device change
+    r = old.client.get("/api/v1/library/home", headers=old.auth)
+    assert r.status_code == 401 and r.json()["code"] == "revoked"
+
+
+def test_repeats_from_before_are_tidied_once(server: TestClient) -> None:
+    """Entries left by devices that joined again before the fix are removed,
+    but only when they haven't been used since the newer one joined."""
+    from datetime import timedelta
+
+    from sqlalchemy import select
+    from sqlalchemy.orm import Session
+
+    from hive.models import Device
+
+    set_up_admin(server)
+    code = invite(server, "amma@example.com")
+    join(server, "amma@example.com", code, name="Phone")
+    join(server, "amma@example.com", name="Laptop")
+    people = server.app.state.people
+    with Session(people.db.engine) as s:
+        user_id = s.scalars(select(Device.user_id)).first()
+        base = s.scalars(select(Device).where(Device.name == "Phone")).one()
+        t = base.created_at
+        s.add_all(
+            [
+                # An old install of the phone, last seen before the newer joined.
+                Device(
+                    id="oldphone",
+                    user_id=user_id,
+                    name="Phone",
+                    platform="android",
+                    public_key=base.public_key,
+                    created_at=t - timedelta(days=3),
+                    last_seen_at=t - timedelta(days=1),
+                ),
+                # A second laptop that is still in use: kept.
+                Device(
+                    id="stillused",
+                    user_id=user_id,
+                    name="Laptop",
+                    platform="android",
+                    public_key=base.public_key,
+                    created_at=t - timedelta(days=3),
+                    last_seen_at=t + timedelta(days=1),
+                ),
+            ]
+        )
+        s.commit()
+    assert people.tidy_repeated_devices() == 1
+    assert people.tidy_repeated_devices() == 0
+    with Session(people.db.engine) as s:
+        status = {d.id: d.status for d in s.scalars(select(Device))}
+    assert status["oldphone"] == "revoked" and status["stillused"] == "active"
 
 
 def test_device_limit_swaps_and_removal(server: TestClient) -> None:

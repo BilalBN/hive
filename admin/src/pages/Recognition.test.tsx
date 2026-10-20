@@ -83,8 +83,11 @@ describe("Songs people asked for", () => {
     const li = row.closest("li")!;
     expect(within(li).getByText(/Amma · from Listen/)).toBeInTheDocument();
     expect(within(li).getByText("“On the radio in the car”")).toBeInTheDocument();
-    fireEvent.click(within(li).getByRole("button", { name: "Added" }));
+    expect(within(li).queryByText(/no name was given/)).toBeNull(); // the note says something
+    fireEvent.click(within(li).getByRole("button", { name: "Mark as added" }));
     await waitFor(() => expect(decided).toEqual({ status: "added" }));
     expect(await within(panel).findByRole("button", { name: "Undo" })).toBeInTheDocument();
+    expect(within(panel).getByText("Done lately")).toBeInTheDocument();
+    expect(within(panel).getByText("Added")).toBeInTheDocument();
   });
 });

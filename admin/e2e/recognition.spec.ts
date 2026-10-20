@@ -15,9 +15,10 @@ test("a song asked for shows on Requests and is marked added", async ({ page, re
   const songs = page.getByRole("region", { name: "Songs people asked for" });
   const row = songs.locator(".row", { hasText: title });
   await expect(row).toContainText("from Search");
-  await row.getByRole("button", { name: "Added" }).click();
-  await expect(row.getByRole("button", { name: "Undo" })).toBeVisible();
-  await expect(row).toContainText("added");
+  await row.getByRole("button", { name: "Mark as added" }).click();
+  const done = songs.locator(".row", { hasText: title });
+  await expect(done.getByRole("button", { name: "Undo" })).toBeVisible();
+  await expect(done.locator(".state")).toHaveText("Added");
 });
 
 test("Recognition shows how many songs Listen can recognise", async ({ page }) => {
