@@ -129,6 +129,42 @@ def test_history_and_asking_for_a_song(listening, tmp_path: Path) -> None:
     assert status["matchesThisWeek"] == 1 and status["noMatchThisWeek"] == 1
 
 
+def test_checks_while_listening_keep_only_what_matters(listening, tmp_path: Path) -> None:
+    """Listen checks every couple of seconds: misses along the way aren't
+    kept, a match is, and so is the last try when nothing matched."""
+    c, auth, songs = listening
+    stranger = _clip(tmp_path, music_like(700, 10), 1, 31, snr=15)
+    for _ in range(3):
+        r = c.post(
+            "/api/v1/listen/match",
+            params={"last": "false"},
+            content=stranger,
+            headers={**auth, "Content-Type": "audio/mp4"},
+        )
+        assert r.status_code == 200
+        assert_matches(r.json(), "ListenResult")
+        assert r.json()["matched"] is False and "id" not in r.json()
+    assert c.get("/api/v1/listen/history", headers=auth).json()["items"] == []
+
+    track_id, x = next(iter(songs.items()))
+    found = c.post(
+        "/api/v1/listen/match",
+        params={"last": "false"},
+        content=_clip(tmp_path, x, 6, 32, snr=15),
+        headers={**auth, "Content-Type": "audio/mp4"},
+    ).json()
+    assert found["matched"] and found["track"]["id"] == track_id and found["id"]
+    final = c.post(
+        "/api/v1/listen/match",
+        params={"last": "true"},
+        content=stranger,
+        headers={**auth, "Content-Type": "audio/mp4"},
+    ).json()
+    assert final["matched"] is False and final["id"]
+    history = c.get("/api/v1/listen/history", headers=auth).json()["items"]
+    assert [h["id"] for h in history] == [final["id"], found["id"]]
+
+
 def test_bad_recordings(listening) -> None:
     c, auth, _ = listening
     big = c.post("/api/v1/listen/match", content=b"0" * (3 * 1024 * 1024 + 1), headers=auth)

@@ -1157,7 +1157,7 @@ class Lyrics {
 
 class ListenResult {
   const ListenResult({
-    required this.id,
+    this.id,
     required this.matched,
     required this.source,
     this.track,
@@ -1167,8 +1167,8 @@ class ListenResult {
     this.artist,
   });
 
-  /// The history entry.
-  final int id;
+  /// The history entry; absent for an in-between check that found nothing (not kept).
+  final int? id;
   final bool matched;
   final String source;
   final TrackSummary? track;
@@ -1181,7 +1181,7 @@ class ListenResult {
   final String? artist;
 
   factory ListenResult.fromJson(Map<String, dynamic> json) => ListenResult(
-        id: json['id'] as int,
+        id: json['id'] == null ? null : json['id'] as int,
         matched: json['matched'] as bool,
         source: json['source'] as String,
         track: json['track'] == null ? null : TrackSummary.fromJson((json['track'] as Map).cast<String, dynamic>()),
@@ -1192,7 +1192,7 @@ class ListenResult {
       );
 
   Map<String, dynamic> toJson() => {
-        'id': id,
+        'id': ?id,
         'matched': matched,
         'source': source,
         'track': ?track?.toJson(),
@@ -3938,8 +3938,8 @@ class HiveApi {
   /// Match a short recording against the family library; the clip is deleted afterwards.
   ///
   /// `POST /api/v1/listen/match` · built in M3.
-  Future<ListenResult> matchClip() async {
-    final data = await _send('POST', '/api/v1/listen/match');
+  Future<ListenResult> matchClip({bool? last}) async {
+    final data = await _send('POST', '/api/v1/listen/match', query: {'last': ?last});
     return ListenResult.fromJson((data as Map).cast<String, dynamic>());
   }
 

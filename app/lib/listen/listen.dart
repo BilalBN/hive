@@ -1,95 +1,110 @@
 import 'dart:async';
-import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 
 import '../api/hive_api.g.dart';
 import '../auth/device_auth.dart';
 import '../core/api.dart';
 
-/// How long Listen records.
-const listenSeconds = 8;
+/// Listen keeps the microphone on and checks as it goes: the first check
+/// after [firstCheck], then every [checkEvery], each with the most recent
+/// [window] of sound, so a song that started partway through (or the one
+/// before it ending) drops out of what's checked. It stops as soon as home
+/// is sure, or gives up after [giveUpAfter].
+const firstCheck = Duration(seconds: 4);
+const checkEvery = Duration(seconds: 2);
+const window = Duration(seconds: 12);
+const giveUpAfter = Duration(seconds: 24);
 
-/// The microphone, for a few seconds at a time. Replaced in tests.
+/// Microphone sound for Listen: 16 kHz mono, 16-bit.
+const listenRate = 16000;
+
+/// The microphone, as a stream of sound. Replaced in tests.
 abstract class ClipRecorder {
   /// Asks for the microphone if needed; false when it's refused.
   Future<bool> permission();
-  Future<void> start();
 
-  /// The recording (WAV), or null if nothing was recorded.
-  Future<Uint8List?> stop();
-  Future<void> cancel();
-
-  /// Loudness now, 0..1, for the listening animation.
-  Stream<double> level();
+  /// Starts listening: 16-bit mono samples at [listenRate].
+  Future<Stream<Uint8List>> start();
+  Future<void> stop();
 }
 
 class MicRecorder implements ClipRecorder {
   final _rec = AudioRecorder();
-  String? _path;
 
   @override
   Future<bool> permission() => _rec.hasPermission();
 
   @override
-  Future<void> start() async {
-    final dir = await getTemporaryDirectory();
-    _path =
-        '${dir.path}/hive-listen-${DateTime.now().millisecondsSinceEpoch}.wav';
-    await _rec.start(
-      const RecordConfig(
-        encoder: AudioEncoder.wav,
-        sampleRate: 16000,
-        numChannels: 1,
-        // Room sound as it is: the phone's call processing hides music.
-        echoCancel: false,
-        noiseSuppress: false,
-        autoGain: true,
-      ),
-      path: _path!,
-    );
-  }
+  Future<Stream<Uint8List>> start() => _rec.startStream(
+    const RecordConfig(
+      encoder: AudioEncoder.pcm16bits,
+      sampleRate: listenRate,
+      numChannels: 1,
+      // Room sound as it is: the phone's call processing hides music.
+      echoCancel: false,
+      noiseSuppress: false,
+      autoGain: true,
+    ),
+  );
 
+  // Nothing is written to the device: the sound stays in memory and goes
+  // home a few seconds at a time.
   @override
-  Future<Uint8List?> stop() async {
-    final path = await _rec.stop() ?? _path;
-    if (path == null) return null;
-    final file = File(path);
-    if (!await file.exists()) return null;
-    final bytes = await file.readAsBytes();
-    // The clip goes home once and is never kept on the device.
-    await file.delete().catchError((_) => file);
-    return bytes;
-  }
-
-  @override
-  Future<void> cancel() async {
-    await _rec.cancel();
-  }
-
-  @override
-  Stream<double> level() => _rec
-      .onAmplitudeChanged(const Duration(milliseconds: 120))
-      .map((a) => ((a.current + 50) / 50).clamp(0.0, 1.0));
+  Future<void> stop() => _rec.cancel();
 }
 
 final clipRecorderProvider = Provider<ClipRecorder>((ref) => MicRecorder());
 
-/// Sends a recording home to be recognised. Replaced in tests.
-typedef ClipMatcher = Future<ListenResult> Function(Uint8List clip);
+/// A WAV file of 16-bit mono samples.
+Uint8List wavOf(Uint8List pcm, {int rate = listenRate}) {
+  final out = BytesBuilder(copy: false);
+  final h = ByteData(44);
+  void tag(int at, String t) {
+    for (var i = 0; i < 4; i++) {
+      h.setUint8(at + i, t.codeUnitAt(i));
+    }
+  }
+
+  tag(0, 'RIFF');
+  h.setUint32(4, 36 + pcm.length, Endian.little);
+  tag(8, 'WAVE');
+  tag(12, 'fmt ');
+  h.setUint32(16, 16, Endian.little);
+  h.setUint16(20, 1, Endian.little); // PCM
+  h.setUint16(22, 1, Endian.little); // mono
+  h.setUint32(24, rate, Endian.little);
+  h.setUint32(28, rate * 2, Endian.little);
+  h.setUint16(32, 2, Endian.little);
+  h.setUint16(34, 16, Endian.little);
+  tag(36, 'data');
+  h.setUint32(40, pcm.length, Endian.little);
+  out
+    ..add(h.buffer.asUint8List())
+    ..add(pcm);
+  return out.takeBytes();
+}
+
+/// Sends a recording home to be recognised. [last] is the final try: home
+/// keeps it in the history even when nothing matched. Replaced in tests.
+typedef ClipMatcher = Future<ListenResult> Function(
+  Uint8List clip, {
+  required bool last,
+});
 
 final clipMatcherProvider = Provider<ClipMatcher>((ref) {
-  return (clip) async {
+  return (clip, {required last}) async {
     final config = ref.read(homeConfigProvider);
     if (config == null) throw StateError('Not connected to a home yet');
     final dio = dioForHome(config, auth: ref.read(deviceAuthProvider));
     try {
       final r = await dio.post<dynamic>(
         '/api/v1/listen/match',
+        queryParameters: {'last': last},
         data: Stream.fromIterable([clip]),
         options: Options(
           contentType: 'audio/wav',
@@ -113,41 +128,45 @@ final clipMatcherProvider = Provider<ClipMatcher>((ref) {
 /// path is built and tested, but stays off until M5 turns it on.
 final shazamProvider = Provider<bool>((ref) => false);
 
-enum ListenPhase {
-  idle,
-  listening,
-  matching,
-  found,
-  notFound,
-  micDenied,
-  failed,
-}
+enum ListenPhase { idle, listening, found, notFound, micDenied, failed }
 
 @immutable
 class ListenState {
   const ListenState({
     this.phase = ListenPhase.idle,
-    this.secondsLeft = listenSeconds,
+    this.heard = Duration.zero,
     this.result,
     this.error,
   });
 
   final ListenPhase phase;
-  final int secondsLeft;
+
+  /// How long it has been listening.
+  final Duration heard;
   final ListenResult? result;
   final String? error;
 
-  bool get busy =>
-      phase == ListenPhase.listening || phase == ListenPhase.matching;
+  bool get busy => phase == ListenPhase.listening;
 }
 
-/// Listen: record a few seconds, ask home what song it is.
+/// Listen: keep the microphone on, ask home every couple of seconds what
+/// song it is, and stop as soon as home knows.
 class ListenController extends Notifier<ListenState> {
-  Timer? _timer;
+  Timer? _ticker;
+  StreamSubscription<Uint8List>? _mic;
+  final _sound = BytesBuilder(copy: false);
+  int _run = 0;
+  bool _asking = false;
+  Duration _nextCheck = firstCheck;
+  int _ticks = 0;
+  static const _tickEvery = Duration(milliseconds: 250);
+
+  /// A match from a short check waits for the next check to agree.
+  String? _unconfirmed;
 
   @override
   ListenState build() {
-    ref.onDispose(() => _timer?.cancel());
+    ref.onDispose(_stopMic);
     return const ListenState();
   }
 
@@ -155,65 +174,124 @@ class ListenController extends Notifier<ListenState> {
 
   Future<void> listen() async {
     if (state.busy) return;
+    final run = ++_run;
     if (!await _rec.permission()) {
-      state = const ListenState(phase: ListenPhase.micDenied);
+      if (run == _run) state = const ListenState(phase: ListenPhase.micDenied);
       return;
     }
+    final Stream<Uint8List> sound;
     try {
-      await _rec.start();
+      sound = await _rec.start();
     } catch (e) {
-      state = ListenState(
-        phase: ListenPhase.failed,
-        error: "The microphone didn't start. ($e)",
-      );
-      return;
-    }
-    state = const ListenState(phase: ListenPhase.listening);
-    final done = Completer<void>();
-    var left = listenSeconds;
-    _timer?.cancel();
-    _timer = Timer.periodic(const Duration(seconds: 1), (t) {
-      left--;
-      if (left <= 0) {
-        t.cancel();
-        if (!done.isCompleted) done.complete();
-      } else if (state.phase == ListenPhase.listening) {
-        state = ListenState(phase: ListenPhase.listening, secondsLeft: left);
+      if (run == _run) {
+        state = ListenState(
+          phase: ListenPhase.failed,
+          error: "The microphone didn't start. ($e)",
+        );
       }
-    });
-    await done.future;
-    if (state.phase != ListenPhase.listening) return; // cancelled
-    final clip = await _rec.stop();
-    if (clip == null || clip.isEmpty) {
-      state = const ListenState(
-        phase: ListenPhase.failed,
-        error: 'Nothing was recorded. Try again.',
-      );
       return;
     }
-    state = const ListenState(phase: ListenPhase.matching);
+    if (run != _run) {
+      unawaited(_rec.stop()); // stopped while the microphone was starting
+      return;
+    }
+    _sound.clear();
+    _asking = false;
+    _nextCheck = firstCheck;
+    _ticks = 0;
+    _unconfirmed = null;
+    state = const ListenState(phase: ListenPhase.listening);
+    _mic = sound.listen(_onSound, onError: (_) {});
+    _ticker = Timer.periodic(_tickEvery, (_) => _tick(run));
+  }
+
+  void _onSound(Uint8List chunk) {
+    _sound.add(chunk);
+    // Only the last [window] is ever needed.
+    final max = window.inMilliseconds * listenRate * 2 ~/ 1000;
+    if (_sound.length > max * 2) {
+      final all = _sound.takeBytes();
+      _sound.add(Uint8List.sublistView(all, all.length - max));
+    }
+  }
+
+  Uint8List _latest() {
+    final max = window.inMilliseconds * listenRate * 2 ~/ 1000;
+    final all = _sound.toBytes();
+    return all.length <= max
+        ? all
+        : Uint8List.sublistView(all, all.length - max);
+  }
+
+  void _tick(int run) {
+    if (run != _run || state.phase != ListenPhase.listening) return;
+    final heard = _tickEvery * ++_ticks;
+    state = ListenState(phase: ListenPhase.listening, heard: heard);
+    final last = heard >= giveUpAfter;
+    if (_asking || (heard < _nextCheck && !last)) return;
+    _nextCheck = heard + checkEvery;
+    unawaited(_ask(run, last: last));
+  }
+
+  Future<void> _ask(int run, {required bool last}) async {
+    final pcm = _latest();
+    if (pcm.length < listenRate * 2 * 3) return; // not 3 seconds yet
+    _asking = true;
+    if (last) _stopMic();
     try {
-      final result = await ref.read(clipMatcherProvider)(clip);
+      final result = await ref.read(clipMatcherProvider)(
+        wavOf(pcm),
+        last: last,
+      );
+      if (run != _run) return;
       final named =
           result.track != null ||
           (ref.read(shazamProvider) &&
               result.source == 'shazam' &&
               result.title != null);
-      state = ListenState(
-        phase: result.matched && named
-            ? ListenPhase.found
-            : ListenPhase.notFound,
-        result: result,
-      );
+      final short = pcm.length < listenRate * 2 * 6;
+      final which = result.track?.id ?? result.title;
+      if (result.matched && named && short && !last && which != _unconfirmed) {
+        // A few seconds can mislead; the next check has to agree.
+        // (2 seconds later, with more to go on: the same few seconds
+        // again would agree with themselves.)
+        _unconfirmed = which;
+        return;
+      }
+      if (!(result.matched && named)) _unconfirmed = null;
+      if (result.matched && named) {
+        _stopMic();
+        state = ListenState(phase: ListenPhase.found, result: result);
+        ref.invalidate(listenHistoryProvider);
+      } else if (last) {
+        state = ListenState(phase: ListenPhase.notFound, result: result);
+        ref.invalidate(listenHistoryProvider);
+      }
     } catch (e) {
+      if (run != _run) return;
+      _stopMic();
+      _run++;
       state = ListenState(phase: ListenPhase.failed, error: describeError(e));
+    } finally {
+      _asking = false;
     }
-    ref.invalidate(listenHistoryProvider);
   }
 
-  Future<void> cancel() async {
-    _timer?.cancel();
-    if (state.phase == ListenPhase.listening) await _rec.cancel();
+  void _stopMic() {
+    _ticker?.cancel();
+    _ticker = null;
+    final mic = _mic;
+    _mic = null;
+    if (mic != null) {
+      unawaited(mic.cancel());
+      unawaited(_rec.stop().catchError((_) {}));
+    }
+  }
+
+  /// Stop listening now; anything still on its way back is ignored.
+  void cancel() {
+    _run++;
+    _stopMic();
     state = const ListenState();
   }
 

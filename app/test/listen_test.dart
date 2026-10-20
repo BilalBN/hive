@@ -13,20 +13,51 @@ import 'package:hive/listen/listen.dart';
 import 'app_test.dart' show health;
 import 'support/fake_home.dart';
 
+/// A microphone that hears a tenth of a second of sound every 100 ms.
 class FakeRecorder implements ClipRecorder {
   bool allowed = true;
   int starts = 0;
+  bool on = false;
+  StreamController<Uint8List>? _out;
+  Timer? _t;
+
   @override
   Future<bool> permission() async => allowed;
+
   @override
-  Future<void> start() async => starts++;
+  Future<Stream<Uint8List>> start() async {
+    starts++;
+    on = true;
+    _out = StreamController<Uint8List>();
+    _t = Timer.periodic(
+      const Duration(milliseconds: 100),
+      (_) => _out?.add(Uint8List(listenRate * 2 ~/ 10)),
+    );
+    return _out!.stream;
+  }
+
   @override
-  Future<Uint8List?> stop() async => Uint8List.fromList(List.filled(4096, 1));
-  @override
-  Future<void> cancel() async {}
-  @override
-  Stream<double> level() => const Stream.empty();
+  Future<void> stop() async {
+    on = false;
+    _t?.cancel();
+    await _out?.close();
+  }
 }
+
+/// Answers each check in turn; the last answer repeats. Records the clip
+/// lengths (seconds) and whether each was the last try.
+class Checks {
+  Checks(this.answers);
+  final List<ListenResult> answers;
+  final asked = <(double, bool)>[];
+
+  Future<ListenResult> call(Uint8List clip, {required bool last}) async {
+    asked.add(((clip.length - 44) / (listenRate * 2), last));
+    return answers[(asked.length - 1).clamp(0, answers.length - 1)];
+  }
+}
+
+const miss = ListenResult(matched: false, source: 'library');
 
 Future<void> pumpListen(
   WidgetTester tester, {
@@ -61,15 +92,19 @@ Future<void> pumpListen(
   await tester.pumpAndSettle();
 }
 
-Future<void> listenFor8Seconds(WidgetTester tester) async {
+Future<void> listenFor(WidgetTester tester, Duration d) async {
   await tester.tap(find.bySemanticsLabel('Start listening'));
   await tester.pump();
   expect(find.text('Listening…'), findsOneWidget);
-  for (var i = 0; i < 9; i++) {
-    await tester.pump(const Duration(seconds: 1));
+  for (var t = Duration.zero; t < d; t += const Duration(milliseconds: 250)) {
+    await tester.pump(const Duration(milliseconds: 250));
   }
-  await tester.pumpAndSettle();
+  await tester.pump(const Duration(seconds: 1));
 }
+
+/// Long enough for Listen to give up and make its last try.
+Future<void> listenUntilDone(WidgetTester tester) =>
+    listenFor(tester, giveUpAfter + const Duration(seconds: 1));
 
 void main() {
   testWidgets('a song at home is found, and plays from where it is', (
@@ -77,7 +112,7 @@ void main() {
   ) async {
     await pumpListen(
       tester,
-      matcher: (clip) async => ListenResult(
+      matcher: (clip, {required last}) async => ListenResult(
         id: 1,
         matched: true,
         source: 'library',
@@ -87,7 +122,7 @@ void main() {
       ),
     );
     expect(find.text('Tap to listen'), findsOneWidget);
-    await listenFor8Seconds(tester);
+    await listenUntilDone(tester);
     expect(find.text('മലരേ'), findsWidgets);
     expect(find.text('Play from 1:42'), findsOneWidget);
     await tester.tap(find.text('Play from 1:42'));
@@ -112,10 +147,10 @@ void main() {
     await pumpListen(
       tester,
       adapter: fake,
-      matcher: (clip) async =>
+      matcher: (clip, {required last}) async =>
           const ListenResult(id: 7, matched: false, source: 'library'),
     );
-    await listenFor8Seconds(tester);
+    await listenUntilDone(tester);
     expect(find.text('Not in your music yet'), findsOneWidget);
     await tester.tap(find.text('Ask to add it'));
     await tester.pumpAndSettle();
@@ -138,7 +173,7 @@ void main() {
   testWidgets('a found song can go straight into a playlist', (tester) async {
     await pumpListen(
       tester,
-      matcher: (clip) async => ListenResult(
+      matcher: (clip, {required last}) async => ListenResult(
         id: 1,
         matched: true,
         source: 'library',
@@ -146,7 +181,7 @@ void main() {
         positionMs: 1000,
       ),
     );
-    await listenFor8Seconds(tester);
+    await listenUntilDone(tester);
     expect(find.text('Play from 1:42'), findsNothing); // too early to offer
     await tester.tap(find.text('Add to playlist'));
     await tester.pumpAndSettle();
@@ -161,8 +196,8 @@ void main() {
       title: 'Pesamale',
       artist: 'Koshal',
     );
-    await pumpListen(tester, matcher: (clip) async => shazam);
-    await listenFor8Seconds(tester);
+    await pumpListen(tester, matcher: (clip, {required last}) async => shazam);
+    await listenUntilDone(tester);
     expect(find.text('Not in your music yet'), findsOneWidget);
     expect(find.textContaining('Identified by Shazam'), findsNothing);
   });
@@ -177,8 +212,12 @@ void main() {
       title: 'Pesamale',
       artist: 'Koshal',
     );
-    await pumpListen(tester, matcher: (clip) async => shazam, shazam: true);
-    await listenFor8Seconds(tester);
+    await pumpListen(
+      tester,
+      matcher: (clip, {required last}) async => shazam,
+      shazam: true,
+    );
+    await listenUntilDone(tester);
     expect(find.text('Pesamale'), findsOneWidget);
     expect(find.textContaining('Identified by Shazam'), findsOneWidget);
     await tester.tap(find.text('Ask to add it'));
@@ -192,11 +231,100 @@ void main() {
     );
   });
 
+  testWidgets('it checks as it listens and stops as soon as it knows', (
+    tester,
+  ) async {
+    final found = ListenResult(
+      id: 3,
+      matched: true,
+      source: 'library',
+      track: premam.tracks[0],
+      positionMs: 102000,
+    );
+    final recorder = FakeRecorder();
+    final checks = Checks([miss, miss, found]);
+    await pumpListen(tester, matcher: checks.call, recorder: recorder);
+    await listenFor(tester, const Duration(seconds: 9));
+    // At 4, 6 and 8 seconds, each with everything heard so far.
+    expect(checks.asked.map((a) => a.$1.round()), [4, 6, 8]);
+    expect(checks.asked.every((a) => !a.$2), isTrue);
+    expect(find.text('Play from 1:42'), findsOneWidget);
+    expect(recorder.on, isFalse); // the microphone is off once found
+  });
+
+  testWidgets('a match from the first few seconds waits for the next check', (
+    tester,
+  ) async {
+    // The song changed: the first check hears the end of the old one.
+    final old = ListenResult(
+      id: 1,
+      matched: true,
+      source: 'library',
+      track: premam.tracks[1],
+      positionMs: 200000,
+    );
+    final now = ListenResult(
+      id: 2,
+      matched: true,
+      source: 'library',
+      track: premam.tracks[0],
+      positionMs: 9000,
+    );
+    final checks = Checks([old, now]);
+    await pumpListen(tester, matcher: checks.call);
+    await listenFor(tester, const Duration(seconds: 7));
+    expect(find.text(premam.tracks[0].title), findsWidgets);
+    expect(find.text('Play from 0:09'), findsOneWidget);
+    expect(find.text(premam.tracks[1].title), findsNothing);
+  });
+
+  testWidgets('only the last 12 seconds are checked; then it gives up', (
+    tester,
+  ) async {
+    final checks = Checks([miss]);
+    await pumpListen(tester, matcher: checks.call);
+    await listenUntilDone(tester);
+    final lengths = checks.asked.map((a) => a.$1.round()).toList();
+    expect(lengths.first, 4);
+    expect(lengths.reduce((a, b) => a > b ? a : b), 12);
+    expect(checks.asked.last.$2, isTrue); // the last try is kept
+    expect(checks.asked.where((a) => a.$2).length, 1);
+    expect(find.text('Not in your music yet'), findsOneWidget);
+  });
+
+  testWidgets('Stop stops at once, even while home is checking', (
+    tester,
+  ) async {
+    final recorder = FakeRecorder();
+    final slow = Completer<ListenResult>();
+    await pumpListen(
+      tester,
+      recorder: recorder,
+      matcher: (clip, {required last}) => slow.future,
+    );
+    await listenFor(tester, const Duration(seconds: 5));
+    await tester.tap(find.text('Stop'));
+    await tester.pump();
+    expect(find.text('Tap to listen'), findsOneWidget);
+    expect(recorder.on, isFalse);
+    // The answer arriving late changes nothing.
+    slow.complete(
+      ListenResult(
+        id: 1,
+        matched: true,
+        source: 'library',
+        track: premam.tracks[0],
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Tap to listen'), findsOneWidget);
+  });
+
   testWidgets('without the microphone it says how to allow it', (tester) async {
     await pumpListen(
       tester,
       recorder: FakeRecorder()..allowed = false,
-      matcher: (clip) async => throw StateError('not called'),
+      matcher: (clip, {required last}) async => throw StateError('not called'),
     );
     await tester.tap(find.bySemanticsLabel('Start listening'));
     await tester.pumpAndSettle();
@@ -208,13 +336,13 @@ void main() {
   ) async {
     await pumpListen(
       tester,
-      matcher: (clip) async => throw HiveApiException(
+      matcher: (clip, {required last}) async => throw HiveApiException(
         null,
         null,
         DioException(requestOptions: RequestOptions()),
       ),
     );
-    await listenFor8Seconds(tester);
+    await listenUntilDone(tester);
     expect(find.text("That didn't work"), findsOneWidget);
     expect(find.textContaining("Can't reach home"), findsOneWidget);
   });

@@ -585,7 +585,7 @@ export interface paths {
         put?: never;
         /**
          * Match a short recording against the family library; the clip is deleted afterwards.
-         * @description Send 5 to 15 seconds of the microphone (WAV, M4A/AAC, Opus or MP3, up to 3 MB) as the body. Matched or not, the attempt goes in the person's Listen history.
+         * @description Send 3 to 15 seconds of the microphone (WAV, M4A/AAC, Opus or MP3, up to 3 MB) as the body. Listen checks every couple of seconds as it listens, sending the most recent seconds each time; a match goes in the person's Listen history, and so does the last try (last=true) when nothing matched.
          */
         post: operations["matchClip"];
         delete?: never;
@@ -1901,8 +1901,8 @@ export interface components {
             lines: components["schemas"]["LyricsLine"][];
         };
         ListenResult: {
-            /** @description The history entry. */
-            id: number;
+            /** @description The history entry; absent for an in-between check that found nothing (not kept). */
+            id?: number;
             matched: boolean;
             /** @enum {string} */
             source: "library" | "shazam";
@@ -3701,7 +3701,10 @@ export interface operations {
     };
     matchClip: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description False for the checks made while still listening; a miss then isn't kept. */
+                last?: boolean;
+            };
             header?: never;
             path?: never;
             cookie?: never;

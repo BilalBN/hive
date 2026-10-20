@@ -75,7 +75,11 @@ def _event_body(s: Session, caller, events: list[ListenEvent]) -> list[dict[str,
 
 
 @router.post("/listen/match")
-async def match_clip(request: Request, caller: CallerDep, s: SessionDep) -> dict[str, Any]:
+async def match_clip(
+    request: Request, caller: CallerDep, s: SessionDep, last: bool = True
+) -> dict[str, Any]:
+    """[last] false: one of the checks Listen makes as it goes. Those that
+    find nothing aren't kept in the history; only the final try is."""
     clip = await request.body()
     if len(clip) > MAX_CLIP_BYTES:
         raise HTTPException(413, "Send 5 to 15 seconds of sound, up to 3 MB")
@@ -91,6 +95,8 @@ async def match_clip(request: Request, caller: CallerDep, s: SessionDep) -> dict
     if seconds < MIN_CLIP_SECONDS:
         raise HTTPException(422, "That recording is too short; listen for a few seconds")
     track = s.get(Track, match.track_id) if match else None
+    if track is None and not last:
+        return {"matched": False, "source": "library"}
     event = ListenEvent(user_id=caller.user_id, source="library")
     if track is not None and match is not None:
         event.track_id = track.id

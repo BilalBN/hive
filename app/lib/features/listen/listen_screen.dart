@@ -136,9 +136,10 @@ class _Listener extends ConsumerWidget {
     final (title, text) = switch (state.phase) {
       ListenPhase.listening => (
         'Listening…',
-        'Hold the phone near the music. ${state.secondsLeft} s',
+        state.heard < const Duration(seconds: 12)
+            ? 'Hold the phone near the music. Hive checks as it listens.'
+            : 'Still listening. Closer to the speaker helps.',
       ),
-      ListenPhase.matching => ('Checking home…', 'Looking through your music.'),
       ListenPhase.micDenied => (
         'Hive needs the microphone',
         'Allow it for Hive in your device settings, then tap to listen.',
@@ -146,7 +147,7 @@ class _Listener extends ConsumerWidget {
       ListenPhase.failed => ("That didn't work", state.error ?? 'Try again.'),
       _ => (
         'Tap to listen',
-        'Hive listens for $listenSeconds seconds and checks the music at home. Nothing is kept.',
+        'Hive listens until it knows the song (usually a few seconds) and checks the music at home. Nothing is kept.',
       ),
     };
     return Column(
@@ -157,11 +158,7 @@ class _Listener extends ConsumerWidget {
           label: state.busy ? 'Stop listening' : 'Start listening',
           excludeSemantics: true,
           child: GestureDetector(
-            onTap: state.phase == ListenPhase.matching
-                ? null
-                : state.busy
-                ? c.cancel
-                : c.listen,
+            onTap: state.busy ? c.cancel : c.listen,
             child: _Pulse(
               active: state.phase == ListenPhase.listening,
               color: p.accent,
@@ -187,14 +184,8 @@ class _Listener extends ConsumerWidget {
                   ],
                 ),
                 child: Center(
-                  child: state.phase == ListenPhase.matching
-                      ? SizedBox.square(
-                          dimension: 44,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 3,
-                            color: p.onAccent,
-                          ),
-                        )
+                  child: state.busy
+                      ? Icon(HiveIcons.square, size: 40, color: p.onAccent)
                       : Icon(
                           HiveIcons.audioWaveform,
                           size: 56,
@@ -217,6 +208,10 @@ class _Listener extends ConsumerWidget {
           textAlign: TextAlign.center,
           style: HiveType.callout.copyWith(color: p.textSecondary),
         ),
+        if (state.busy) ...[
+          const SizedBox(height: HiveSpace.sm),
+          TextButton(onPressed: c.cancel, child: const Text('Stop')),
+        ],
       ],
     );
   }

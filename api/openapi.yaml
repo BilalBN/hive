@@ -546,9 +546,17 @@ paths:
       operationId: matchClip
       summary: Match a short recording against the family library; the clip is deleted afterwards.
       description: >-
-        Send 5 to 15 seconds of the microphone (WAV, M4A/AAC, Opus or MP3, up to 3 MB) as the
-        body. Matched or not, the attempt goes in the person's Listen history.
+        Send 3 to 15 seconds of the microphone (WAV, M4A/AAC, Opus or MP3, up to 3 MB) as the
+        body. Listen checks every couple of seconds as it listens, sending the most recent seconds
+        each time; a match goes in the person's Listen history, and so does the last try (last=true)
+        when nothing matched.
       x-milestone: M3
+      parameters:
+        - name: last
+          in: query
+          required: false
+          description: False for the checks made while still listening; a miss then isn't kept.
+          schema: { type: boolean, default: true }
       requestBody:
         required: true
         content:
@@ -1812,9 +1820,9 @@ components:
     # ----------------------------------------------------------- listen and downloads (M3)
     ListenResult:
       type: object
-      required: [id, matched, source]
+      required: [matched, source]
       properties:
-        id: { type: integer, description: The history entry. }
+        id: { type: integer, description: "The history entry; absent for an in-between check that found nothing (not kept)." }
         matched: { type: boolean }
         source: { type: string, enum: [library, shazam] }
         track: { $ref: "#/components/schemas/TrackSummary" }
