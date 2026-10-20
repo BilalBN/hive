@@ -1163,6 +1163,8 @@ class ListenResult {
     this.track,
     this.positionMs,
     this.confidence,
+    this.title,
+    this.artist,
   });
 
   /// The history entry.
@@ -1173,6 +1175,10 @@ class ListenResult {
   /// Where the song is now (the clip's start plus its length), for "Play from 1:42".
   final int? positionMs;
   final double? confidence;
+  /// M5: what Shazam called a song that isn't at home.
+  final String? title;
+  /// M5: who Shazam says sings it.
+  final String? artist;
 
   factory ListenResult.fromJson(Map<String, dynamic> json) => ListenResult(
         id: json['id'] as int,
@@ -1181,6 +1187,8 @@ class ListenResult {
         track: json['track'] == null ? null : TrackSummary.fromJson((json['track'] as Map).cast<String, dynamic>()),
         positionMs: json['positionMs'] == null ? null : json['positionMs'] as int,
         confidence: json['confidence'] == null ? null : (json['confidence'] as num).toDouble(),
+        title: json['title'] == null ? null : json['title'] as String,
+        artist: json['artist'] == null ? null : json['artist'] as String,
       );
 
   Map<String, dynamic> toJson() => {
@@ -1190,6 +1198,8 @@ class ListenResult {
         'track': ?track?.toJson(),
         'positionMs': ?positionMs,
         'confidence': ?confidence,
+        'title': ?title,
+        'artist': ?artist,
       };
 }
 

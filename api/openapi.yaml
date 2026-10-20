@@ -1822,6 +1822,8 @@ components:
           type: integer
           description: Where the song is now (the clip's start plus its length), for "Play from 1:42".
         confidence: { type: number, minimum: 0, maximum: 1 }
+        title: { type: string, description: "M5: what Shazam called a song that isn't at home." }
+        artist: { type: string, description: "M5: who Shazam says sings it." }
     ListenEvent:
       type: object
       required: [id, at, source, matched]

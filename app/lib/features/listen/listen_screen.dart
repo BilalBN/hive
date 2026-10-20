@@ -51,6 +51,10 @@ class ListenScreen extends ConsumerWidget {
               child: AnimatedSwitcher(
                 duration: HiveMotion.screen,
                 child: switch (s.phase) {
+                  ListenPhase.found when s.result!.track == null => _Identified(
+                    key: const ValueKey('identified'),
+                    result: s.result!,
+                  ),
                   ListenPhase.found => _Found(
                     key: const ValueKey('found'),
                     result: s.result!,
@@ -349,11 +353,13 @@ class _Found extends ConsumerWidget {
           style: HiveType.caption.copyWith(color: p.accentText),
         ),
         const SizedBox(height: HiveSpace.lg),
-        Row(
-          children: [
-            if (at != null && at > 3000) ...[
-              Expanded(
-                child: FilledButton(
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 360),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (at != null && at > 3000) ...[
+                FilledButton(
                   onPressed: () => _playFrom(ref, t, at),
                   style: FilledButton.styleFrom(
                     backgroundColor: p.accent,
@@ -363,11 +369,9 @@ class _Found extends ConsumerWidget {
                   ),
                   child: Text('Play from ${_clock(at)}'),
                 ),
-              ),
-              const SizedBox(width: HiveSpace.sm),
-            ],
-            Expanded(
-              child: TextButton(
+                const SizedBox(height: HiveSpace.xs),
+              ],
+              TextButton(
                 onPressed: () => _playFrom(ref, t, null),
                 style: TextButton.styleFrom(
                   backgroundColor: p.raised,
@@ -377,8 +381,80 @@ class _Found extends ConsumerWidget {
                 ),
                 child: const Text('Play from the start'),
               ),
+            ],
+          ),
+        ),
+        const SizedBox(height: HiveSpace.xs),
+        Wrap(
+          alignment: WrapAlignment.center,
+          spacing: HiveSpace.xs,
+          children: [
+            TextButton.icon(
+              onPressed: () => showAddToPlaylist(context, ref, [t.id]),
+              icon: const Icon(HiveIcons.listPlus, size: 18),
+              label: const Text('Add to playlist'),
+            ),
+            TextButton(
+              onPressed: ref.read(listenProvider.notifier).listen,
+              child: const Text('Listen again'),
             ),
           ],
+        ),
+      ],
+    );
+  }
+}
+
+/// Not at home, but Shazam knows it (M5): ask for it by name.
+class _Identified extends ConsumerWidget {
+  const _Identified({super.key, required this.result});
+  final ListenResult result;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final p = HiveTheme.of(context);
+    return Column(
+      children: [
+        Container(
+          width: 96,
+          height: 96,
+          decoration: BoxDecoration(color: p.raised, shape: BoxShape.circle),
+          child: Icon(HiveIcons.music, size: 40, color: p.accentText),
+        ),
+        const SizedBox(height: HiveSpace.lg),
+        Text(
+          result.title!,
+          textAlign: TextAlign.center,
+          style: HiveType.title2.copyWith(color: p.textPrimary),
+        ),
+        if (result.artist != null)
+          Text(
+            result.artist!,
+            textAlign: TextAlign.center,
+            style: HiveType.body.copyWith(color: p.textSecondary),
+          ),
+        const SizedBox(height: HiveSpace.xxs),
+        Text(
+          'Identified by Shazam · not in your music yet',
+          style: HiveType.caption.copyWith(color: p.textSecondary),
+        ),
+        const SizedBox(height: HiveSpace.lg),
+        FilledButton.icon(
+          onPressed: () => askForSong(
+            context,
+            ref,
+            listenEventId: result.id,
+            title: result.title,
+            artist: result.artist,
+          ),
+          style: FilledButton.styleFrom(
+            backgroundColor: p.accent,
+            foregroundColor: p.onAccent,
+            minimumSize: const Size(220, 48),
+            textStyle: HiveType.headline,
+          ),
+          icon: const Icon(HiveIcons.messageSquarePlus, size: 18),
+          label: const Text('Ask to add it'),
         ),
         const SizedBox(height: HiveSpace.xs),
         TextButton(
@@ -444,10 +520,11 @@ Future<void> askForSong(
   WidgetRef ref, {
   int? listenEventId,
   String? title,
+  String? artist,
 }) async {
   final p = HiveTheme.of(context);
   final titleC = TextEditingController(text: title);
-  final artistC = TextEditingController();
+  final artistC = TextEditingController(text: artist);
   final noteC = TextEditingController();
   InputDecoration field(String hint) => InputDecoration(
     hintText: hint,

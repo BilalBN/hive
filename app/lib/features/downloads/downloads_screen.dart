@@ -195,6 +195,13 @@ List<Widget> downloadRows(
           body: "Downloads play offline for 30 days at a time. Connect to home once and they're good for another 30 days.",
         ),
       ),
+    if (s.expiringSoon)
+      padded(
+        HiveBanner(
+          title: 'Connect to home by ${_day(s.validUntil!)}',
+          body: 'Downloads play offline for 30 days at a time. Connect to home before then to keep them playing.',
+        ),
+      ),
     if (failed.isNotEmpty)
       padded(
         HiveBanner(

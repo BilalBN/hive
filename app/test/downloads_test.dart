@@ -213,6 +213,17 @@ void main() {
       expect(dl.ticketFor('t1'), isNotNull);
     });
 
+    test('a few days before, it warns that downloads need home', () async {
+      final (c, _, net, _) = await setUpDownloads();
+      net.validUntil = DateTime.now().add(const Duration(days: 3));
+      await c.read(downloadsProvider.notifier).downloadTrack(songs[0]);
+      await pump();
+      final s = c.read(downloadsProvider);
+      expect(s.expiringSoon, isTrue);
+      expect(s.expired, isFalse);
+      expect(c.read(downloadsProvider.notifier).ticketFor('t1'), isNotNull);
+    });
+
     test('a downloaded playlist follows changes at home', () async {
       final (c, _, net, _) = await setUpDownloads();
       final dl = c.read(downloadsProvider.notifier);

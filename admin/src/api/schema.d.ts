@@ -1910,6 +1910,10 @@ export interface components {
             /** @description Where the song is now (the clip's start plus its length), for "Play from 1:42". */
             positionMs?: number;
             confidence?: number;
+            /** @description M5: what Shazam called a song that isn't at home. */
+            title?: string;
+            /** @description M5: who Shazam says sings it. */
+            artist?: string;
         };
         ListenEvent: {
             id: number;

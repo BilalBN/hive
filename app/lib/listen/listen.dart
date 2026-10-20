@@ -109,6 +109,10 @@ final clipMatcherProvider = Provider<ClipMatcher>((ref) {
   };
 });
 
+/// "Identified by Shazam": songs that aren't at home named by Shazam. The
+/// path is built and tested, but stays off until M5 turns it on.
+final shazamProvider = Provider<bool>((ref) => false);
+
 enum ListenPhase {
   idle,
   listening,
@@ -190,8 +194,15 @@ class ListenController extends Notifier<ListenState> {
     state = const ListenState(phase: ListenPhase.matching);
     try {
       final result = await ref.read(clipMatcherProvider)(clip);
+      final named =
+          result.track != null ||
+          (ref.read(shazamProvider) &&
+              result.source == 'shazam' &&
+              result.title != null);
       state = ListenState(
-        phase: result.matched ? ListenPhase.found : ListenPhase.notFound,
+        phase: result.matched && named
+            ? ListenPhase.found
+            : ListenPhase.notFound,
         result: result,
       );
     } catch (e) {

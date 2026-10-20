@@ -40,6 +40,9 @@ class HomeScreen extends ConsumerWidget {
     final hasDownloads = ref.watch(
       downloadsProvider.select((s) => s.tracks.isNotEmpty),
     );
+    final downloadsNeedHome = ref.watch(
+      downloadsProvider.select((s) => s.expiringSoon || s.expired),
+    );
     final shelves = ref.watch(homeShelvesProvider);
     final wide = MediaQuery.sizeOf(context).width >= desktopBreakpoint;
 
@@ -139,9 +142,11 @@ class HomeScreen extends ConsumerWidget {
                   ),
                   HomeUnreachable(:final reason) => HiveBanner(
                     title: "Can't reach home right now",
-                    body: hasDownloads
-                        ? '$reason Your downloads still play.'
-                        : reason,
+                    body: !hasDownloads
+                        ? reason
+                        : downloadsNeedHome
+                        ? '$reason Your downloads need home soon to keep playing.'
+                        : '$reason Your downloads still play.',
                     action: hasDownloads
                         ? TextButton(
                             onPressed: () => context.go('/library/downloads'),

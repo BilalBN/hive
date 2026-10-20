@@ -15,6 +15,9 @@ import 'vault.dart';
 /// Downloads play offline for 30 days from the last check-in with home.
 const checkInEvery = Duration(hours: 6);
 
+/// How early the app warns that downloads need home soon.
+const warnBefore = Duration(days: 5);
+
 /// A song kept on this device.
 @immutable
 class DownloadedTrack {
@@ -199,6 +202,13 @@ class DownloadsState {
   /// Past the 30 days without checking in: kept, but not playable until home
   /// is reached again.
   bool get expired => validUntil != null && DateTime.now().isAfter(validUntil!);
+
+  /// Within a few days of needing a check-in: time to warn.
+  bool get expiringSoon =>
+      tracks.isNotEmpty &&
+      !expired &&
+      validUntil != null &&
+      validUntil!.difference(DateTime.now()) < warnBefore;
 
   int get bytes => tracks.values.fold(0, (n, t) => n + t.sizeBytes);
 

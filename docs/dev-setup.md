@@ -235,6 +235,49 @@ Also in M2: **People** (suspend, device limit, sign out everywhere),
 (what Hive shows; files stay as they are), search suggestions as you type,
 and a refreshed look for the apps.
 
+## M3: Listen and offline downloads
+
+**The M3 gate:** Listen names a song playing in the room (TV, speaker, car)
+when it's at home, and says where it is so it plays from there; a song that
+isn't at home can be asked for. Downloaded albums and playlists play with the
+Mac off.
+
+1. **Update the server** (one new package, numpy, so install again). The
+   first start fingerprints every song in the background: about a minute per
+   few hundred songs. Hive Admin → **Recognition** shows how far it is.
+
+   ```sh
+   git pull
+   cd server && .venv/bin/pip install -e ".[dev]"
+   .venv/bin/python -m hive serve
+   ```
+
+   Listen uses FFmpeg, which Hive already needs, so nothing else to install.
+
+2. **Install the new apps** (from the latest run). The first time you tap
+   Listen, allow the microphone.
+
+3. **Try Listen:** play a song from the Mac's speakers or the TV, tap the big
+   button and hold the phone near it for 8 seconds. Found: **Play from 1:42**,
+   **Play from the start** or **Add to playlist**. Not found: **Ask to add
+   it**, which emails you and shows on Hive Admin → **Requests → Songs people
+   asked for** (mark it **Added** once it's in the music folder). Search with
+   no results offers the same. The recording goes to the Mac once and is
+   thrown away; nothing about it leaves home.
+
+4. **Record the test clips:** about 20 clips of 10 seconds around the house
+   (TV, speaker, car, with people talking), each of a song that's at home, and
+   send them over. They decide whether Listen needs tuning before M3 closes.
+
+5. **Downloads:** the download button at the top of any album or playlist, or
+   **Download** on a song's menu. They're in **Library → Downloads** (also
+   under Liked songs), with the space used. Quality: Settings → Playback →
+   **Downloads** (High by default; Lossless takes about ten times the space).
+   Downloads are locked to the device; they play offline for 30 days at a
+   time, and each time the device reaches home adds 30 days (it warns 5 days
+   before). Signing a device out in Hive Admin deletes its downloads the next
+   time it connects.
+
 ## Useful commands
 
 | What | Command |

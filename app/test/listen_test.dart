@@ -33,6 +33,7 @@ Future<void> pumpListen(
   required ClipMatcher matcher,
   FakeRecorder? recorder,
   FakeHomeAdapter? adapter,
+  bool shazam = false,
 }) async {
   tester.view.physicalSize = const Size(390, 844);
   tester.view.devicePixelRatio = 1;
@@ -50,6 +51,7 @@ Future<void> pumpListen(
         ...overrides,
         clipRecorderProvider.overrideWithValue(recorder ?? FakeRecorder()),
         clipMatcherProvider.overrideWithValue(matcher),
+        shazamProvider.overrideWithValue(shazam),
       ],
       child: const HiveApp(),
     ),
@@ -131,6 +133,63 @@ void main() {
       'listenEventId': 7,
     });
     expect(find.textContaining('Asked.'), findsOneWidget);
+  });
+
+  testWidgets('a found song can go straight into a playlist', (tester) async {
+    await pumpListen(
+      tester,
+      matcher: (clip) async => ListenResult(
+        id: 1,
+        matched: true,
+        source: 'library',
+        track: premam.tracks[0],
+        positionMs: 1000,
+      ),
+    );
+    await listenFor8Seconds(tester);
+    expect(find.text('Play from 1:42'), findsNothing); // too early to offer
+    await tester.tap(find.text('Add to playlist'));
+    await tester.pumpAndSettle();
+    expect(find.text('Road trip'), findsWidgets);
+  });
+
+  testWidgets('Identified by Shazam stays off until M5', (tester) async {
+    const shazam = ListenResult(
+      id: 9,
+      matched: true,
+      source: 'shazam',
+      title: 'Pesamale',
+      artist: 'Koshal',
+    );
+    await pumpListen(tester, matcher: (clip) async => shazam);
+    await listenFor8Seconds(tester);
+    expect(find.text('Not in your music yet'), findsOneWidget);
+    expect(find.textContaining('Identified by Shazam'), findsNothing);
+  });
+
+  testWidgets('with the switch on, a song Shazam knows is asked for by name', (
+    tester,
+  ) async {
+    const shazam = ListenResult(
+      id: 9,
+      matched: true,
+      source: 'shazam',
+      title: 'Pesamale',
+      artist: 'Koshal',
+    );
+    await pumpListen(tester, matcher: (clip) async => shazam, shazam: true);
+    await listenFor8Seconds(tester);
+    expect(find.text('Pesamale'), findsOneWidget);
+    expect(find.textContaining('Identified by Shazam'), findsOneWidget);
+    await tester.tap(find.text('Ask to add it'));
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<TextField>(find.byKey(const Key('request-artist')))
+          .controller!
+          .text,
+      'Koshal',
+    );
   });
 
   testWidgets('without the microphone it says how to allow it', (tester) async {
