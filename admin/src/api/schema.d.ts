@@ -2368,6 +2368,8 @@ export interface components {
         AdminOverview: {
             homeName: string;
             pendingRequests: number;
+            /** @description M3: songs people asked for, not yet added or dismissed. */
+            songRequests?: number;
             people: number;
             /** @description Active devices. */
             devices: number;

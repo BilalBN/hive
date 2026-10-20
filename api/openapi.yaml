@@ -2303,6 +2303,7 @@ components:
       properties:
         homeName: { type: string }
         pendingRequests: { type: integer }
+        songRequests: { type: integer, description: "M3: songs people asked for, not yet added or dismissed." }
         people: { type: integer }
         devices: { type: integer, description: Active devices. }
         tracks: { type: integer }

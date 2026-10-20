@@ -188,6 +188,7 @@ export function mockApi(routes: Record<string, Route | ((req: Request) => Route)
     "GET /api/v1/admin/session": { body: homeSession },
     "GET /api/v1/admin/overview": { body: overview },
     "GET /api/v1/admin/library/tidy": { body: { items: [] } },
+    "GET /api/v1/admin/song-requests": { body: { items: [] } },
     ...routes,
   };
   const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {

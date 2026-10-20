@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { Check, CircleAlert, Copy, Info, KeyRound, RefreshCw, TriangleAlert, UserCheck } from "lucide-react";
+import { Check, CircleAlert, Copy, Ear, Info, KeyRound, RefreshCw, TriangleAlert, UserCheck } from "lucide-react";
 import { useState } from "react";
 
 import { fetchDevelopmentKey } from "../api/client";
@@ -138,6 +138,16 @@ export function Overview() {
               : `${o.pendingRequests} people are waiting to be let in.`}
           </span>
           <span className="banner__action">Review</span>
+        </Link>
+      )}
+
+      {o && (o.songRequests ?? 0) > 0 && (
+        <Link to={REQUESTS_PATH} className="banner banner--accent">
+          <Ear size={18} aria-hidden />
+          <span>
+            {o.songRequests === 1 ? "Someone asked for a song." : `${o.songRequests} songs have been asked for.`}
+          </span>
+          <span className="banner__action">See songs</span>
         </Link>
       )}
 

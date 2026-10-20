@@ -89,7 +89,11 @@ export function Shell() {
                 <NavItem
                   key={section.path}
                   section={section}
-                  badge={section.path === "/requests" ? overview.data?.pendingRequests : undefined}
+                  badge={
+                    section.path === "/requests" && overview.data
+                      ? overview.data.pendingRequests + (overview.data.songRequests ?? 0)
+                      : undefined
+                  }
                 />
               ))}
             </ul>

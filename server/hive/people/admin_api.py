@@ -10,7 +10,7 @@ from sqlalchemy import case, func, select
 from sqlalchemy.orm import Session
 
 from hive.auth import ADMIN_COOKIE, AdminCaller, AdminDep, is_home_computer
-from hive.models import AccessRequest, Album, AuditEntry, Device, Track, User
+from hive.models import AccessRequest, Album, AuditEntry, Device, SongRequest, Track, User
 from hive.people import crypto as X
 from hive.people import mail
 from hive.people.admin import Admin, audit_body
@@ -275,6 +275,10 @@ def overview(request: Request, who: AdminDep) -> dict[str, Any]:
         return {
             "homeName": people.home.home_name,
             "pendingRequests": pending or 0,
+            "songRequests": s.scalar(
+                select(func.count()).select_from(SongRequest).where(SongRequest.status == "waiting")
+            )
+            or 0,
             "people": n_people or 0,
             "devices": n_devices or 0,
             "tracks": tracks or 0,

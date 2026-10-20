@@ -1361,3 +1361,25 @@ code {
 .row--album .row__actions .button {
   text-decoration: none;
 }
+
+/* M3: Recognition */
+.recognition__figure {
+  display: flex;
+  align-items: baseline;
+  gap: var(--hv-space-xs);
+  margin-top: var(--hv-space-xs);
+  font: var(--hv-type-body);
+  color: var(--hv-text-secondary);
+}
+
+.recognition__figure strong {
+  font: var(--hv-type-title1);
+  color: var(--hv-text-primary);
+}
+
+.recognition__percent {
+  margin-left: auto;
+  font: var(--hv-type-headline);
+  color: var(--hv-text-primary);
+  font-variant-numeric: tabular-nums;
+}

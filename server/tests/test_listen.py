@@ -117,9 +117,11 @@ def test_history_and_asking_for_a_song(listening, tmp_path: Path) -> None:
     listed = c.get("/api/v1/admin/song-requests").json()
     assert_matches(listed, "AdminSongRequests")
     req = listed["items"][0]
+    assert c.get("/api/v1/admin/overview").json()["songRequests"] == 1
     assert req["note"] == "The song at the wedding" and req["personName"]
     done = c.patch(f"/api/v1/admin/song-requests/{req['id']}", json={"status": "added"})
     assert done.json()["status"] == "added" and "decidedAt" in done.json()
+    assert c.get("/api/v1/admin/overview").json()["songRequests"] == 0
 
     status = c.get("/api/v1/admin/recognition").json()
     assert_matches(status, "RecognitionStatus")

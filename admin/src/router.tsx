@@ -12,6 +12,7 @@ import { InvitePage } from "./pages/Invite";
 import { LibraryPage } from "./pages/Library";
 import { Overview } from "./pages/Overview";
 import { PeoplePage } from "./pages/People";
+import { RecognitionPage } from "./pages/Recognition";
 import { RequestsPage } from "./pages/Requests";
 import { SettingsPage } from "./pages/Settings";
 import { SetupPage } from "./pages/Setup";
@@ -26,6 +27,7 @@ const built: Record<string, () => ReactElement> = {
   "/invite": InvitePage,
   "/activity": ActivityPage,
   "/settings": SettingsPage,
+  "/recognition": RecognitionPage,
 };
 
 const rootRoute = createRootRoute({

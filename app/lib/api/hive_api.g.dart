@@ -2745,6 +2745,7 @@ class AdminOverview {
   const AdminOverview({
     required this.homeName,
     required this.pendingRequests,
+    this.songRequests,
     required this.people,
     required this.devices,
     required this.tracks,
@@ -2759,6 +2760,8 @@ class AdminOverview {
 
   final String homeName;
   final int pendingRequests;
+  /// M3: songs people asked for, not yet added or dismissed.
+  final int? songRequests;
   final int people;
   /// Active devices.
   final int devices;
@@ -2776,6 +2779,7 @@ class AdminOverview {
   factory AdminOverview.fromJson(Map<String, dynamic> json) => AdminOverview(
         homeName: json['homeName'] as String,
         pendingRequests: json['pendingRequests'] as int,
+        songRequests: json['songRequests'] == null ? null : json['songRequests'] as int,
         people: json['people'] as int,
         devices: json['devices'] as int,
         tracks: json['tracks'] as int,
@@ -2791,6 +2795,7 @@ class AdminOverview {
   Map<String, dynamic> toJson() => {
         'homeName': homeName,
         'pendingRequests': pendingRequests,
+        'songRequests': ?songRequests,
         'people': people,
         'devices': devices,
         'tracks': tracks,

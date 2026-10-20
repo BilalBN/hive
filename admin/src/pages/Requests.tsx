@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, MonitorSmartphone, Undo2, X } from "lucide-react";
+import { Check, Ear, MonitorSmartphone, Search, Undo2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import {
@@ -13,6 +13,7 @@ import {
   undoDecision,
   until,
 } from "../api/people";
+import { decideSongRequest, fetchSongRequests, type SongRequest, type SongRequestStatus } from "../api/listen";
 import { QueryError } from "../components/QueryError";
 
 export const requestsQuery = {
@@ -144,6 +145,109 @@ function Codes({ data, now }: { data: AdminRequests; now: number }) {
   );
 }
 
+export const songRequestsQuery = {
+  queryKey: ["song-requests"],
+  queryFn: fetchSongRequests,
+  refetchInterval: 30_000,
+} as const;
+
+const dateTime = new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" });
+
+function SongRow({ r }: { r: SongRequest }) {
+  const client = useQueryClient();
+  const decide = useMutation({
+    mutationFn: (status: SongRequestStatus) => decideSongRequest(r.id, status),
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: songRequestsQuery.queryKey });
+      client.invalidateQueries({ queryKey: ["overview"] });
+      client.invalidateQueries({ queryKey: ["recognition"] });
+    },
+  });
+  const name = r.title ? (r.artist ? `${r.title} · ${r.artist}` : r.title) : "A song Listen heard";
+  const how = r.source === "listen" ? "from Listen" : "from Search";
+  return (
+    <li className="row row--request">
+      <span className="row__icon" aria-hidden>
+        {r.source === "listen" ? <Ear size={16} /> : <Search size={16} />}
+      </span>
+      <div className="row__text">
+        <p className="row__title">{name}</p>
+        <p className="row__meta">
+          {r.personName ?? "Someone"} · {how} · {ago(r.at)}
+          {r.status === "added" ? " · added" : r.status === "dismissed" ? " · not adding" : ""}
+        </p>
+        {r.heardAt && <p className="row__meta">Heard {dateTime.format(new Date(r.heardAt))}</p>}
+        {r.note && <p className="row__meta">“{r.note}”</p>}
+        {decide.error && <p className="note note--error">{decide.error.message}</p>}
+      </div>
+      <div className="row__actions">
+        {r.status === "waiting" ? (
+          <>
+            <button
+              className="button button--secondary"
+              type="button"
+              disabled={decide.isPending}
+              onClick={() => decide.mutate("dismissed")}
+            >
+              <X size={16} aria-hidden /> Not adding
+            </button>
+            <button
+              className="button button--primary"
+              type="button"
+              disabled={decide.isPending}
+              onClick={() => decide.mutate("added")}
+            >
+              <Check size={16} aria-hidden /> Added
+            </button>
+          </>
+        ) : (
+          <button
+            className="button button--secondary"
+            type="button"
+            disabled={decide.isPending}
+            onClick={() => decide.mutate("waiting")}
+          >
+            <Undo2 size={16} aria-hidden /> Undo
+          </button>
+        )}
+      </div>
+    </li>
+  );
+}
+
+/** Songs people asked for from Listen or Search: add them to the music folder, then mark them added. */
+function SongRequests() {
+  const { data, error, refetch, isFetching } = useQuery(songRequestsQuery);
+  const waiting = data?.filter((r) => r.status === "waiting") ?? [];
+  const decided = data?.filter((r) => r.status !== "waiting") ?? [];
+  return (
+    <section className="panel" aria-labelledby="songs-h">
+      <h2 id="songs-h" className="panel__title">
+        Songs people asked for
+      </h2>
+      {error && <QueryError error={error} retry={() => refetch()} busy={isFetching} />}
+      {data &&
+        (data.length ? (
+          <>
+            <p className="note">
+              Add the song to your music (Upload, or the music folder), then mark it added. They aren't told
+              automatically yet.
+            </p>
+            <ul className="rows">
+              {[...waiting, ...decided].map((r) => (
+                <SongRow key={r.id} r={r} />
+              ))}
+            </ul>
+          </>
+        ) : (
+          <p className="note">
+            Nobody has asked for a song. When Listen doesn't find one, people can ask for it from the app.
+          </p>
+        ))}
+    </section>
+  );
+}
+
 /** People and devices waiting to be let in, with what was decided lately. */
 export function RequestsPage() {
   const { data, error, refetch, isFetching } = useQuery(requestsQuery);
@@ -155,7 +259,8 @@ export function RequestsPage() {
       <header className="page__header">
         <h1 className="page__title">Requests</h1>
         <p className="page__summary">
-          People who proved their email and want in. Invited people are let in automatically.
+          People who proved their email and want in, and songs people would like at home. Invited people are let in
+          automatically.
         </p>
       </header>
       {error && <QueryError error={error} retry={() => refetch()} busy={isFetching} />}
@@ -176,6 +281,7 @@ export function RequestsPage() {
               <p className="note">Nobody is waiting. Invite someone and they'll be let in as soon as they join.</p>
             )}
           </section>
+          <SongRequests />
           {decided.length > 0 && (
             <section className="panel" aria-labelledby="decided-h">
               <h2 id="decided-h" className="panel__title">
