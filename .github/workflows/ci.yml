@@ -122,7 +122,9 @@ jobs:
 
   admin:
     name: Admin panel
-    runs-on: ubuntu-latest
+    # Playwright can't install Chromium on Ubuntu 26.04 (ubuntu-latest from 19 Oct
+    # 2026) yet; back to ubuntu-latest once it can.
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
