@@ -1272,25 +1272,71 @@ paths:
     get:
       tags: [admin]
       operationId: adminListBackups
-      summary: Backup schedule, destination and history.
+      summary: Backup schedule, destination and the backups there.
       x-milestone: M4
-      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+      responses:
+        "200": { description: The backups., content: { application/json: { schema: { $ref: "#/components/schemas/BackupStatus" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
     post:
       tags: [admin]
       operationId: adminRunBackup
       summary: Back up now.
       x-milestone: M4
-      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+      responses:
+        "200": { description: The backup made., content: { application/json: { schema: { $ref: "#/components/schemas/Backup" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "409": { description: A backup is already being made., content: { application/problem+json: { schema: { $ref: "#/components/schemas/Problem" } } } }
+        "503": { $ref: "#/components/responses/Unavailable" }
+  /api/v1/admin/backups/settings:
+    put:
+      tags: [admin]
+      operationId: adminBackupSettings
+      summary: Where backups go, whether the daily one runs, when, and how many to keep.
+      x-milestone: M4
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/BackupSettings" } } }
+      responses:
+        "200": { description: The backups., content: { application/json: { schema: { $ref: "#/components/schemas/BackupStatus" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "422": { $ref: "#/components/responses/Invalid" }
+  /api/v1/admin/backups/restore:
+    delete:
+      tags: [admin]
+      operationId: adminCancelRestore
+      summary: Don't restore at the next start after all.
+      x-milestone: M4
+      responses:
+        "200": { description: The backups., content: { application/json: { schema: { $ref: "#/components/schemas/BackupStatus" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
   /api/v1/admin/backups/{backupId}/restore:
     parameters:
       - { name: backupId, in: path, required: true, schema: { type: string } }
     post:
       tags: [admin]
       operationId: adminRestoreBackup
-      summary: Restore a backup, re-applying revocations and suspensions made after it.
+      summary: Restore a backup at the next start, re-applying sign-outs and pauses made after it.
+      description: >-
+        Backs up today's state first, so the restore can be undone. The backup is put in place
+        when Hive next starts, before anything opens the database.
       x-milestone: M4
-      requestBody: { $ref: "#/components/requestBodies/Pending" }
-      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+      responses:
+        "200": { description: "The backups, with the restore waiting.", content: { application/json: { schema: { $ref: "#/components/schemas/BackupStatus" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/Invalid" }
+  /api/v1/admin/backups/{backupId}:
+    parameters:
+      - { name: backupId, in: path, required: true, schema: { type: string } }
+    delete:
+      tags: [admin]
+      operationId: adminDeleteBackup
+      summary: Delete a backup file.
+      x-milestone: M4
+      responses:
+        "204": { description: Deleted. }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
   /api/v1/admin/logs:
     get:
       tags: [admin]
@@ -1883,6 +1929,52 @@ components:
       required: [items]
       properties:
         items: { type: array, items: { $ref: "#/components/schemas/SongRequest" } }
+    Backup:
+      type: object
+      required: [id, at, sizeBytes, kind, serverVersion, people, tracks]
+      properties:
+        id: { type: string, description: The file name. }
+        at: { type: string, format: date-time }
+        sizeBytes: { type: integer }
+        kind: { type: string, enum: [manual, scheduled, before-restore, before-update] }
+        serverVersion: { type: string }
+        people: { type: integer }
+        tracks: { type: integer }
+    BackupSettings:
+      type: object
+      additionalProperties: false
+      properties:
+        folder: { type: string, maxLength: 1024, description: "Full path, e.g. a folder on the backup drive." }
+        enabled: { type: boolean, description: The daily backup. }
+        time: { type: string, pattern: "^([01]\\d|2[0-3]):[0-5]\\d$", description: "Local time, e.g. 03:00." }
+        keep: { type: integer, minimum: 1, maximum: 90, description: How many daily and manual backups to keep. }
+    BackupStatus:
+      type: object
+      required: [folder, enabled, time, keep, running, items]
+      properties:
+        folder: { type: string }
+        enabled: { type: boolean }
+        time: { type: string }
+        keep: { type: integer }
+        running: { type: boolean }
+        lastAt: { type: string, format: date-time }
+        lastError: { type: string, description: Why the last backup failed. }
+        items: { type: array, items: { $ref: "#/components/schemas/Backup" } }
+        pendingRestore:
+          type: object
+          description: A restore waiting for Hive to restart.
+          required: [id, backupAt, stagedAt]
+          properties:
+            id: { type: string }
+            backupAt: { type: string, format: date-time }
+            stagedAt: { type: string, format: date-time }
+        restored:
+          type: object
+          description: The last backup restored, and when.
+          required: [id, at]
+          properties:
+            id: { type: string }
+            at: { type: string, format: date-time }
     RecognitionStatus:
       type: object
       required: [tracks, fingerprinted, waiting, working, failed, ffmpeg, matchesThisWeek, noMatchThisWeek]

@@ -73,6 +73,8 @@ class Settings(BaseSettings):
     lookup_worker: bool = True
     # M3: fingerprint songs in the background for Listen (off in some tests).
     fingerprint_worker: bool = True
+    # The daily backup (Hive Admin → Backups). Off in tests.
+    backup_worker: bool = True
 
     admin_dist: Path = Field(default_factory=lambda: REPO_ROOT / "admin" / "dist")
     log_level: str = "INFO"

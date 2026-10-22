@@ -1469,12 +1469,46 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Backup schedule, destination and history. */
+        /** Backup schedule, destination and the backups there. */
         get: operations["adminListBackups"];
         put?: never;
         /** Back up now. */
         post: operations["adminRunBackup"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/backups/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Where backups go, whether the daily one runs, when, and how many to keep. */
+        put: operations["adminBackupSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/backups/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Don't restore at the next start after all. */
+        delete: operations["adminCancelRestore"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1491,9 +1525,31 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Restore a backup, re-applying revocations and suspensions made after it. */
+        /**
+         * Restore a backup at the next start, re-applying sign-outs and pauses made after it.
+         * @description Backs up today's state first, so the restore can be undone. The backup is put in place when Hive next starts, before anything opens the database.
+         */
         post: operations["adminRestoreBackup"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/backups/{backupId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                backupId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete a backup file. */
+        delete: operations["adminDeleteBackup"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1969,6 +2025,54 @@ export interface components {
         };
         AdminSongRequests: {
             items: components["schemas"]["SongRequest"][];
+        };
+        Backup: {
+            /** @description The file name. */
+            id: string;
+            /** Format: date-time */
+            at: string;
+            sizeBytes: number;
+            /** @enum {string} */
+            kind: "manual" | "scheduled" | "before-restore" | "before-update";
+            serverVersion: string;
+            people: number;
+            tracks: number;
+        };
+        BackupSettings: {
+            /** @description Full path, e.g. a folder on the backup drive. */
+            folder?: string;
+            /** @description The daily backup. */
+            enabled?: boolean;
+            /** @description Local time, e.g. 03:00. */
+            time?: string;
+            /** @description How many daily and manual backups to keep. */
+            keep?: number;
+        };
+        BackupStatus: {
+            folder: string;
+            enabled: boolean;
+            time: string;
+            keep: number;
+            running: boolean;
+            /** Format: date-time */
+            lastAt?: string;
+            /** @description Why the last backup failed. */
+            lastError?: string;
+            items: components["schemas"]["Backup"][];
+            /** @description A restore waiting for Hive to restart. */
+            pendingRestore?: {
+                id: string;
+                /** Format: date-time */
+                backupAt: string;
+                /** Format: date-time */
+                stagedAt: string;
+            };
+            /** @description The last backup restored, and when. */
+            restored?: {
+                id: string;
+                /** Format: date-time */
+                at: string;
+            };
         };
         RecognitionStatus: {
             tracks: number;
@@ -5190,8 +5294,16 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            200: components["responses"]["Pending"];
-            501: components["responses"]["NotImplemented"];
+            /** @description The backups. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackupStatus"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
         };
     };
     adminRunBackup: {
@@ -5203,8 +5315,73 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            200: components["responses"]["Pending"];
-            501: components["responses"]["NotImplemented"];
+            /** @description The backup made. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Backup"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            /** @description A backup is already being made. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            503: components["responses"]["Unavailable"];
+        };
+    };
+    adminBackupSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BackupSettings"];
+            };
+        };
+        responses: {
+            /** @description The backups. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackupStatus"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            422: components["responses"]["Invalid"];
+        };
+    };
+    adminCancelRestore: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The backups. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackupStatus"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
         };
     };
     adminRestoreBackup: {
@@ -5216,10 +5393,42 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: components["requestBodies"]["Pending"];
+        requestBody?: never;
         responses: {
-            200: components["responses"]["Pending"];
-            501: components["responses"]["NotImplemented"];
+            /** @description The backups, with the restore waiting. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackupStatus"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Invalid"];
+        };
+    };
+    adminDeleteBackup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                backupId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
         };
     };
     adminGetLogs: {

@@ -32,6 +32,7 @@ def settings(tmp_path: Path) -> Settings:
         lookup_online=False,
         lookup_worker=False,
         fingerprint_worker=False,
+        backup_worker=False,
     )
 
 

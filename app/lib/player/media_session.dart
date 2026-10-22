@@ -159,6 +159,10 @@ Future<void> initAudio(ProviderContainer container) async {
         androidNotificationChannelId: 'dev.hivemusic.hive.playback',
         androidNotificationChannelName: 'Playback',
         androidNotificationIcon: 'drawable/ic_stat_hive',
+        // While a song plays the notification can't be swiped away (swiping
+        // it stopped the music); once paused it can, and that ends playback,
+        // as in other music apps.
+        androidNotificationOngoing: true,
         androidStopForegroundOnPause: true,
         // Android passes the cover to the lock screen and notification as a
         // bitmap, twice, in one message limited to about 1 MB. A 600 px cover

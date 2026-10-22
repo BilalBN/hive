@@ -278,6 +278,26 @@ Mac off.
    before). Signing a device out in Hive Admin deletes its downloads the next
    time it connects.
 
+## M4: backups (first part of M4)
+
+**Hive Admin → Backups** keeps a copy of everything Hive knows: people,
+devices, likes, playlists, history, settings and covers. It doesn't copy
+the music files themselves: back up the music drive separately.
+
+1. Restart the server after updating (no new packages).
+2. Backups → **Schedule and place**: the daily backup is on at 03:00 and
+   keeps the last 14. Set **Backup folder** to a folder on another drive
+   (an external drive, for example `/Volumes/Backup/Hive` on the Mac or
+   `E:\Hive backups` on Windows) and **Save**. Hive checks it can write
+   there.
+3. **Back up now** to make the first one.
+4. **Restore** puts a backup back the next time Hive starts: stop the server
+   and start it again. Today's state is backed up first (so a restore can be
+   undone), and anyone signed out or paused since the backup stays that way.
+
+Your data lives in the `data` folder inside the code folder (unless you set
+`HIVE_DATA_DIR`). Never delete that folder when updating the code.
+
 ## Useful commands
 
 | What | Command |

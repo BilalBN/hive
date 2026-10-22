@@ -1388,6 +1388,134 @@ class AdminSongRequests {
       };
 }
 
+class Backup {
+  const Backup({
+    required this.id,
+    required this.at,
+    required this.sizeBytes,
+    required this.kind,
+    required this.serverVersion,
+    required this.people,
+    required this.tracks,
+  });
+
+  /// The file name.
+  final String id;
+  final DateTime at;
+  final int sizeBytes;
+  final String kind;
+  final String serverVersion;
+  final int people;
+  final int tracks;
+
+  factory Backup.fromJson(Map<String, dynamic> json) => Backup(
+        id: json['id'] as String,
+        at: DateTime.parse(json['at'] as String),
+        sizeBytes: json['sizeBytes'] as int,
+        kind: json['kind'] as String,
+        serverVersion: json['serverVersion'] as String,
+        people: json['people'] as int,
+        tracks: json['tracks'] as int,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'at': at.toUtc().toIso8601String(),
+        'sizeBytes': sizeBytes,
+        'kind': kind,
+        'serverVersion': serverVersion,
+        'people': people,
+        'tracks': tracks,
+      };
+}
+
+class BackupSettings {
+  const BackupSettings({
+    this.folder,
+    this.enabled,
+    this.time,
+    this.keep,
+  });
+
+  /// Full path, e.g. a folder on the backup drive.
+  final String? folder;
+  /// The daily backup.
+  final bool? enabled;
+  /// Local time, e.g. 03:00.
+  final String? time;
+  /// How many daily and manual backups to keep.
+  final int? keep;
+
+  factory BackupSettings.fromJson(Map<String, dynamic> json) => BackupSettings(
+        folder: json['folder'] == null ? null : json['folder'] as String,
+        enabled: json['enabled'] == null ? null : json['enabled'] as bool,
+        time: json['time'] == null ? null : json['time'] as String,
+        keep: json['keep'] == null ? null : json['keep'] as int,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'folder': ?folder,
+        'enabled': ?enabled,
+        'time': ?time,
+        'keep': ?keep,
+      };
+}
+
+class BackupStatus {
+  const BackupStatus({
+    required this.folder,
+    required this.enabled,
+    required this.time,
+    required this.keep,
+    required this.running,
+    this.lastAt,
+    this.lastError,
+    required this.items,
+    this.pendingRestore,
+    this.restored,
+  });
+
+  final String folder;
+  final bool enabled;
+  final String time;
+  final int keep;
+  final bool running;
+  final DateTime? lastAt;
+  /// Why the last backup failed.
+  final String? lastError;
+  final List<Backup> items;
+  /// A restore waiting for Hive to restart.
+  final Map<String, dynamic>? pendingRestore;
+  /// The last backup restored, and when.
+  final Map<String, dynamic>? restored;
+
+  factory BackupStatus.fromJson(Map<String, dynamic> json) => BackupStatus(
+        folder: json['folder'] as String,
+        enabled: json['enabled'] as bool,
+        time: json['time'] as String,
+        keep: json['keep'] as int,
+        running: json['running'] as bool,
+        lastAt: json['lastAt'] == null ? null : DateTime.parse(json['lastAt'] as String),
+        lastError: json['lastError'] == null ? null : json['lastError'] as String,
+        items: (json['items'] as List<dynamic>).map((e) => Backup.fromJson((e as Map).cast<String, dynamic>())).toList(),
+        pendingRestore: json['pendingRestore'] == null ? null : (json['pendingRestore'] as Map).cast<String, dynamic>(),
+        restored: json['restored'] == null ? null : (json['restored'] as Map).cast<String, dynamic>(),
+      );
+
+  Map<String, dynamic> toJson() => {
+        'folder': folder,
+        'enabled': enabled,
+        'time': time,
+        'keep': keep,
+        'running': running,
+        'lastAt': ?lastAt?.toUtc().toIso8601String(),
+        'lastError': ?lastError,
+        'items': items.map((e) => e.toJson()).toList(),
+        'pendingRestore': ?pendingRestore,
+        'restored': ?restored,
+      };
+}
+
 class RecognitionStatus {
   const RecognitionStatus({
     required this.tracks,

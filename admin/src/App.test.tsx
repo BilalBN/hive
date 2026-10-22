@@ -42,8 +42,8 @@ describe("Hive Admin shell", () => {
   });
 
   it("says which milestone builds an unbuilt page", async () => {
-    renderAt("/backups");
-    expect(await screen.findByRole("heading", { name: "Backups" })).toBeInTheDocument();
+    renderAt("/logs");
+    expect(await screen.findByRole("heading", { name: "Logs" })).toBeInTheDocument();
     expect(screen.getByText("Arrives in M4")).toBeInTheDocument();
   });
 

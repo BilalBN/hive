@@ -9,11 +9,14 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse
+from sqlalchemy.orm import Session
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from hive import __version__
 from hive.admin_site import mount_admin
 from hive.auth import development_key, ticket_secret
+from hive.backups import Backups, finish_pending_restore
+from hive.backups_api import router as backups_router
 from hive.config import Settings, get_settings
 from hive.contract import contract_path, load_contract, problem, register_unbuilt_operations
 from hive.db import Database, migrate
@@ -27,6 +30,7 @@ from hive.library.media_api import router as media_router
 from hive.library.recognition import Recognition
 from hive.library.scanner import Library
 from hive.library.uploads import router as uploads_router
+from hive.models import AuditEntry
 from hive.people.admin_api import router as people_admin_router
 from hive.people.api import router as people_router
 from hive.people.service import People, Problem
@@ -43,11 +47,30 @@ def create_app(settings: Settings | None = None, lookup_http: Http | None = None
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         settings.data_dir.mkdir(parents=True, exist_ok=True)
+        restored = finish_pending_restore(settings)
         migrate(settings.database_url)
         app.state.db = Database(settings.database_url, settings.database_path)
         app.state.dev_key = development_key(app.state.db)
         app.state.ticket_secret = ticket_secret(app.state.db)
-        app.state.people = People(app.state.db, HomeSettings(app.state.db, settings.home_name))
+        home = HomeSettings(app.state.db, settings.home_name)
+        app.state.people = People(app.state.db, home)
+        app.state.backups = Backups(settings, home)
+        if restored:
+            from datetime import UTC, datetime
+
+            at = datetime.now(UTC).isoformat().replace("+00:00", "Z")
+            home.set("backup_restored", f"{restored}|{at}")
+            with Session(app.state.db.engine) as s:
+                s.add(
+                    AuditEntry(
+                        actor="Hive",
+                        action="backup.restored",
+                        text=f"Hive restored the backup {restored}.",
+                    )
+                )
+                s.commit()
+        if settings.backup_worker:
+            app.state.backups.start()
         app.state.library = Library(settings, app.state.db)
         app.state.library.start()
         app.state.lookup = LookupService(
@@ -76,6 +99,7 @@ def create_app(settings: Settings | None = None, lookup_http: Http | None = None
         yield
         app.state.lookup.stop()
         app.state.recognition.stop()
+        app.state.backups.stop()
         app.state.library.stop()
         app.state.db.engine.dispose()
         log.info("Hive stopped")
@@ -98,6 +122,7 @@ def create_app(settings: Settings | None = None, lookup_http: Http | None = None
     app.include_router(media_router)
     app.include_router(admin_library_router)
     app.include_router(uploads_router)
+    app.include_router(backups_router)
     app.include_router(listen_router)
     app.include_router(listen_admin_router)
     register_unbuilt_operations(app, load_contract())
