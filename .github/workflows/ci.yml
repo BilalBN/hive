@@ -333,9 +333,13 @@ jobs:
         if: failure()
         shell: pwsh
         run: |
-          Get-ChildItem $env:RUNNER_TEMP\*.log | ForEach-Object { "--- $($_.Name)"; Get-Content $_ -Tail 60 }
-          Get-ChildItem "$env:ProgramData\Hive\service-logs", "$env:ProgramData\Hive\logs" -Recurse -File -ErrorAction SilentlyContinue |
-            ForEach-Object { "--- $($_.FullName)"; Get-Content $_ -Tail 80 }
+          $files = @(Get-ChildItem $env:RUNNER_TEMP\*.log -ErrorAction SilentlyContinue) +
+            @(Get-ChildItem "$env:ProgramData\Hive\service-logs", "$env:ProgramData\Hive\logs" -Recurse -File -ErrorAction SilentlyContinue)
+          foreach ($f in $files) {
+            $tail = (Get-Content $f -Tail 25 | ForEach-Object { $_ -replace '%', '%25' }) -join '%0A'
+            Write-Host "::warning title=$($f.Name)::$tail"
+          }
+          Get-Service Hive -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "::warning title=service::$($_.Status)" }
       - uses: actions/upload-artifact@v4
         with:
           name: hive-server-windows

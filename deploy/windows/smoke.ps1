@@ -10,7 +10,9 @@ $music = Join-Path $env:RUNNER_TEMP "HiveMusic"
 $data = Join-Path $env:ProgramData "Hive"
 $base = "http://127.0.0.1:8443"
 
-function Step($text) { Write-Host "== $text" }
+# Steps and failures also go to GitHub as annotations, readable without the log.
+trap { Write-Host "::error title=Windows install test::$($_.Exception.Message)"; exit 1 }
+function Step($text) { Write-Host "== $text"; Write-Host "::notice title=Install test::$text" }
 function Install($log) {
   # No Tailscale on CI machines, so listen on this computer only.
   $p = Start-Process $setup -PassThru -Wait -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART",
