@@ -17,7 +17,9 @@ import '../../ui/language_chips.dart';
 import '../../ui/nav.dart';
 import '../../ui/states.dart';
 import '../../ui/tiles.dart';
+import '../../ui/preferences.dart';
 import '../shell/app_shell.dart' show desktopBreakpoint;
+import 'simple_home.dart';
 
 String greeting(DateTime now) {
   final h = now.hour;
@@ -212,6 +214,9 @@ class HomeScreen extends ConsumerWidget {
           text: 'Copy albums into the music folder on the home PC, or use Upload in Hive Admin. They appear here on their own.',
         ),
       ];
+    }
+    if (ref.watch(simpleModeProvider)) {
+      return [const SizedBox(height: HiveSpace.sm), SimpleHome(home: home)];
     }
     final size = wide ? 168.0 : 144.0;
     final recent = home.recentlyPlayed ?? const <TrackSummary>[];

@@ -11,6 +11,7 @@ import 'package:hive/app.dart';
 import 'package:hive/api/hive_api.g.dart';
 import 'package:hive/downloads/downloads.dart';
 import 'package:hive/sync/continuity.dart';
+import 'package:hive/ui/preferences.dart';
 
 import 'app_test.dart' show health;
 import 'screens_test.dart' show openLibraryAlbum;
@@ -161,6 +162,15 @@ final Map<String, (Size, bool, Steps?)> _shots = {
       await t.tap(find.bySemanticsLabel('Library'));
       await t.pumpAndSettle();
       await t.tap(find.textContaining('on this device'));
+      await t.pumpAndSettle();
+    },
+  ),
+  'phone-simple-home': (
+    const Size(390, 844),
+    true,
+    (t) async {
+      final c = ProviderScope.containerOf(t.element(find.byType(HiveApp)));
+      await c.read(simpleModeProvider.notifier).set(true);
       await t.pumpAndSettle();
     },
   ),

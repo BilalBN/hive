@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -9,6 +10,10 @@ import '../../core/app_info.dart';
 import '../../core/home_connection.dart';
 import '../../player/quality.dart';
 import '../../design/icons.g.dart';
+import '../../ui/track_actions.dart';
+import '../../ui/states.dart';
+import '../../ui/preferences.dart';
+import '../../desktop/desktop.dart';
 import '../../downloads/downloads.dart';
 import '../../design/theme.dart';
 import '../../design/tokens.g.dart';
@@ -179,19 +184,28 @@ class SettingsScreen extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: HiveSpace.lg),
+            _Heading('This device'),
+            const _ThisDevice(),
+            if (isDesktop) ...[
+              const SizedBox(height: HiveSpace.lg),
+              _Heading('On this computer'),
+              const _ThisComputer(),
+            ],
+            const SizedBox(height: HiveSpace.lg),
             _Group(
               children: [
                 _Row(
                   icon: HiveIcons.info,
                   title: 'About Hive',
                   value: 'App $appVersion · API $hiveApiVersion',
+                  onTap: () => showLicensePage(
+                    context: context,
+                    applicationName: 'Hive',
+                    applicationVersion: appVersion,
+                    applicationLegalese: 'Free software under the AGPL-3.0. Your music and everything about it stay at home.',
+                  ),
                 ),
               ],
-            ),
-            const SizedBox(height: HiveSpace.md),
-            Text(
-              'Hive follows your phone or computer for light and dark.',
-              style: HiveType.caption.copyWith(color: p.textSecondary),
             ),
           ],
         ),
@@ -556,4 +570,229 @@ Future<QualityMode?> _pickQuality(
       ),
     ),
   );
+}
+
+/// Choose one of a few options in a sheet.
+Future<T?> _pick<T>(
+  BuildContext context,
+  String title,
+  T current,
+  List<(T, String, String?)> options,
+) {
+  final p = HiveTheme.of(context);
+  return showModalBottomSheet<T>(
+    context: context,
+    backgroundColor: p.surface,
+    useRootNavigator: true,
+    constraints: const BoxConstraints(maxWidth: 560),
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(
+        top: Radius.circular(HiveRadius.sheet),
+      ),
+    ),
+    builder: (context) => SafeArea(
+      child: RadioGroup<T>(
+        groupValue: current,
+        onChanged: (v) => Navigator.of(context).pop(v),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                HiveSpace.lg,
+                HiveSpace.lg,
+                HiveSpace.lg,
+                HiveSpace.xs,
+              ),
+              child: Text(
+                title,
+                style: HiveType.headline.copyWith(color: p.textPrimary),
+              ),
+            ),
+            for (final (value, label, detail) in options)
+              RadioListTile<T>(
+                value: value,
+                activeColor: p.accent,
+                title: Text(
+                  label,
+                  style: HiveType.body.copyWith(color: p.textPrimary),
+                ),
+                subtitle: detail == null
+                    ? null
+                    : Text(
+                        detail,
+                        style: HiveType.caption.copyWith(
+                          color: p.textSecondary,
+                        ),
+                      ),
+              ),
+            const SizedBox(height: HiveSpace.sm),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+class _ThisDevice extends ConsumerWidget {
+  const _ThisDevice();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final p = HiveTheme.of(context);
+    final appearance = ref.watch(appearanceProvider);
+    final simple = ref.watch(simpleModeProvider);
+    final downloads = ref.watch(downloadsProvider);
+    return _Group(
+      children: [
+        _Row(
+          icon: HiveIcons.sunMoon,
+          title: 'Appearance',
+          value: appearance.label,
+          onTap: () async {
+            final a = await _pick(context, 'Appearance', appearance, [
+              for (final a in Appearance.values) (a, a.label, null),
+            ]);
+            if (a != null) await ref.read(appearanceProvider.notifier).set(a);
+          },
+        ),
+        SwitchListTile(
+          secondary: Icon(
+            HiveIcons.squareMenu,
+            size: 20,
+            color: p.textSecondary,
+          ),
+          title: Text(
+            'Simple mode',
+            style: HiveType.body.copyWith(color: p.textPrimary),
+          ),
+          subtitle: Text(
+            'Big buttons that start music at once, and fewer choices.',
+            style: HiveType.caption.copyWith(color: p.textSecondary),
+          ),
+          value: simple,
+          activeThumbColor: p.accent,
+          onChanged: (v) => ref.read(simpleModeProvider.notifier).set(v),
+        ),
+        _Row(
+          icon: HiveIcons.circleArrowDown,
+          title: 'Downloads',
+          value: downloads.tracks.isEmpty
+              ? 'None'
+              : '${plural(downloads.tracks.length, 'song')} · ${formatBytes(downloads.bytes)}',
+          onTap: () => context.go('/library/downloads'),
+        ),
+      ],
+    );
+  }
+}
+
+class _ThisComputer extends ConsumerStatefulWidget {
+  const _ThisComputer();
+
+  @override
+  ConsumerState<_ThisComputer> createState() => _ThisComputerState();
+}
+
+class _ThisComputerState extends ConsumerState<_ThisComputer> {
+  @override
+  Widget build(BuildContext context) {
+    final p = HiveTheme.of(context);
+    final s = ref.watch(desktopSettingsProvider);
+    final settings = ref.read(desktopSettingsProvider.notifier);
+    final devices = outputDevices();
+    String deviceLabel(String name) => name == 'auto'
+        ? 'Same as Windows'
+        : devices
+              .firstWhere((d) => d.$1 == name, orElse: () => (name, name))
+              .$2;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _Group(
+          children: [
+            SwitchListTile(
+              secondary: Icon(
+                HiveIcons.panelBottomClose,
+                size: 20,
+                color: p.textSecondary,
+              ),
+              title: Text(
+                'Keep playing when the window closes',
+                style: HiveType.body.copyWith(color: p.textPrimary),
+              ),
+              subtitle: Text(
+                defaultTargetPlatform == TargetPlatform.macOS
+                    ? 'Hive stays in the menu bar; Quit Hive there or press ⌘Q to end it.'
+                    : 'Hive stays in the tray by the clock; Quit Hive there to end it.',
+                style: HiveType.caption.copyWith(color: p.textSecondary),
+              ),
+              value: s.closeToTray,
+              activeThumbColor: p.accent,
+              onChanged: (v) => settings.update(s.copyWith(closeToTray: v)),
+            ),
+            if (outputChoiceHere) ...[
+              _Row(
+                icon: HiveIcons.speaker,
+                title: 'Output',
+                value: deviceLabel(s.outputDevice),
+                onTap: () async {
+                  if (devices.isEmpty) {
+                    showToast(
+                      context,
+                      'Play a song first, then choose where it plays.',
+                    );
+                    return;
+                  }
+                  final d = await _pick(
+                    context,
+                    'Play through',
+                    s.outputDevice,
+                    [for (final (name, label) in devices) (name, label, null)],
+                  );
+                  if (d != null) {
+                    await settings.update(s.copyWith(outputDevice: d));
+                  }
+                  if (mounted) setState(() {});
+                },
+              ),
+              SwitchListTile(
+                secondary: Icon(
+                  HiveIcons.audioLines,
+                  size: 20,
+                  color: p.textSecondary,
+                ),
+                title: Text(
+                  'Exclusive mode',
+                  style: HiveType.body.copyWith(color: p.textPrimary),
+                ),
+                subtitle: Text(
+                  'Hive alone uses the output, so it gets the music exactly as sent (bit-perfect '
+                  'with volume levelling off). Other apps go quiet while Hive plays.',
+                  style: HiveType.caption.copyWith(color: p.textSecondary),
+                ),
+                value: s.exclusive,
+                activeThumbColor: p.accent,
+                onChanged: (v) => settings.update(s.copyWith(exclusive: v)),
+              ),
+            ],
+          ],
+        ),
+        if (!outputChoiceHere)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              HiveSpace.xs,
+              HiveSpace.xs,
+              HiveSpace.xs,
+              0,
+            ),
+            child: Text(
+              'Choose where Hive plays in Control Centre → Sound (or Option-click the volume in the menu bar).',
+              style: HiveType.caption.copyWith(color: p.textSecondary),
+            ),
+          ),
+      ],
+    );
+  }
 }

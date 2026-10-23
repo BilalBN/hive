@@ -6,8 +6,10 @@ import 'auth/device_auth.dart';
 import 'core/home_connection.dart';
 import 'design/theme.dart';
 import 'design/tokens.g.dart';
+import 'desktop/desktop.dart';
 import 'downloads/downloads.dart';
 import 'sync/continuity.dart';
+import 'ui/preferences.dart';
 import 'features/connect/connect_screen.dart';
 import 'features/downloads/downloads_screen.dart';
 import 'features/home/home_screen.dart';
@@ -17,6 +19,7 @@ import 'features/library/artist_screen.dart';
 import 'features/library/library_screen.dart';
 import 'features/library/playlist_screen.dart';
 import 'features/player/lyrics_view.dart';
+import 'features/player/mini_window.dart';
 import 'features/player/now_playing_screen.dart';
 import 'features/player/queue_view.dart';
 import 'features/search/search_screen.dart';
@@ -193,8 +196,14 @@ class HiveApp extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
       theme: buildHiveTheme(Brightness.light),
       darkTheme: buildHiveTheme(Brightness.dark),
-      themeMode: ThemeMode.system,
+      themeMode: ref.watch(appearanceProvider).mode,
       routerConfig: ref.watch(routerProvider),
+      // The computer's mini player replaces the whole window while it's on.
+      builder: (context, child) => Consumer(
+        builder: (_, ref, _) => ref.watch(miniWindowProvider)
+            ? const MiniWindowView()
+            : child ?? const SizedBox.shrink(),
+      ),
     );
   }
 }

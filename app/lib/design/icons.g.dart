@@ -10,43 +10,124 @@ abstract final class HiveIcons {
   static const IconData aArrowDown = IconData(0xe58a, fontFamily: fontFamily);
   static const IconData aArrowUp = IconData(0xe58b, fontFamily: fontFamily);
   static const IconData aLargeSmall = IconData(0xe58c, fontFamily: fontFamily);
-  static const IconData accessibility = IconData(0xe297, fontFamily: fontFamily);
+  static const IconData accessibility = IconData(
+    0xe297,
+    fontFamily: fontFamily,
+  );
   static const IconData activity = IconData(0xe038, fontFamily: fontFamily);
   static const IconData airVent = IconData(0xe351, fontFamily: fontFamily);
   static const IconData airplay = IconData(0xe039, fontFamily: fontFamily);
   static const IconData alarmClock = IconData(0xe03a, fontFamily: fontFamily);
-  static const IconData alarmClockCheck = IconData(0xe1ec, fontFamily: fontFamily);
-  static const IconData alarmClockMinus = IconData(0xe1ed, fontFamily: fontFamily);
-  static const IconData alarmClockOff = IconData(0xe23b, fontFamily: fontFamily);
-  static const IconData alarmClockPlus = IconData(0xe1ee, fontFamily: fontFamily);
+  static const IconData alarmClockCheck = IconData(
+    0xe1ec,
+    fontFamily: fontFamily,
+  );
+  static const IconData alarmClockMinus = IconData(
+    0xe1ed,
+    fontFamily: fontFamily,
+  );
+  static const IconData alarmClockOff = IconData(
+    0xe23b,
+    fontFamily: fontFamily,
+  );
+  static const IconData alarmClockPlus = IconData(
+    0xe1ee,
+    fontFamily: fontFamily,
+  );
   static const IconData alarmSmoke = IconData(0xe580, fontFamily: fontFamily);
   static const IconData album = IconData(0xe03b, fontFamily: fontFamily);
   static const IconData alignCenter = IconData(0xe03c, fontFamily: fontFamily);
-  static const IconData alignCenterHorizontal = IconData(0xe26c, fontFamily: fontFamily);
-  static const IconData alignCenterVertical = IconData(0xe26d, fontFamily: fontFamily);
-  static const IconData alignEndHorizontal = IconData(0xe26e, fontFamily: fontFamily);
-  static const IconData alignEndVertical = IconData(0xe26f, fontFamily: fontFamily);
-  static const IconData alignHorizontalDistributeCenter = IconData(0xe03d, fontFamily: fontFamily);
-  static const IconData alignHorizontalDistributeEnd = IconData(0xe03e, fontFamily: fontFamily);
-  static const IconData alignHorizontalDistributeStart = IconData(0xe03f, fontFamily: fontFamily);
-  static const IconData alignHorizontalJustifyCenter = IconData(0xe272, fontFamily: fontFamily);
-  static const IconData alignHorizontalJustifyEnd = IconData(0xe273, fontFamily: fontFamily);
-  static const IconData alignHorizontalJustifyStart = IconData(0xe274, fontFamily: fontFamily);
-  static const IconData alignHorizontalSpaceAround = IconData(0xe275, fontFamily: fontFamily);
-  static const IconData alignHorizontalSpaceBetween = IconData(0xe276, fontFamily: fontFamily);
+  static const IconData alignCenterHorizontal = IconData(
+    0xe26c,
+    fontFamily: fontFamily,
+  );
+  static const IconData alignCenterVertical = IconData(
+    0xe26d,
+    fontFamily: fontFamily,
+  );
+  static const IconData alignEndHorizontal = IconData(
+    0xe26e,
+    fontFamily: fontFamily,
+  );
+  static const IconData alignEndVertical = IconData(
+    0xe26f,
+    fontFamily: fontFamily,
+  );
+  static const IconData alignHorizontalDistributeCenter = IconData(
+    0xe03d,
+    fontFamily: fontFamily,
+  );
+  static const IconData alignHorizontalDistributeEnd = IconData(
+    0xe03e,
+    fontFamily: fontFamily,
+  );
+  static const IconData alignHorizontalDistributeStart = IconData(
+    0xe03f,
+    fontFamily: fontFamily,
+  );
+  static const IconData alignHorizontalJustifyCenter = IconData(
+    0xe272,
+    fontFamily: fontFamily,
+  );
+  static const IconData alignHorizontalJustifyEnd = IconData(
+    0xe273,
+    fontFamily: fontFamily,
+  );
+  static const IconData alignHorizontalJustifyStart = IconData(
+    0xe274,
+    fontFamily: fontFamily,
+  );
+  static const IconData alignHorizontalSpaceAround = IconData(
+    0xe275,
+    fontFamily: fontFamily,
+  );
+  static const IconData alignHorizontalSpaceBetween = IconData(
+    0xe276,
+    fontFamily: fontFamily,
+  );
   static const IconData alignJustify = IconData(0xe040, fontFamily: fontFamily);
   static const IconData alignLeft = IconData(0xe041, fontFamily: fontFamily);
   static const IconData alignRight = IconData(0xe042, fontFamily: fontFamily);
-  static const IconData alignStartHorizontal = IconData(0xe270, fontFamily: fontFamily);
-  static const IconData alignStartVertical = IconData(0xe271, fontFamily: fontFamily);
-  static const IconData alignVerticalDistributeCenter = IconData(0xe27e, fontFamily: fontFamily);
-  static const IconData alignVerticalDistributeEnd = IconData(0xe27f, fontFamily: fontFamily);
-  static const IconData alignVerticalDistributeStart = IconData(0xe280, fontFamily: fontFamily);
-  static const IconData alignVerticalJustifyCenter = IconData(0xe277, fontFamily: fontFamily);
-  static const IconData alignVerticalJustifyEnd = IconData(0xe278, fontFamily: fontFamily);
-  static const IconData alignVerticalJustifyStart = IconData(0xe279, fontFamily: fontFamily);
-  static const IconData alignVerticalSpaceAround = IconData(0xe27a, fontFamily: fontFamily);
-  static const IconData alignVerticalSpaceBetween = IconData(0xe27b, fontFamily: fontFamily);
+  static const IconData alignStartHorizontal = IconData(
+    0xe270,
+    fontFamily: fontFamily,
+  );
+  static const IconData alignStartVertical = IconData(
+    0xe271,
+    fontFamily: fontFamily,
+  );
+  static const IconData alignVerticalDistributeCenter = IconData(
+    0xe27e,
+    fontFamily: fontFamily,
+  );
+  static const IconData alignVerticalDistributeEnd = IconData(
+    0xe27f,
+    fontFamily: fontFamily,
+  );
+  static const IconData alignVerticalDistributeStart = IconData(
+    0xe280,
+    fontFamily: fontFamily,
+  );
+  static const IconData alignVerticalJustifyCenter = IconData(
+    0xe277,
+    fontFamily: fontFamily,
+  );
+  static const IconData alignVerticalJustifyEnd = IconData(
+    0xe278,
+    fontFamily: fontFamily,
+  );
+  static const IconData alignVerticalJustifyStart = IconData(
+    0xe279,
+    fontFamily: fontFamily,
+  );
+  static const IconData alignVerticalSpaceAround = IconData(
+    0xe27a,
+    fontFamily: fontFamily,
+  );
+  static const IconData alignVerticalSpaceBetween = IconData(
+    0xe27b,
+    fontFamily: fontFamily,
+  );
   static const IconData ambulance = IconData(0xe5c0, fontFamily: fontFamily);
   static const IconData ampersand = IconData(0xe4a1, fontFamily: fontFamily);
   static const IconData ampersands = IconData(0xe4a2, fontFamily: fontFamily);
@@ -61,57 +142,135 @@ abstract final class HiveIcons {
   static const IconData appWindowMac = IconData(0xe5d7, fontFamily: fontFamily);
   static const IconData apple = IconData(0xe352, fontFamily: fontFamily);
   static const IconData archive = IconData(0xe045, fontFamily: fontFamily);
-  static const IconData archiveRestore = IconData(0xe2cd, fontFamily: fontFamily);
+  static const IconData archiveRestore = IconData(
+    0xe2cd,
+    fontFamily: fontFamily,
+  );
   static const IconData archiveX = IconData(0xe511, fontFamily: fontFamily);
   static const IconData armchair = IconData(0xe2c0, fontFamily: fontFamily);
   static const IconData arrowBigDown = IconData(0xe1e1, fontFamily: fontFamily);
-  static const IconData arrowBigDownDash = IconData(0xe422, fontFamily: fontFamily);
+  static const IconData arrowBigDownDash = IconData(
+    0xe422,
+    fontFamily: fontFamily,
+  );
   static const IconData arrowBigLeft = IconData(0xe1e2, fontFamily: fontFamily);
-  static const IconData arrowBigLeftDash = IconData(0xe423, fontFamily: fontFamily);
-  static const IconData arrowBigRight = IconData(0xe1e3, fontFamily: fontFamily);
-  static const IconData arrowBigRightDash = IconData(0xe424, fontFamily: fontFamily);
+  static const IconData arrowBigLeftDash = IconData(
+    0xe423,
+    fontFamily: fontFamily,
+  );
+  static const IconData arrowBigRight = IconData(
+    0xe1e3,
+    fontFamily: fontFamily,
+  );
+  static const IconData arrowBigRightDash = IconData(
+    0xe424,
+    fontFamily: fontFamily,
+  );
   static const IconData arrowBigUp = IconData(0xe1e4, fontFamily: fontFamily);
-  static const IconData arrowBigUpDash = IconData(0xe425, fontFamily: fontFamily);
+  static const IconData arrowBigUpDash = IconData(
+    0xe425,
+    fontFamily: fontFamily,
+  );
   static const IconData arrowDown = IconData(0xe046, fontFamily: fontFamily);
   static const IconData arrowDown01 = IconData(0xe418, fontFamily: fontFamily);
   static const IconData arrowDown10 = IconData(0xe419, fontFamily: fontFamily);
   static const IconData arrowDownAZ = IconData(0xe41a, fontFamily: fontFamily);
-  static const IconData arrowDownFromLine = IconData(0xe459, fontFamily: fontFamily);
-  static const IconData arrowDownLeft = IconData(0xe047, fontFamily: fontFamily);
-  static const IconData arrowDownNarrowWide = IconData(0xe048, fontFamily: fontFamily);
-  static const IconData arrowDownRight = IconData(0xe049, fontFamily: fontFamily);
-  static const IconData arrowDownToDot = IconData(0xe452, fontFamily: fontFamily);
-  static const IconData arrowDownToLine = IconData(0xe45a, fontFamily: fontFamily);
+  static const IconData arrowDownFromLine = IconData(
+    0xe459,
+    fontFamily: fontFamily,
+  );
+  static const IconData arrowDownLeft = IconData(
+    0xe047,
+    fontFamily: fontFamily,
+  );
+  static const IconData arrowDownNarrowWide = IconData(
+    0xe048,
+    fontFamily: fontFamily,
+  );
+  static const IconData arrowDownRight = IconData(
+    0xe049,
+    fontFamily: fontFamily,
+  );
+  static const IconData arrowDownToDot = IconData(
+    0xe452,
+    fontFamily: fontFamily,
+  );
+  static const IconData arrowDownToLine = IconData(
+    0xe45a,
+    fontFamily: fontFamily,
+  );
   static const IconData arrowDownUp = IconData(0xe04a, fontFamily: fontFamily);
-  static const IconData arrowDownWideNarrow = IconData(0xe04b, fontFamily: fontFamily);
+  static const IconData arrowDownWideNarrow = IconData(
+    0xe04b,
+    fontFamily: fontFamily,
+  );
   static const IconData arrowDownZA = IconData(0xe41b, fontFamily: fontFamily);
   static const IconData arrowLeft = IconData(0xe04c, fontFamily: fontFamily);
-  static const IconData arrowLeftFromLine = IconData(0xe45b, fontFamily: fontFamily);
-  static const IconData arrowLeftRight = IconData(0xe24a, fontFamily: fontFamily);
-  static const IconData arrowLeftToLine = IconData(0xe45c, fontFamily: fontFamily);
+  static const IconData arrowLeftFromLine = IconData(
+    0xe45b,
+    fontFamily: fontFamily,
+  );
+  static const IconData arrowLeftRight = IconData(
+    0xe24a,
+    fontFamily: fontFamily,
+  );
+  static const IconData arrowLeftToLine = IconData(
+    0xe45c,
+    fontFamily: fontFamily,
+  );
   static const IconData arrowRight = IconData(0xe04d, fontFamily: fontFamily);
-  static const IconData arrowRightFromLine = IconData(0xe45d, fontFamily: fontFamily);
-  static const IconData arrowRightLeft = IconData(0xe41c, fontFamily: fontFamily);
-  static const IconData arrowRightToLine = IconData(0xe45e, fontFamily: fontFamily);
+  static const IconData arrowRightFromLine = IconData(
+    0xe45d,
+    fontFamily: fontFamily,
+  );
+  static const IconData arrowRightLeft = IconData(
+    0xe41c,
+    fontFamily: fontFamily,
+  );
+  static const IconData arrowRightToLine = IconData(
+    0xe45e,
+    fontFamily: fontFamily,
+  );
   static const IconData arrowUp = IconData(0xe04e, fontFamily: fontFamily);
   static const IconData arrowUp01 = IconData(0xe41d, fontFamily: fontFamily);
   static const IconData arrowUp10 = IconData(0xe41e, fontFamily: fontFamily);
   static const IconData arrowUpAZ = IconData(0xe41f, fontFamily: fontFamily);
   static const IconData arrowUpDown = IconData(0xe381, fontFamily: fontFamily);
-  static const IconData arrowUpFromDot = IconData(0xe453, fontFamily: fontFamily);
-  static const IconData arrowUpFromLine = IconData(0xe45f, fontFamily: fontFamily);
+  static const IconData arrowUpFromDot = IconData(
+    0xe453,
+    fontFamily: fontFamily,
+  );
+  static const IconData arrowUpFromLine = IconData(
+    0xe45f,
+    fontFamily: fontFamily,
+  );
   static const IconData arrowUpLeft = IconData(0xe04f, fontFamily: fontFamily);
-  static const IconData arrowUpNarrowWide = IconData(0xe050, fontFamily: fontFamily);
+  static const IconData arrowUpNarrowWide = IconData(
+    0xe050,
+    fontFamily: fontFamily,
+  );
   static const IconData arrowUpRight = IconData(0xe051, fontFamily: fontFamily);
-  static const IconData arrowUpToLine = IconData(0xe460, fontFamily: fontFamily);
-  static const IconData arrowUpWideNarrow = IconData(0xe420, fontFamily: fontFamily);
+  static const IconData arrowUpToLine = IconData(
+    0xe460,
+    fontFamily: fontFamily,
+  );
+  static const IconData arrowUpWideNarrow = IconData(
+    0xe420,
+    fontFamily: fontFamily,
+  );
   static const IconData arrowUpZA = IconData(0xe421, fontFamily: fontFamily);
-  static const IconData arrowsUpFromLine = IconData(0xe4d9, fontFamily: fontFamily);
+  static const IconData arrowsUpFromLine = IconData(
+    0xe4d9,
+    fontFamily: fontFamily,
+  );
   static const IconData asterisk = IconData(0xe1ef, fontFamily: fontFamily);
   static const IconData atSign = IconData(0xe052, fontFamily: fontFamily);
   static const IconData atom = IconData(0xe3db, fontFamily: fontFamily);
   static const IconData audioLines = IconData(0xe55f, fontFamily: fontFamily);
-  static const IconData audioWaveform = IconData(0xe560, fontFamily: fontFamily);
+  static const IconData audioWaveform = IconData(
+    0xe560,
+    fontFamily: fontFamily,
+  );
   static const IconData award = IconData(0xe053, fontFamily: fontFamily);
   static const IconData axe = IconData(0xe054, fontFamily: fontFamily);
   static const IconData axis3d = IconData(0xe2fe, fontFamily: fontFamily);
@@ -121,18 +280,36 @@ abstract final class HiveIcons {
   static const IconData badgeAlert = IconData(0xe47a, fontFamily: fontFamily);
   static const IconData badgeCent = IconData(0xe514, fontFamily: fontFamily);
   static const IconData badgeCheck = IconData(0xe241, fontFamily: fontFamily);
-  static const IconData badgeDollarSign = IconData(0xe47b, fontFamily: fontFamily);
+  static const IconData badgeDollarSign = IconData(
+    0xe47b,
+    fontFamily: fontFamily,
+  );
   static const IconData badgeEuro = IconData(0xe515, fontFamily: fontFamily);
   static const IconData badgeHelp = IconData(0xe47c, fontFamily: fontFamily);
-  static const IconData badgeIndianRupee = IconData(0xe516, fontFamily: fontFamily);
+  static const IconData badgeIndianRupee = IconData(
+    0xe516,
+    fontFamily: fontFamily,
+  );
   static const IconData badgeInfo = IconData(0xe47d, fontFamily: fontFamily);
-  static const IconData badgeJapaneseYen = IconData(0xe517, fontFamily: fontFamily);
+  static const IconData badgeJapaneseYen = IconData(
+    0xe517,
+    fontFamily: fontFamily,
+  );
   static const IconData badgeMinus = IconData(0xe47e, fontFamily: fontFamily);
   static const IconData badgePercent = IconData(0xe47f, fontFamily: fontFamily);
   static const IconData badgePlus = IconData(0xe480, fontFamily: fontFamily);
-  static const IconData badgePoundSterling = IconData(0xe518, fontFamily: fontFamily);
-  static const IconData badgeRussianRuble = IconData(0xe519, fontFamily: fontFamily);
-  static const IconData badgeSwissFranc = IconData(0xe51a, fontFamily: fontFamily);
+  static const IconData badgePoundSterling = IconData(
+    0xe518,
+    fontFamily: fontFamily,
+  );
+  static const IconData badgeRussianRuble = IconData(
+    0xe519,
+    fontFamily: fontFamily,
+  );
+  static const IconData badgeSwissFranc = IconData(
+    0xe51a,
+    fontFamily: fontFamily,
+  );
   static const IconData badgeX = IconData(0xe481, fontFamily: fontFamily);
   static const IconData baggageClaim = IconData(0xe2c9, fontFamily: fontFamily);
   static const IconData ban = IconData(0xe055, fontFamily: fontFamily);
@@ -143,11 +320,20 @@ abstract final class HiveIcons {
   static const IconData baseline = IconData(0xe285, fontFamily: fontFamily);
   static const IconData bath = IconData(0xe2ab, fontFamily: fontFamily);
   static const IconData battery = IconData(0xe057, fontFamily: fontFamily);
-  static const IconData batteryCharging = IconData(0xe058, fontFamily: fontFamily);
+  static const IconData batteryCharging = IconData(
+    0xe058,
+    fontFamily: fontFamily,
+  );
   static const IconData batteryFull = IconData(0xe059, fontFamily: fontFamily);
   static const IconData batteryLow = IconData(0xe05a, fontFamily: fontFamily);
-  static const IconData batteryMedium = IconData(0xe05b, fontFamily: fontFamily);
-  static const IconData batteryWarning = IconData(0xe3b0, fontFamily: fontFamily);
+  static const IconData batteryMedium = IconData(
+    0xe05b,
+    fontFamily: fontFamily,
+  );
+  static const IconData batteryWarning = IconData(
+    0xe3b0,
+    fontFamily: fontFamily,
+  );
   static const IconData beaker = IconData(0xe05c, fontFamily: fontFamily);
   static const IconData bean = IconData(0xe393, fontFamily: fontFamily);
   static const IconData beanOff = IconData(0xe394, fontFamily: fontFamily);
@@ -164,10 +350,22 @@ abstract final class HiveIcons {
   static const IconData bellOff = IconData(0xe05e, fontFamily: fontFamily);
   static const IconData bellPlus = IconData(0xe1f1, fontFamily: fontFamily);
   static const IconData bellRing = IconData(0xe224, fontFamily: fontFamily);
-  static const IconData betweenHorizontalEnd = IconData(0xe596, fontFamily: fontFamily);
-  static const IconData betweenHorizontalStart = IconData(0xe597, fontFamily: fontFamily);
-  static const IconData betweenVerticalEnd = IconData(0xe598, fontFamily: fontFamily);
-  static const IconData betweenVerticalStart = IconData(0xe599, fontFamily: fontFamily);
+  static const IconData betweenHorizontalEnd = IconData(
+    0xe596,
+    fontFamily: fontFamily,
+  );
+  static const IconData betweenHorizontalStart = IconData(
+    0xe597,
+    fontFamily: fontFamily,
+  );
+  static const IconData betweenVerticalEnd = IconData(
+    0xe598,
+    fontFamily: fontFamily,
+  );
+  static const IconData betweenVerticalStart = IconData(
+    0xe599,
+    fontFamily: fontFamily,
+  );
   static const IconData bicepsFlexed = IconData(0xe5f0, fontFamily: fontFamily);
   static const IconData bike = IconData(0xe1d2, fontFamily: fontFamily);
   static const IconData binary = IconData(0xe1f2, fontFamily: fontFamily);
@@ -179,9 +377,15 @@ abstract final class HiveIcons {
   static const IconData blinds = IconData(0xe3c4, fontFamily: fontFamily);
   static const IconData blocks = IconData(0xe4ff, fontFamily: fontFamily);
   static const IconData bluetooth = IconData(0xe060, fontFamily: fontFamily);
-  static const IconData bluetoothConnected = IconData(0xe1b8, fontFamily: fontFamily);
+  static const IconData bluetoothConnected = IconData(
+    0xe1b8,
+    fontFamily: fontFamily,
+  );
   static const IconData bluetoothOff = IconData(0xe1b9, fontFamily: fontFamily);
-  static const IconData bluetoothSearching = IconData(0xe1ba, fontFamily: fontFamily);
+  static const IconData bluetoothSearching = IconData(
+    0xe1ba,
+    fontFamily: fontFamily,
+  );
   static const IconData bold = IconData(0xe061, fontFamily: fontFamily);
   static const IconData bolt = IconData(0xe591, fontFamily: fontFamily);
   static const IconData bomb = IconData(0xe2ff, fontFamily: fontFamily);
@@ -193,7 +397,10 @@ abstract final class HiveIcons {
   static const IconData bookCopy = IconData(0xe3f1, fontFamily: fontFamily);
   static const IconData bookDashed = IconData(0xe3f2, fontFamily: fontFamily);
   static const IconData bookDown = IconData(0xe3f3, fontFamily: fontFamily);
-  static const IconData bookHeadphones = IconData(0xe54c, fontFamily: fontFamily);
+  static const IconData bookHeadphones = IconData(
+    0xe54c,
+    fontFamily: fontFamily,
+  );
   static const IconData bookHeart = IconData(0xe54d, fontFamily: fontFamily);
   static const IconData bookImage = IconData(0xe54e, fontFamily: fontFamily);
   static const IconData bookKey = IconData(0xe3f4, fontFamily: fontFamily);
@@ -201,7 +408,10 @@ abstract final class HiveIcons {
   static const IconData bookMarked = IconData(0xe3f6, fontFamily: fontFamily);
   static const IconData bookMinus = IconData(0xe3f7, fontFamily: fontFamily);
   static const IconData bookOpen = IconData(0xe063, fontFamily: fontFamily);
-  static const IconData bookOpenCheck = IconData(0xe385, fontFamily: fontFamily);
+  static const IconData bookOpenCheck = IconData(
+    0xe385,
+    fontFamily: fontFamily,
+  );
   static const IconData bookOpenText = IconData(0xe54f, fontFamily: fontFamily);
   static const IconData bookPlus = IconData(0xe3f8, fontFamily: fontFamily);
   static const IconData bookText = IconData(0xe550, fontFamily: fontFamily);
@@ -211,13 +421,22 @@ abstract final class HiveIcons {
   static const IconData bookUser = IconData(0xe552, fontFamily: fontFamily);
   static const IconData bookX = IconData(0xe3fa, fontFamily: fontFamily);
   static const IconData bookmark = IconData(0xe064, fontFamily: fontFamily);
-  static const IconData bookmarkCheck = IconData(0xe524, fontFamily: fontFamily);
-  static const IconData bookmarkMinus = IconData(0xe23c, fontFamily: fontFamily);
+  static const IconData bookmarkCheck = IconData(
+    0xe524,
+    fontFamily: fontFamily,
+  );
+  static const IconData bookmarkMinus = IconData(
+    0xe23c,
+    fontFamily: fontFamily,
+  );
   static const IconData bookmarkPlus = IconData(0xe23d, fontFamily: fontFamily);
   static const IconData bookmarkX = IconData(0xe525, fontFamily: fontFamily);
   static const IconData boomBox = IconData(0xe4f3, fontFamily: fontFamily);
   static const IconData bot = IconData(0xe1bb, fontFamily: fontFamily);
-  static const IconData botMessageSquare = IconData(0xe5d3, fontFamily: fontFamily);
+  static const IconData botMessageSquare = IconData(
+    0xe5d3,
+    fontFamily: fontFamily,
+  );
   static const IconData botOff = IconData(0xe5e5, fontFamily: fontFamily);
   static const IconData box = IconData(0xe065, fontFamily: fontFamily);
   static const IconData boxes = IconData(0xe2d0, fontFamily: fontFamily);
@@ -228,9 +447,18 @@ abstract final class HiveIcons {
   static const IconData brainCog = IconData(0xe3cc, fontFamily: fontFamily);
   static const IconData brickWall = IconData(0xe586, fontFamily: fontFamily);
   static const IconData briefcase = IconData(0xe066, fontFamily: fontFamily);
-  static const IconData briefcaseBusiness = IconData(0xe5da, fontFamily: fontFamily);
-  static const IconData briefcaseConveyorBelt = IconData(0xe630, fontFamily: fontFamily);
-  static const IconData briefcaseMedical = IconData(0xe5db, fontFamily: fontFamily);
+  static const IconData briefcaseBusiness = IconData(
+    0xe5da,
+    fontFamily: fontFamily,
+  );
+  static const IconData briefcaseConveyorBelt = IconData(
+    0xe630,
+    fontFamily: fontFamily,
+  );
+  static const IconData briefcaseMedical = IconData(
+    0xe5db,
+    fontFamily: fontFamily,
+  );
   static const IconData bringToFront = IconData(0xe4f4, fontFamily: fontFamily);
   static const IconData brush = IconData(0xe1d3, fontFamily: fontFamily);
   static const IconData bug = IconData(0xe20c, fontFamily: fontFamily);
@@ -247,22 +475,55 @@ abstract final class HiveIcons {
   static const IconData calculator = IconData(0xe1bc, fontFamily: fontFamily);
   static const IconData calendar = IconData(0xe067, fontFamily: fontFamily);
   static const IconData calendar1 = IconData(0xe635, fontFamily: fontFamily);
-  static const IconData calendarArrowDown = IconData(0xe603, fontFamily: fontFamily);
-  static const IconData calendarArrowUp = IconData(0xe604, fontFamily: fontFamily);
-  static const IconData calendarCheck = IconData(0xe2b7, fontFamily: fontFamily);
-  static const IconData calendarCheck2 = IconData(0xe2b8, fontFamily: fontFamily);
-  static const IconData calendarClock = IconData(0xe304, fontFamily: fontFamily);
+  static const IconData calendarArrowDown = IconData(
+    0xe603,
+    fontFamily: fontFamily,
+  );
+  static const IconData calendarArrowUp = IconData(
+    0xe604,
+    fontFamily: fontFamily,
+  );
+  static const IconData calendarCheck = IconData(
+    0xe2b7,
+    fontFamily: fontFamily,
+  );
+  static const IconData calendarCheck2 = IconData(
+    0xe2b8,
+    fontFamily: fontFamily,
+  );
+  static const IconData calendarClock = IconData(
+    0xe304,
+    fontFamily: fontFamily,
+  );
   static const IconData calendarCog = IconData(0xe5f2, fontFamily: fontFamily);
   static const IconData calendarDays = IconData(0xe2b9, fontFamily: fontFamily);
   static const IconData calendarFold = IconData(0xe5b9, fontFamily: fontFamily);
-  static const IconData calendarHeart = IconData(0xe305, fontFamily: fontFamily);
-  static const IconData calendarMinus = IconData(0xe2ba, fontFamily: fontFamily);
-  static const IconData calendarMinus2 = IconData(0xe5ba, fontFamily: fontFamily);
+  static const IconData calendarHeart = IconData(
+    0xe305,
+    fontFamily: fontFamily,
+  );
+  static const IconData calendarMinus = IconData(
+    0xe2ba,
+    fontFamily: fontFamily,
+  );
+  static const IconData calendarMinus2 = IconData(
+    0xe5ba,
+    fontFamily: fontFamily,
+  );
   static const IconData calendarOff = IconData(0xe2bb, fontFamily: fontFamily);
   static const IconData calendarPlus = IconData(0xe2bc, fontFamily: fontFamily);
-  static const IconData calendarPlus2 = IconData(0xe5bb, fontFamily: fontFamily);
-  static const IconData calendarRange = IconData(0xe2bd, fontFamily: fontFamily);
-  static const IconData calendarSearch = IconData(0xe306, fontFamily: fontFamily);
+  static const IconData calendarPlus2 = IconData(
+    0xe5bb,
+    fontFamily: fontFamily,
+  );
+  static const IconData calendarRange = IconData(
+    0xe2bd,
+    fontFamily: fontFamily,
+  );
+  static const IconData calendarSearch = IconData(
+    0xe306,
+    fontFamily: fontFamily,
+  );
   static const IconData calendarX = IconData(0xe2be, fontFamily: fontFamily);
   static const IconData calendarX2 = IconData(0xe2bf, fontFamily: fontFamily);
   static const IconData camera = IconData(0xe068, fontFamily: fontFamily);
@@ -279,7 +540,10 @@ abstract final class HiveIcons {
   static const IconData caravan = IconData(0xe53e, fontFamily: fontFamily);
   static const IconData carrot = IconData(0xe25a, fontFamily: fontFamily);
   static const IconData caseLower = IconData(0xe3dc, fontFamily: fontFamily);
-  static const IconData caseSensitive = IconData(0xe3dd, fontFamily: fontFamily);
+  static const IconData caseSensitive = IconData(
+    0xe3dd,
+    fontFamily: fontFamily,
+  );
   static const IconData caseUpper = IconData(0xe3de, fontFamily: fontFamily);
   static const IconData cassetteTape = IconData(0xe4cf, fontFamily: fontFamily);
   static const IconData cast = IconData(0xe06a, fontFamily: fontFamily);
@@ -289,23 +553,62 @@ abstract final class HiveIcons {
   static const IconData chartArea = IconData(0xe4d8, fontFamily: fontFamily);
   static const IconData chartBar = IconData(0xe2a2, fontFamily: fontFamily);
   static const IconData chartBarBig = IconData(0xe4ac, fontFamily: fontFamily);
-  static const IconData chartBarDecreasing = IconData(0xe60c, fontFamily: fontFamily);
-  static const IconData chartBarIncreasing = IconData(0xe60d, fontFamily: fontFamily);
-  static const IconData chartBarStacked = IconData(0xe60e, fontFamily: fontFamily);
-  static const IconData chartCandlestick = IconData(0xe4ad, fontFamily: fontFamily);
+  static const IconData chartBarDecreasing = IconData(
+    0xe60c,
+    fontFamily: fontFamily,
+  );
+  static const IconData chartBarIncreasing = IconData(
+    0xe60d,
+    fontFamily: fontFamily,
+  );
+  static const IconData chartBarStacked = IconData(
+    0xe60e,
+    fontFamily: fontFamily,
+  );
+  static const IconData chartCandlestick = IconData(
+    0xe4ad,
+    fontFamily: fontFamily,
+  );
   static const IconData chartColumn = IconData(0xe2a3, fontFamily: fontFamily);
-  static const IconData chartColumnBig = IconData(0xe4ae, fontFamily: fontFamily);
-  static const IconData chartColumnDecreasing = IconData(0xe06b, fontFamily: fontFamily);
-  static const IconData chartColumnIncreasing = IconData(0xe2a4, fontFamily: fontFamily);
-  static const IconData chartColumnStacked = IconData(0xe60f, fontFamily: fontFamily);
+  static const IconData chartColumnBig = IconData(
+    0xe4ae,
+    fontFamily: fontFamily,
+  );
+  static const IconData chartColumnDecreasing = IconData(
+    0xe06b,
+    fontFamily: fontFamily,
+  );
+  static const IconData chartColumnIncreasing = IconData(
+    0xe2a4,
+    fontFamily: fontFamily,
+  );
+  static const IconData chartColumnStacked = IconData(
+    0xe60f,
+    fontFamily: fontFamily,
+  );
   static const IconData chartGantt = IconData(0xe629, fontFamily: fontFamily);
   static const IconData chartLine = IconData(0xe2a5, fontFamily: fontFamily);
   static const IconData chartNetwork = IconData(0xe610, fontFamily: fontFamily);
-  static const IconData chartNoAxesColumn = IconData(0xe06c, fontFamily: fontFamily);
-  static const IconData chartNoAxesColumnDecreasing = IconData(0xe06d, fontFamily: fontFamily);
-  static const IconData chartNoAxesColumnIncreasing = IconData(0xe06e, fontFamily: fontFamily);
-  static const IconData chartNoAxesCombined = IconData(0xe611, fontFamily: fontFamily);
-  static const IconData chartNoAxesGantt = IconData(0xe4c9, fontFamily: fontFamily);
+  static const IconData chartNoAxesColumn = IconData(
+    0xe06c,
+    fontFamily: fontFamily,
+  );
+  static const IconData chartNoAxesColumnDecreasing = IconData(
+    0xe06d,
+    fontFamily: fontFamily,
+  );
+  static const IconData chartNoAxesColumnIncreasing = IconData(
+    0xe06e,
+    fontFamily: fontFamily,
+  );
+  static const IconData chartNoAxesCombined = IconData(
+    0xe611,
+    fontFamily: fontFamily,
+  );
+  static const IconData chartNoAxesGantt = IconData(
+    0xe4c9,
+    fontFamily: fontFamily,
+  );
   static const IconData chartPie = IconData(0xe06f, fontFamily: fontFamily);
   static const IconData chartScatter = IconData(0xe48f, fontFamily: fontFamily);
   static const IconData chartSpline = IconData(0xe612, fontFamily: fontFamily);
@@ -320,51 +623,132 @@ abstract final class HiveIcons {
   static const IconData chevronRight = IconData(0xe073, fontFamily: fontFamily);
   static const IconData chevronUp = IconData(0xe074, fontFamily: fontFamily);
   static const IconData chevronsDown = IconData(0xe075, fontFamily: fontFamily);
-  static const IconData chevronsDownUp = IconData(0xe228, fontFamily: fontFamily);
+  static const IconData chevronsDownUp = IconData(
+    0xe228,
+    fontFamily: fontFamily,
+  );
   static const IconData chevronsLeft = IconData(0xe076, fontFamily: fontFamily);
-  static const IconData chevronsLeftRight = IconData(0xe293, fontFamily: fontFamily);
-  static const IconData chevronsLeftRightEllipsis = IconData(0xe624, fontFamily: fontFamily);
-  static const IconData chevronsRight = IconData(0xe077, fontFamily: fontFamily);
-  static const IconData chevronsRightLeft = IconData(0xe294, fontFamily: fontFamily);
+  static const IconData chevronsLeftRight = IconData(
+    0xe293,
+    fontFamily: fontFamily,
+  );
+  static const IconData chevronsLeftRightEllipsis = IconData(
+    0xe624,
+    fontFamily: fontFamily,
+  );
+  static const IconData chevronsRight = IconData(
+    0xe077,
+    fontFamily: fontFamily,
+  );
+  static const IconData chevronsRightLeft = IconData(
+    0xe294,
+    fontFamily: fontFamily,
+  );
   static const IconData chevronsUp = IconData(0xe078, fontFamily: fontFamily);
-  static const IconData chevronsUpDown = IconData(0xe211, fontFamily: fontFamily);
+  static const IconData chevronsUpDown = IconData(
+    0xe211,
+    fontFamily: fontFamily,
+  );
   static const IconData chrome = IconData(0xe079, fontFamily: fontFamily);
   static const IconData church = IconData(0xe3e5, fontFamily: fontFamily);
   static const IconData cigarette = IconData(0xe2c6, fontFamily: fontFamily);
   static const IconData cigaretteOff = IconData(0xe2c7, fontFamily: fontFamily);
   static const IconData circle = IconData(0xe07a, fontFamily: fontFamily);
   static const IconData circleAlert = IconData(0xe07b, fontFamily: fontFamily);
-  static const IconData circleArrowDown = IconData(0xe07c, fontFamily: fontFamily);
-  static const IconData circleArrowLeft = IconData(0xe07d, fontFamily: fontFamily);
-  static const IconData circleArrowOutDownLeft = IconData(0xe3fc, fontFamily: fontFamily);
-  static const IconData circleArrowOutDownRight = IconData(0xe3fd, fontFamily: fontFamily);
-  static const IconData circleArrowOutUpLeft = IconData(0xe3fe, fontFamily: fontFamily);
-  static const IconData circleArrowOutUpRight = IconData(0xe3ff, fontFamily: fontFamily);
-  static const IconData circleArrowRight = IconData(0xe07e, fontFamily: fontFamily);
-  static const IconData circleArrowUp = IconData(0xe07f, fontFamily: fontFamily);
+  static const IconData circleArrowDown = IconData(
+    0xe07c,
+    fontFamily: fontFamily,
+  );
+  static const IconData circleArrowLeft = IconData(
+    0xe07d,
+    fontFamily: fontFamily,
+  );
+  static const IconData circleArrowOutDownLeft = IconData(
+    0xe3fc,
+    fontFamily: fontFamily,
+  );
+  static const IconData circleArrowOutDownRight = IconData(
+    0xe3fd,
+    fontFamily: fontFamily,
+  );
+  static const IconData circleArrowOutUpLeft = IconData(
+    0xe3fe,
+    fontFamily: fontFamily,
+  );
+  static const IconData circleArrowOutUpRight = IconData(
+    0xe3ff,
+    fontFamily: fontFamily,
+  );
+  static const IconData circleArrowRight = IconData(
+    0xe07e,
+    fontFamily: fontFamily,
+  );
+  static const IconData circleArrowUp = IconData(
+    0xe07f,
+    fontFamily: fontFamily,
+  );
   static const IconData circleCheck = IconData(0xe226, fontFamily: fontFamily);
-  static const IconData circleCheckBig = IconData(0xe080, fontFamily: fontFamily);
-  static const IconData circleChevronDown = IconData(0xe4e2, fontFamily: fontFamily);
-  static const IconData circleChevronLeft = IconData(0xe4e3, fontFamily: fontFamily);
-  static const IconData circleChevronRight = IconData(0xe4e4, fontFamily: fontFamily);
-  static const IconData circleChevronUp = IconData(0xe4e5, fontFamily: fontFamily);
+  static const IconData circleCheckBig = IconData(
+    0xe080,
+    fontFamily: fontFamily,
+  );
+  static const IconData circleChevronDown = IconData(
+    0xe4e2,
+    fontFamily: fontFamily,
+  );
+  static const IconData circleChevronLeft = IconData(
+    0xe4e3,
+    fontFamily: fontFamily,
+  );
+  static const IconData circleChevronRight = IconData(
+    0xe4e4,
+    fontFamily: fontFamily,
+  );
+  static const IconData circleChevronUp = IconData(
+    0xe4e5,
+    fontFamily: fontFamily,
+  );
   static const IconData circleDashed = IconData(0xe4b5, fontFamily: fontFamily);
   static const IconData circleDivide = IconData(0xe081, fontFamily: fontFamily);
-  static const IconData circleDollarSign = IconData(0xe482, fontFamily: fontFamily);
+  static const IconData circleDollarSign = IconData(
+    0xe482,
+    fontFamily: fontFamily,
+  );
   static const IconData circleDot = IconData(0xe349, fontFamily: fontFamily);
-  static const IconData circleDotDashed = IconData(0xe4b6, fontFamily: fontFamily);
-  static const IconData circleEllipsis = IconData(0xe34a, fontFamily: fontFamily);
+  static const IconData circleDotDashed = IconData(
+    0xe4b6,
+    fontFamily: fontFamily,
+  );
+  static const IconData circleEllipsis = IconData(
+    0xe34a,
+    fontFamily: fontFamily,
+  );
   static const IconData circleEqual = IconData(0xe405, fontFamily: fontFamily);
-  static const IconData circleFadingArrowUp = IconData(0xe61d, fontFamily: fontFamily);
-  static const IconData circleFadingPlus = IconData(0xe5c1, fontFamily: fontFamily);
+  static const IconData circleFadingArrowUp = IconData(
+    0xe61d,
+    fontFamily: fontFamily,
+  );
+  static const IconData circleFadingPlus = IconData(
+    0xe5c1,
+    fontFamily: fontFamily,
+  );
   static const IconData circleGauge = IconData(0xe4e6, fontFamily: fontFamily);
   static const IconData circleHelp = IconData(0xe082, fontFamily: fontFamily);
   static const IconData circleMinus = IconData(0xe083, fontFamily: fontFamily);
   static const IconData circleOff = IconData(0xe406, fontFamily: fontFamily);
-  static const IconData circleParking = IconData(0xe3cd, fontFamily: fontFamily);
-  static const IconData circleParkingOff = IconData(0xe3ce, fontFamily: fontFamily);
+  static const IconData circleParking = IconData(
+    0xe3cd,
+    fontFamily: fontFamily,
+  );
+  static const IconData circleParkingOff = IconData(
+    0xe3ce,
+    fontFamily: fontFamily,
+  );
   static const IconData circlePause = IconData(0xe084, fontFamily: fontFamily);
-  static const IconData circlePercent = IconData(0xe51f, fontFamily: fontFamily);
+  static const IconData circlePercent = IconData(
+    0xe51f,
+    fontFamily: fontFamily,
+  );
   static const IconData circlePlay = IconData(0xe085, fontFamily: fontFamily);
   static const IconData circlePlus = IconData(0xe086, fontFamily: fontFamily);
   static const IconData circlePower = IconData(0xe555, fontFamily: fontFamily);
@@ -372,21 +756,48 @@ abstract final class HiveIcons {
   static const IconData circleSlash2 = IconData(0xe213, fontFamily: fontFamily);
   static const IconData circleStop = IconData(0xe087, fontFamily: fontFamily);
   static const IconData circleUser = IconData(0xe466, fontFamily: fontFamily);
-  static const IconData circleUserRound = IconData(0xe467, fontFamily: fontFamily);
+  static const IconData circleUserRound = IconData(
+    0xe467,
+    fontFamily: fontFamily,
+  );
   static const IconData circleX = IconData(0xe088, fontFamily: fontFamily);
   static const IconData circuitBoard = IconData(0xe408, fontFamily: fontFamily);
   static const IconData citrus = IconData(0xe379, fontFamily: fontFamily);
   static const IconData clapperboard = IconData(0xe29b, fontFamily: fontFamily);
   static const IconData clipboard = IconData(0xe089, fontFamily: fontFamily);
-  static const IconData clipboardCheck = IconData(0xe219, fontFamily: fontFamily);
-  static const IconData clipboardCopy = IconData(0xe225, fontFamily: fontFamily);
-  static const IconData clipboardList = IconData(0xe08a, fontFamily: fontFamily);
-  static const IconData clipboardMinus = IconData(0xe5c3, fontFamily: fontFamily);
-  static const IconData clipboardPaste = IconData(0xe3ec, fontFamily: fontFamily);
+  static const IconData clipboardCheck = IconData(
+    0xe219,
+    fontFamily: fontFamily,
+  );
+  static const IconData clipboardCopy = IconData(
+    0xe225,
+    fontFamily: fontFamily,
+  );
+  static const IconData clipboardList = IconData(
+    0xe08a,
+    fontFamily: fontFamily,
+  );
+  static const IconData clipboardMinus = IconData(
+    0xe5c3,
+    fontFamily: fontFamily,
+  );
+  static const IconData clipboardPaste = IconData(
+    0xe3ec,
+    fontFamily: fontFamily,
+  );
   static const IconData clipboardPen = IconData(0xe307, fontFamily: fontFamily);
-  static const IconData clipboardPenLine = IconData(0xe308, fontFamily: fontFamily);
-  static const IconData clipboardPlus = IconData(0xe5c4, fontFamily: fontFamily);
-  static const IconData clipboardType = IconData(0xe309, fontFamily: fontFamily);
+  static const IconData clipboardPenLine = IconData(
+    0xe308,
+    fontFamily: fontFamily,
+  );
+  static const IconData clipboardPlus = IconData(
+    0xe5c4,
+    fontFamily: fontFamily,
+  );
+  static const IconData clipboardType = IconData(
+    0xe309,
+    fontFamily: fontFamily,
+  );
   static const IconData clipboardX = IconData(0xe222, fontFamily: fontFamily);
   static const IconData clock = IconData(0xe08b, fontFamily: fontFamily);
   static const IconData clock1 = IconData(0xe24b, fontFamily: fontFamily);
@@ -402,21 +813,36 @@ abstract final class HiveIcons {
   static const IconData clock8 = IconData(0xe255, fontFamily: fontFamily);
   static const IconData clock9 = IconData(0xe256, fontFamily: fontFamily);
   static const IconData clockAlert = IconData(0xe62f, fontFamily: fontFamily);
-  static const IconData clockArrowDown = IconData(0xe605, fontFamily: fontFamily);
+  static const IconData clockArrowDown = IconData(
+    0xe605,
+    fontFamily: fontFamily,
+  );
   static const IconData clockArrowUp = IconData(0xe606, fontFamily: fontFamily);
   static const IconData cloud = IconData(0xe08c, fontFamily: fontFamily);
   static const IconData cloudAlert = IconData(0xe638, fontFamily: fontFamily);
   static const IconData cloudCog = IconData(0xe30a, fontFamily: fontFamily);
-  static const IconData cloudDownload = IconData(0xe08d, fontFamily: fontFamily);
+  static const IconData cloudDownload = IconData(
+    0xe08d,
+    fontFamily: fontFamily,
+  );
   static const IconData cloudDrizzle = IconData(0xe08e, fontFamily: fontFamily);
   static const IconData cloudFog = IconData(0xe214, fontFamily: fontFamily);
   static const IconData cloudHail = IconData(0xe08f, fontFamily: fontFamily);
-  static const IconData cloudLightning = IconData(0xe090, fontFamily: fontFamily);
+  static const IconData cloudLightning = IconData(
+    0xe090,
+    fontFamily: fontFamily,
+  );
   static const IconData cloudMoon = IconData(0xe215, fontFamily: fontFamily);
-  static const IconData cloudMoonRain = IconData(0xe2fa, fontFamily: fontFamily);
+  static const IconData cloudMoonRain = IconData(
+    0xe2fa,
+    fontFamily: fontFamily,
+  );
   static const IconData cloudOff = IconData(0xe091, fontFamily: fontFamily);
   static const IconData cloudRain = IconData(0xe092, fontFamily: fontFamily);
-  static const IconData cloudRainWind = IconData(0xe093, fontFamily: fontFamily);
+  static const IconData cloudRainWind = IconData(
+    0xe093,
+    fontFamily: fontFamily,
+  );
   static const IconData cloudSnow = IconData(0xe094, fontFamily: fontFamily);
   static const IconData cloudSun = IconData(0xe216, fontFamily: fontFamily);
   static const IconData cloudSunRain = IconData(0xe2fb, fontFamily: fontFamily);
@@ -439,7 +865,10 @@ abstract final class HiveIcons {
   static const IconData compass = IconData(0xe09f, fontFamily: fontFamily);
   static const IconData component = IconData(0xe2ad, fontFamily: fontFamily);
   static const IconData computer = IconData(0xe4e9, fontFamily: fontFamily);
-  static const IconData conciergeBell = IconData(0xe37c, fontFamily: fontFamily);
+  static const IconData conciergeBell = IconData(
+    0xe37c,
+    fontFamily: fontFamily,
+  );
   static const IconData cone = IconData(0xe528, fontFamily: fontFamily);
   static const IconData construction = IconData(0xe3b8, fontFamily: fontFamily);
   static const IconData contact = IconData(0xe0a0, fontFamily: fontFamily);
@@ -456,16 +885,37 @@ abstract final class HiveIcons {
   static const IconData copyX = IconData(0xe404, fontFamily: fontFamily);
   static const IconData copyleft = IconData(0xe0a3, fontFamily: fontFamily);
   static const IconData copyright = IconData(0xe0a4, fontFamily: fontFamily);
-  static const IconData cornerDownLeft = IconData(0xe0a5, fontFamily: fontFamily);
-  static const IconData cornerDownRight = IconData(0xe0a6, fontFamily: fontFamily);
-  static const IconData cornerLeftDown = IconData(0xe0a7, fontFamily: fontFamily);
+  static const IconData cornerDownLeft = IconData(
+    0xe0a5,
+    fontFamily: fontFamily,
+  );
+  static const IconData cornerDownRight = IconData(
+    0xe0a6,
+    fontFamily: fontFamily,
+  );
+  static const IconData cornerLeftDown = IconData(
+    0xe0a7,
+    fontFamily: fontFamily,
+  );
   static const IconData cornerLeftUp = IconData(0xe0a8, fontFamily: fontFamily);
-  static const IconData cornerRightDown = IconData(0xe0a9, fontFamily: fontFamily);
-  static const IconData cornerRightUp = IconData(0xe0aa, fontFamily: fontFamily);
+  static const IconData cornerRightDown = IconData(
+    0xe0a9,
+    fontFamily: fontFamily,
+  );
+  static const IconData cornerRightUp = IconData(
+    0xe0aa,
+    fontFamily: fontFamily,
+  );
   static const IconData cornerUpLeft = IconData(0xe0ab, fontFamily: fontFamily);
-  static const IconData cornerUpRight = IconData(0xe0ac, fontFamily: fontFamily);
+  static const IconData cornerUpRight = IconData(
+    0xe0ac,
+    fontFamily: fontFamily,
+  );
   static const IconData cpu = IconData(0xe0ad, fontFamily: fontFamily);
-  static const IconData creativeCommons = IconData(0xe3b6, fontFamily: fontFamily);
+  static const IconData creativeCommons = IconData(
+    0xe3b6,
+    fontFamily: fontFamily,
+  );
   static const IconData creditCard = IconData(0xe0ae, fontFamily: fontFamily);
   static const IconData croissant = IconData(0xe2ae, fontFamily: fontFamily);
   static const IconData crop = IconData(0xe0af, fontFamily: fontFamily);
@@ -478,14 +928,20 @@ abstract final class HiveIcons {
   static const IconData cylinder = IconData(0xe52a, fontFamily: fontFamily);
   static const IconData dam = IconData(0xe60b, fontFamily: fontFamily);
   static const IconData database = IconData(0xe0b1, fontFamily: fontFamily);
-  static const IconData databaseBackup = IconData(0xe3af, fontFamily: fontFamily);
+  static const IconData databaseBackup = IconData(
+    0xe3af,
+    fontFamily: fontFamily,
+  );
   static const IconData databaseZap = IconData(0xe510, fontFamily: fontFamily);
   static const IconData delete = IconData(0xe0b2, fontFamily: fontFamily);
   static const IconData dessert = IconData(0xe4c0, fontFamily: fontFamily);
   static const IconData diameter = IconData(0xe52b, fontFamily: fontFamily);
   static const IconData diamond = IconData(0xe2d2, fontFamily: fontFamily);
   static const IconData diamondMinus = IconData(0xe5e6, fontFamily: fontFamily);
-  static const IconData diamondPercent = IconData(0xe520, fontFamily: fontFamily);
+  static const IconData diamondPercent = IconData(
+    0xe520,
+    fontFamily: fontFamily,
+  );
   static const IconData diamondPlus = IconData(0xe5e7, fontFamily: fontFamily);
   static const IconData dice1 = IconData(0xe287, fontFamily: fontFamily);
   static const IconData dice2 = IconData(0xe288, fontFamily: fontFamily);
@@ -510,7 +966,10 @@ abstract final class HiveIcons {
   static const IconData doorOpen = IconData(0xe3da, fontFamily: fontFamily);
   static const IconData dot = IconData(0xe454, fontFamily: fontFamily);
   static const IconData download = IconData(0xe0b6, fontFamily: fontFamily);
-  static const IconData draftingCompass = IconData(0xe52c, fontFamily: fontFamily);
+  static const IconData draftingCompass = IconData(
+    0xe52c,
+    fontFamily: fontFamily,
+  );
   static const IconData drama = IconData(0xe526, fontFamily: fontFamily);
   static const IconData dribbble = IconData(0xe0b7, fontFamily: fontFamily);
   static const IconData drill = IconData(0xe592, fontFamily: fontFamily);
@@ -528,9 +987,15 @@ abstract final class HiveIcons {
   static const IconData eggFried = IconData(0xe355, fontFamily: fontFamily);
   static const IconData eggOff = IconData(0xe399, fontFamily: fontFamily);
   static const IconData ellipsis = IconData(0xe0ba, fontFamily: fontFamily);
-  static const IconData ellipsisVertical = IconData(0xe0bb, fontFamily: fontFamily);
+  static const IconData ellipsisVertical = IconData(
+    0xe0bb,
+    fontFamily: fontFamily,
+  );
   static const IconData equal = IconData(0xe1bd, fontFamily: fontFamily);
-  static const IconData equalApproximately = IconData(0xe639, fontFamily: fontFamily);
+  static const IconData equalApproximately = IconData(
+    0xe639,
+    fontFamily: fontFamily,
+  );
   static const IconData equalNot = IconData(0xe1be, fontFamily: fontFamily);
   static const IconData eraser = IconData(0xe28f, fontFamily: fontFamily);
   static const IconData ethernetPort = IconData(0xe625, fontFamily: fontFamily);
@@ -556,9 +1021,18 @@ abstract final class HiveIcons {
   static const IconData fileBadge = IconData(0xe311, fontFamily: fontFamily);
   static const IconData fileBadge2 = IconData(0xe312, fontFamily: fontFamily);
   static const IconData fileBox = IconData(0xe313, fontFamily: fontFamily);
-  static const IconData fileChartColumn = IconData(0xe314, fontFamily: fontFamily);
-  static const IconData fileChartColumnIncreasing = IconData(0xe315, fontFamily: fontFamily);
-  static const IconData fileChartLine = IconData(0xe316, fontFamily: fontFamily);
+  static const IconData fileChartColumn = IconData(
+    0xe314,
+    fontFamily: fontFamily,
+  );
+  static const IconData fileChartColumnIncreasing = IconData(
+    0xe315,
+    fontFamily: fontFamily,
+  );
+  static const IconData fileChartLine = IconData(
+    0xe316,
+    fontFamily: fontFamily,
+  );
   static const IconData fileChartPie = IconData(0xe317, fontFamily: fontFamily);
   static const IconData fileCheck = IconData(0xe0c5, fontFamily: fontFamily);
   static const IconData fileCheck2 = IconData(0xe0c6, fontFamily: fontFamily);
@@ -591,7 +1065,10 @@ abstract final class HiveIcons {
   static const IconData fileSearch = IconData(0xe0cf, fontFamily: fontFamily);
   static const IconData fileSearch2 = IconData(0xe326, fontFamily: fontFamily);
   static const IconData fileSliders = IconData(0xe5a5, fontFamily: fontFamily);
-  static const IconData fileSpreadsheet = IconData(0xe327, fontFamily: fontFamily);
+  static const IconData fileSpreadsheet = IconData(
+    0xe327,
+    fontFamily: fontFamily,
+  );
   static const IconData fileStack = IconData(0xe4a6, fontFamily: fontFamily);
   static const IconData fileSymlink = IconData(0xe328, fontFamily: fontFamily);
   static const IconData fileTerminal = IconData(0xe329, fontFamily: fontFamily);
@@ -612,32 +1089,65 @@ abstract final class HiveIcons {
   static const IconData filter = IconData(0xe0d5, fontFamily: fontFamily);
   static const IconData filterX = IconData(0xe3b9, fontFamily: fontFamily);
   static const IconData fingerprint = IconData(0xe2cb, fontFamily: fontFamily);
-  static const IconData fireExtinguisher = IconData(0xe583, fontFamily: fontFamily);
+  static const IconData fireExtinguisher = IconData(
+    0xe583,
+    fontFamily: fontFamily,
+  );
   static const IconData fish = IconData(0xe3aa, fontFamily: fontFamily);
   static const IconData fishOff = IconData(0xe3b4, fontFamily: fontFamily);
   static const IconData fishSymbol = IconData(0xe4f9, fontFamily: fontFamily);
   static const IconData flag = IconData(0xe0d6, fontFamily: fontFamily);
   static const IconData flagOff = IconData(0xe292, fontFamily: fontFamily);
-  static const IconData flagTriangleLeft = IconData(0xe237, fontFamily: fontFamily);
-  static const IconData flagTriangleRight = IconData(0xe238, fontFamily: fontFamily);
+  static const IconData flagTriangleLeft = IconData(
+    0xe237,
+    fontFamily: fontFamily,
+  );
+  static const IconData flagTriangleRight = IconData(
+    0xe238,
+    fontFamily: fontFamily,
+  );
   static const IconData flame = IconData(0xe0d7, fontFamily: fontFamily);
-  static const IconData flameKindling = IconData(0xe53f, fontFamily: fontFamily);
+  static const IconData flameKindling = IconData(
+    0xe53f,
+    fontFamily: fontFamily,
+  );
   static const IconData flashlight = IconData(0xe0d8, fontFamily: fontFamily);
-  static const IconData flashlightOff = IconData(0xe0d9, fontFamily: fontFamily);
+  static const IconData flashlightOff = IconData(
+    0xe0d9,
+    fontFamily: fontFamily,
+  );
   static const IconData flaskConical = IconData(0xe0da, fontFamily: fontFamily);
-  static const IconData flaskConicalOff = IconData(0xe39a, fontFamily: fontFamily);
+  static const IconData flaskConicalOff = IconData(
+    0xe39a,
+    fontFamily: fontFamily,
+  );
   static const IconData flaskRound = IconData(0xe0db, fontFamily: fontFamily);
-  static const IconData flipHorizontal = IconData(0xe361, fontFamily: fontFamily);
-  static const IconData flipHorizontal2 = IconData(0xe362, fontFamily: fontFamily);
+  static const IconData flipHorizontal = IconData(
+    0xe361,
+    fontFamily: fontFamily,
+  );
+  static const IconData flipHorizontal2 = IconData(
+    0xe362,
+    fontFamily: fontFamily,
+  );
   static const IconData flipVertical = IconData(0xe363, fontFamily: fontFamily);
-  static const IconData flipVertical2 = IconData(0xe364, fontFamily: fontFamily);
+  static const IconData flipVertical2 = IconData(
+    0xe364,
+    fontFamily: fontFamily,
+  );
   static const IconData flower = IconData(0xe2d3, fontFamily: fontFamily);
   static const IconData flower2 = IconData(0xe2d4, fontFamily: fontFamily);
   static const IconData focus = IconData(0xe29e, fontFamily: fontFamily);
-  static const IconData foldHorizontal = IconData(0xe440, fontFamily: fontFamily);
+  static const IconData foldHorizontal = IconData(
+    0xe440,
+    fontFamily: fontFamily,
+  );
   static const IconData foldVertical = IconData(0xe441, fontFamily: fontFamily);
   static const IconData folder = IconData(0xe0dc, fontFamily: fontFamily);
-  static const IconData folderArchive = IconData(0xe331, fontFamily: fontFamily);
+  static const IconData folderArchive = IconData(
+    0xe331,
+    fontFamily: fontFamily,
+  );
   static const IconData folderCheck = IconData(0xe332, fontFamily: fontFamily);
   static const IconData folderClock = IconData(0xe333, fontFamily: fontFamily);
   static const IconData folderClosed = IconData(0xe334, fontFamily: fontFamily);
@@ -654,14 +1164,23 @@ abstract final class HiveIcons {
   static const IconData folderLock = IconData(0xe33a, fontFamily: fontFamily);
   static const IconData folderMinus = IconData(0xe0dd, fontFamily: fontFamily);
   static const IconData folderOpen = IconData(0xe247, fontFamily: fontFamily);
-  static const IconData folderOpenDot = IconData(0xe4cc, fontFamily: fontFamily);
+  static const IconData folderOpenDot = IconData(
+    0xe4cc,
+    fontFamily: fontFamily,
+  );
   static const IconData folderOutput = IconData(0xe33b, fontFamily: fontFamily);
   static const IconData folderPen = IconData(0xe33c, fontFamily: fontFamily);
   static const IconData folderPlus = IconData(0xe0de, fontFamily: fontFamily);
   static const IconData folderRoot = IconData(0xe4cd, fontFamily: fontFamily);
   static const IconData folderSearch = IconData(0xe33d, fontFamily: fontFamily);
-  static const IconData folderSearch2 = IconData(0xe33e, fontFamily: fontFamily);
-  static const IconData folderSymlink = IconData(0xe33f, fontFamily: fontFamily);
+  static const IconData folderSearch2 = IconData(
+    0xe33e,
+    fontFamily: fontFamily,
+  );
+  static const IconData folderSymlink = IconData(
+    0xe33f,
+    fontFamily: fontFamily,
+  );
   static const IconData folderSync = IconData(0xe4ce, fontFamily: fontFamily);
   static const IconData folderTree = IconData(0xe340, fontFamily: fontFamily);
   static const IconData folderUp = IconData(0xe341, fontFamily: fontFamily);
@@ -675,11 +1194,26 @@ abstract final class HiveIcons {
   static const IconData frown = IconData(0xe0e0, fontFamily: fontFamily);
   static const IconData fuel = IconData(0xe2af, fontFamily: fontFamily);
   static const IconData fullscreen = IconData(0xe539, fontFamily: fontFamily);
-  static const IconData galleryHorizontal = IconData(0xe4d3, fontFamily: fontFamily);
-  static const IconData galleryHorizontalEnd = IconData(0xe4d4, fontFamily: fontFamily);
-  static const IconData galleryThumbnails = IconData(0xe4d5, fontFamily: fontFamily);
-  static const IconData galleryVertical = IconData(0xe4d6, fontFamily: fontFamily);
-  static const IconData galleryVerticalEnd = IconData(0xe4d7, fontFamily: fontFamily);
+  static const IconData galleryHorizontal = IconData(
+    0xe4d3,
+    fontFamily: fontFamily,
+  );
+  static const IconData galleryHorizontalEnd = IconData(
+    0xe4d4,
+    fontFamily: fontFamily,
+  );
+  static const IconData galleryThumbnails = IconData(
+    0xe4d5,
+    fontFamily: fontFamily,
+  );
+  static const IconData galleryVertical = IconData(
+    0xe4d6,
+    fontFamily: fontFamily,
+  );
+  static const IconData galleryVerticalEnd = IconData(
+    0xe4d7,
+    fontFamily: fontFamily,
+  );
   static const IconData gamepad = IconData(0xe0e1, fontFamily: fontFamily);
   static const IconData gamepad2 = IconData(0xe0e2, fontFamily: fontFamily);
   static const IconData gauge = IconData(0xe1bf, fontFamily: fontFamily);
@@ -688,20 +1222,50 @@ abstract final class HiveIcons {
   static const IconData ghost = IconData(0xe20e, fontFamily: fontFamily);
   static const IconData gift = IconData(0xe0e4, fontFamily: fontFamily);
   static const IconData gitBranch = IconData(0xe0e5, fontFamily: fontFamily);
-  static const IconData gitBranchPlus = IconData(0xe1f4, fontFamily: fontFamily);
-  static const IconData gitCommitHorizontal = IconData(0xe0e6, fontFamily: fontFamily);
-  static const IconData gitCommitVertical = IconData(0xe557, fontFamily: fontFamily);
+  static const IconData gitBranchPlus = IconData(
+    0xe1f4,
+    fontFamily: fontFamily,
+  );
+  static const IconData gitCommitHorizontal = IconData(
+    0xe0e6,
+    fontFamily: fontFamily,
+  );
+  static const IconData gitCommitVertical = IconData(
+    0xe557,
+    fontFamily: fontFamily,
+  );
   static const IconData gitCompare = IconData(0xe35d, fontFamily: fontFamily);
-  static const IconData gitCompareArrows = IconData(0xe558, fontFamily: fontFamily);
+  static const IconData gitCompareArrows = IconData(
+    0xe558,
+    fontFamily: fontFamily,
+  );
   static const IconData gitFork = IconData(0xe28d, fontFamily: fontFamily);
   static const IconData gitGraph = IconData(0xe559, fontFamily: fontFamily);
   static const IconData gitMerge = IconData(0xe0e7, fontFamily: fontFamily);
-  static const IconData gitPullRequest = IconData(0xe0e8, fontFamily: fontFamily);
-  static const IconData gitPullRequestArrow = IconData(0xe55a, fontFamily: fontFamily);
-  static const IconData gitPullRequestClosed = IconData(0xe35e, fontFamily: fontFamily);
-  static const IconData gitPullRequestCreate = IconData(0xe55b, fontFamily: fontFamily);
-  static const IconData gitPullRequestCreateArrow = IconData(0xe55c, fontFamily: fontFamily);
-  static const IconData gitPullRequestDraft = IconData(0xe35f, fontFamily: fontFamily);
+  static const IconData gitPullRequest = IconData(
+    0xe0e8,
+    fontFamily: fontFamily,
+  );
+  static const IconData gitPullRequestArrow = IconData(
+    0xe55a,
+    fontFamily: fontFamily,
+  );
+  static const IconData gitPullRequestClosed = IconData(
+    0xe35e,
+    fontFamily: fontFamily,
+  );
+  static const IconData gitPullRequestCreate = IconData(
+    0xe55b,
+    fontFamily: fontFamily,
+  );
+  static const IconData gitPullRequestCreateArrow = IconData(
+    0xe55c,
+    fontFamily: fontFamily,
+  );
+  static const IconData gitPullRequestDraft = IconData(
+    0xe35f,
+    fontFamily: fontFamily,
+  );
   static const IconData github = IconData(0xe0e9, fontFamily: fontFamily);
   static const IconData gitlab = IconData(0xe0ea, fontFamily: fontFamily);
   static const IconData glassWater = IconData(0xe2d5, fontFamily: fontFamily);
@@ -710,7 +1274,10 @@ abstract final class HiveIcons {
   static const IconData globeLock = IconData(0xe5d2, fontFamily: fontFamily);
   static const IconData goal = IconData(0xe4aa, fontFamily: fontFamily);
   static const IconData grab = IconData(0xe1e6, fontFamily: fontFamily);
-  static const IconData graduationCap = IconData(0xe234, fontFamily: fontFamily);
+  static const IconData graduationCap = IconData(
+    0xe234,
+    fontFamily: fontFamily,
+  );
   static const IconData grape = IconData(0xe356, fontFamily: fontFamily);
   static const IconData grid2x2 = IconData(0xe504, fontFamily: fontFamily);
   static const IconData grid2x2Check = IconData(0xe5e9, fontFamily: fontFamily);
@@ -718,7 +1285,10 @@ abstract final class HiveIcons {
   static const IconData grid2x2X = IconData(0xe5ea, fontFamily: fontFamily);
   static const IconData grid3x3 = IconData(0xe0ec, fontFamily: fontFamily);
   static const IconData grip = IconData(0xe3b5, fontFamily: fontFamily);
-  static const IconData gripHorizontal = IconData(0xe0ed, fontFamily: fontFamily);
+  static const IconData gripHorizontal = IconData(
+    0xe0ed,
+    fontFamily: fontFamily,
+  );
   static const IconData gripVertical = IconData(0xe0ee, fontFamily: fontFamily);
   static const IconData group = IconData(0xe469, fontFamily: fontFamily);
   static const IconData guitar = IconData(0xe564, fontFamily: fontFamily);
@@ -732,8 +1302,14 @@ abstract final class HiveIcons {
   static const IconData handPlatter = IconData(0xe5bf, fontFamily: fontFamily);
   static const IconData handshake = IconData(0xe5c5, fontFamily: fontFamily);
   static const IconData hardDrive = IconData(0xe0f0, fontFamily: fontFamily);
-  static const IconData hardDriveDownload = IconData(0xe4ea, fontFamily: fontFamily);
-  static const IconData hardDriveUpload = IconData(0xe4eb, fontFamily: fontFamily);
+  static const IconData hardDriveDownload = IconData(
+    0xe4ea,
+    fontFamily: fontFamily,
+  );
+  static const IconData hardDriveUpload = IconData(
+    0xe4eb,
+    fontFamily: fontFamily,
+  );
   static const IconData hardHat = IconData(0xe0f1, fontFamily: fontFamily);
   static const IconData hash = IconData(0xe0f2, fontFamily: fontFamily);
   static const IconData haze = IconData(0xe0f3, fontFamily: fontFamily);
@@ -750,7 +1326,10 @@ abstract final class HiveIcons {
   static const IconData headset = IconData(0xe5c2, fontFamily: fontFamily);
   static const IconData heart = IconData(0xe0f5, fontFamily: fontFamily);
   static const IconData heartCrack = IconData(0xe2d6, fontFamily: fontFamily);
-  static const IconData heartHandshake = IconData(0xe2d7, fontFamily: fontFamily);
+  static const IconData heartHandshake = IconData(
+    0xe2d7,
+    fontFamily: fontFamily,
+  );
   static const IconData heartOff = IconData(0xe295, fontFamily: fontFamily);
   static const IconData heartPulse = IconData(0xe372, fontFamily: fontFamily);
   static const IconData heater = IconData(0xe593, fontFamily: fontFamily);
@@ -778,12 +1357,21 @@ abstract final class HiveIcons {
   static const IconData images = IconData(0xe5c9, fontFamily: fontFamily);
   static const IconData importIcon = IconData(0xe22f, fontFamily: fontFamily);
   static const IconData inbox = IconData(0xe0fa, fontFamily: fontFamily);
-  static const IconData indentDecrease = IconData(0xe0fb, fontFamily: fontFamily);
-  static const IconData indentIncrease = IconData(0xe0fc, fontFamily: fontFamily);
+  static const IconData indentDecrease = IconData(
+    0xe0fb,
+    fontFamily: fontFamily,
+  );
+  static const IconData indentIncrease = IconData(
+    0xe0fc,
+    fontFamily: fontFamily,
+  );
   static const IconData indianRupee = IconData(0xe0fd, fontFamily: fontFamily);
   static const IconData infinity = IconData(0xe1e7, fontFamily: fontFamily);
   static const IconData info = IconData(0xe0fe, fontFamily: fontFamily);
-  static const IconData inspectionPanel = IconData(0xe588, fontFamily: fontFamily);
+  static const IconData inspectionPanel = IconData(
+    0xe588,
+    fontFamily: fontFamily,
+  );
   static const IconData instagram = IconData(0xe0ff, fontFamily: fontFamily);
   static const IconData italic = IconData(0xe100, fontFamily: fontFamily);
   static const IconData iterationCcw = IconData(0xe428, fontFamily: fontFamily);
@@ -795,7 +1383,10 @@ abstract final class HiveIcons {
   static const IconData keyRound = IconData(0xe4a8, fontFamily: fontFamily);
   static const IconData keySquare = IconData(0xe4a9, fontFamily: fontFamily);
   static const IconData keyboard = IconData(0xe284, fontFamily: fontFamily);
-  static const IconData keyboardMusic = IconData(0xe565, fontFamily: fontFamily);
+  static const IconData keyboardMusic = IconData(
+    0xe565,
+    fontFamily: fontFamily,
+  );
   static const IconData keyboardOff = IconData(0xe5e3, fontFamily: fontFamily);
   static const IconData lamp = IconData(0xe2d8, fontFamily: fontFamily);
   static const IconData lampCeiling = IconData(0xe2d9, fontFamily: fontFamily);
@@ -807,20 +1398,38 @@ abstract final class HiveIcons {
   static const IconData landmark = IconData(0xe23a, fontFamily: fontFamily);
   static const IconData languages = IconData(0xe103, fontFamily: fontFamily);
   static const IconData laptop = IconData(0xe1cd, fontFamily: fontFamily);
-  static const IconData laptopMinimal = IconData(0xe1d8, fontFamily: fontFamily);
-  static const IconData laptopMinimalCheck = IconData(0xe637, fontFamily: fontFamily);
+  static const IconData laptopMinimal = IconData(
+    0xe1d8,
+    fontFamily: fontFamily,
+  );
+  static const IconData laptopMinimalCheck = IconData(
+    0xe637,
+    fontFamily: fontFamily,
+  );
   static const IconData lasso = IconData(0xe1ce, fontFamily: fontFamily);
   static const IconData lassoSelect = IconData(0xe1cf, fontFamily: fontFamily);
   static const IconData laugh = IconData(0xe300, fontFamily: fontFamily);
   static const IconData layers = IconData(0xe104, fontFamily: fontFamily);
   static const IconData layers2 = IconData(0xe52e, fontFamily: fontFamily);
   static const IconData layers3 = IconData(0xe52f, fontFamily: fontFamily);
-  static const IconData layoutDashboard = IconData(0xe1c1, fontFamily: fontFamily);
+  static const IconData layoutDashboard = IconData(
+    0xe1c1,
+    fontFamily: fontFamily,
+  );
   static const IconData layoutGrid = IconData(0xe105, fontFamily: fontFamily);
   static const IconData layoutList = IconData(0xe1d9, fontFamily: fontFamily);
-  static const IconData layoutPanelLeft = IconData(0xe475, fontFamily: fontFamily);
-  static const IconData layoutPanelTop = IconData(0xe476, fontFamily: fontFamily);
-  static const IconData layoutTemplate = IconData(0xe207, fontFamily: fontFamily);
+  static const IconData layoutPanelLeft = IconData(
+    0xe475,
+    fontFamily: fontFamily,
+  );
+  static const IconData layoutPanelTop = IconData(
+    0xe476,
+    fontFamily: fontFamily,
+  );
+  static const IconData layoutTemplate = IconData(
+    0xe207,
+    fontFamily: fontFamily,
+  );
   static const IconData leaf = IconData(0xe2de, fontFamily: fontFamily);
   static const IconData leafyGreen = IconData(0xe474, fontFamily: fontFamily);
   static const IconData lectern = IconData(0xe5ee, fontFamily: fontFamily);
@@ -853,13 +1462,19 @@ abstract final class HiveIcons {
   static const IconData listX = IconData(0xe240, fontFamily: fontFamily);
   static const IconData loader = IconData(0xe10d, fontFamily: fontFamily);
   static const IconData loaderCircle = IconData(0xe10e, fontFamily: fontFamily);
-  static const IconData loaderPinwheel = IconData(0xe5eb, fontFamily: fontFamily);
+  static const IconData loaderPinwheel = IconData(
+    0xe5eb,
+    fontFamily: fontFamily,
+  );
   static const IconData locate = IconData(0xe1da, fontFamily: fontFamily);
   static const IconData locateFixed = IconData(0xe1db, fontFamily: fontFamily);
   static const IconData locateOff = IconData(0xe282, fontFamily: fontFamily);
   static const IconData lock = IconData(0xe10f, fontFamily: fontFamily);
   static const IconData lockKeyhole = IconData(0xe536, fontFamily: fontFamily);
-  static const IconData lockKeyholeOpen = IconData(0xe537, fontFamily: fontFamily);
+  static const IconData lockKeyholeOpen = IconData(
+    0xe537,
+    fontFamily: fontFamily,
+  );
   static const IconData lockOpen = IconData(0xe110, fontFamily: fontFamily);
   static const IconData logIn = IconData(0xe111, fontFamily: fontFamily);
   static const IconData logOut = IconData(0xe112, fontFamily: fontFamily);
@@ -881,15 +1496,27 @@ abstract final class HiveIcons {
   static const IconData map = IconData(0xe114, fontFamily: fontFamily);
   static const IconData mapPin = IconData(0xe115, fontFamily: fontFamily);
   static const IconData mapPinCheck = IconData(0xe614, fontFamily: fontFamily);
-  static const IconData mapPinCheckInside = IconData(0xe615, fontFamily: fontFamily);
+  static const IconData mapPinCheckInside = IconData(
+    0xe615,
+    fontFamily: fontFamily,
+  );
   static const IconData mapPinHouse = IconData(0xe621, fontFamily: fontFamily);
   static const IconData mapPinMinus = IconData(0xe616, fontFamily: fontFamily);
-  static const IconData mapPinMinusInside = IconData(0xe617, fontFamily: fontFamily);
+  static const IconData mapPinMinusInside = IconData(
+    0xe617,
+    fontFamily: fontFamily,
+  );
   static const IconData mapPinOff = IconData(0xe2a6, fontFamily: fontFamily);
   static const IconData mapPinPlus = IconData(0xe618, fontFamily: fontFamily);
-  static const IconData mapPinPlusInside = IconData(0xe619, fontFamily: fontFamily);
+  static const IconData mapPinPlusInside = IconData(
+    0xe619,
+    fontFamily: fontFamily,
+  );
   static const IconData mapPinX = IconData(0xe61a, fontFamily: fontFamily);
-  static const IconData mapPinXInside = IconData(0xe61b, fontFamily: fontFamily);
+  static const IconData mapPinXInside = IconData(
+    0xe61b,
+    fontFamily: fontFamily,
+  );
   static const IconData mapPinned = IconData(0xe542, fontFamily: fontFamily);
   static const IconData martini = IconData(0xe2e3, fontFamily: fontFamily);
   static const IconData maximize = IconData(0xe116, fontFamily: fontFamily);
@@ -901,34 +1528,118 @@ abstract final class HiveIcons {
   static const IconData memoryStick = IconData(0xe44a, fontFamily: fontFamily);
   static const IconData menu = IconData(0xe119, fontFamily: fontFamily);
   static const IconData merge = IconData(0xe444, fontFamily: fontFamily);
-  static const IconData messageCircle = IconData(0xe11a, fontFamily: fontFamily);
-  static const IconData messageCircleCode = IconData(0xe567, fontFamily: fontFamily);
-  static const IconData messageCircleDashed = IconData(0xe568, fontFamily: fontFamily);
-  static const IconData messageCircleHeart = IconData(0xe569, fontFamily: fontFamily);
-  static const IconData messageCircleMore = IconData(0xe56a, fontFamily: fontFamily);
-  static const IconData messageCircleOff = IconData(0xe56b, fontFamily: fontFamily);
-  static const IconData messageCirclePlus = IconData(0xe56c, fontFamily: fontFamily);
-  static const IconData messageCircleQuestion = IconData(0xe56d, fontFamily: fontFamily);
-  static const IconData messageCircleReply = IconData(0xe56e, fontFamily: fontFamily);
-  static const IconData messageCircleWarning = IconData(0xe56f, fontFamily: fontFamily);
-  static const IconData messageCircleX = IconData(0xe570, fontFamily: fontFamily);
-  static const IconData messageSquare = IconData(0xe11b, fontFamily: fontFamily);
-  static const IconData messageSquareCode = IconData(0xe571, fontFamily: fontFamily);
-  static const IconData messageSquareDashed = IconData(0xe410, fontFamily: fontFamily);
-  static const IconData messageSquareDiff = IconData(0xe572, fontFamily: fontFamily);
-  static const IconData messageSquareDot = IconData(0xe573, fontFamily: fontFamily);
-  static const IconData messageSquareHeart = IconData(0xe574, fontFamily: fontFamily);
-  static const IconData messageSquareLock = IconData(0xe631, fontFamily: fontFamily);
-  static const IconData messageSquareMore = IconData(0xe575, fontFamily: fontFamily);
-  static const IconData messageSquareOff = IconData(0xe576, fontFamily: fontFamily);
-  static const IconData messageSquarePlus = IconData(0xe411, fontFamily: fontFamily);
-  static const IconData messageSquareQuote = IconData(0xe577, fontFamily: fontFamily);
-  static const IconData messageSquareReply = IconData(0xe578, fontFamily: fontFamily);
-  static const IconData messageSquareShare = IconData(0xe579, fontFamily: fontFamily);
-  static const IconData messageSquareText = IconData(0xe57a, fontFamily: fontFamily);
-  static const IconData messageSquareWarning = IconData(0xe57b, fontFamily: fontFamily);
-  static const IconData messageSquareX = IconData(0xe57c, fontFamily: fontFamily);
-  static const IconData messagesSquare = IconData(0xe412, fontFamily: fontFamily);
+  static const IconData messageCircle = IconData(
+    0xe11a,
+    fontFamily: fontFamily,
+  );
+  static const IconData messageCircleCode = IconData(
+    0xe567,
+    fontFamily: fontFamily,
+  );
+  static const IconData messageCircleDashed = IconData(
+    0xe568,
+    fontFamily: fontFamily,
+  );
+  static const IconData messageCircleHeart = IconData(
+    0xe569,
+    fontFamily: fontFamily,
+  );
+  static const IconData messageCircleMore = IconData(
+    0xe56a,
+    fontFamily: fontFamily,
+  );
+  static const IconData messageCircleOff = IconData(
+    0xe56b,
+    fontFamily: fontFamily,
+  );
+  static const IconData messageCirclePlus = IconData(
+    0xe56c,
+    fontFamily: fontFamily,
+  );
+  static const IconData messageCircleQuestion = IconData(
+    0xe56d,
+    fontFamily: fontFamily,
+  );
+  static const IconData messageCircleReply = IconData(
+    0xe56e,
+    fontFamily: fontFamily,
+  );
+  static const IconData messageCircleWarning = IconData(
+    0xe56f,
+    fontFamily: fontFamily,
+  );
+  static const IconData messageCircleX = IconData(
+    0xe570,
+    fontFamily: fontFamily,
+  );
+  static const IconData messageSquare = IconData(
+    0xe11b,
+    fontFamily: fontFamily,
+  );
+  static const IconData messageSquareCode = IconData(
+    0xe571,
+    fontFamily: fontFamily,
+  );
+  static const IconData messageSquareDashed = IconData(
+    0xe410,
+    fontFamily: fontFamily,
+  );
+  static const IconData messageSquareDiff = IconData(
+    0xe572,
+    fontFamily: fontFamily,
+  );
+  static const IconData messageSquareDot = IconData(
+    0xe573,
+    fontFamily: fontFamily,
+  );
+  static const IconData messageSquareHeart = IconData(
+    0xe574,
+    fontFamily: fontFamily,
+  );
+  static const IconData messageSquareLock = IconData(
+    0xe631,
+    fontFamily: fontFamily,
+  );
+  static const IconData messageSquareMore = IconData(
+    0xe575,
+    fontFamily: fontFamily,
+  );
+  static const IconData messageSquareOff = IconData(
+    0xe576,
+    fontFamily: fontFamily,
+  );
+  static const IconData messageSquarePlus = IconData(
+    0xe411,
+    fontFamily: fontFamily,
+  );
+  static const IconData messageSquareQuote = IconData(
+    0xe577,
+    fontFamily: fontFamily,
+  );
+  static const IconData messageSquareReply = IconData(
+    0xe578,
+    fontFamily: fontFamily,
+  );
+  static const IconData messageSquareShare = IconData(
+    0xe579,
+    fontFamily: fontFamily,
+  );
+  static const IconData messageSquareText = IconData(
+    0xe57a,
+    fontFamily: fontFamily,
+  );
+  static const IconData messageSquareWarning = IconData(
+    0xe57b,
+    fontFamily: fontFamily,
+  );
+  static const IconData messageSquareX = IconData(
+    0xe57c,
+    fontFamily: fontFamily,
+  );
+  static const IconData messagesSquare = IconData(
+    0xe412,
+    fontFamily: fontFamily,
+  );
   static const IconData mic = IconData(0xe11c, fontFamily: fontFamily);
   static const IconData micOff = IconData(0xe11d, fontFamily: fontFamily);
   static const IconData micVocal = IconData(0xe34d, fontFamily: fontFamily);
@@ -949,8 +1660,14 @@ abstract final class HiveIcons {
   static const IconData monitorOff = IconData(0xe1dc, fontFamily: fontFamily);
   static const IconData monitorPause = IconData(0xe489, fontFamily: fontFamily);
   static const IconData monitorPlay = IconData(0xe48a, fontFamily: fontFamily);
-  static const IconData monitorSmartphone = IconData(0xe3a6, fontFamily: fontFamily);
-  static const IconData monitorSpeaker = IconData(0xe210, fontFamily: fontFamily);
+  static const IconData monitorSmartphone = IconData(
+    0xe3a6,
+    fontFamily: fontFamily,
+  );
+  static const IconData monitorSpeaker = IconData(
+    0xe210,
+    fontFamily: fontFamily,
+  );
   static const IconData monitorStop = IconData(0xe48b, fontFamily: fontFamily);
   static const IconData monitorUp = IconData(0xe427, fontFamily: fontFamily);
   static const IconData monitorX = IconData(0xe48c, fontFamily: fontFamily);
@@ -961,17 +1678,35 @@ abstract final class HiveIcons {
   static const IconData mouse = IconData(0xe28e, fontFamily: fontFamily);
   static const IconData mouseOff = IconData(0xe5e0, fontFamily: fontFamily);
   static const IconData mousePointer = IconData(0xe123, fontFamily: fontFamily);
-  static const IconData mousePointer2 = IconData(0xe1c3, fontFamily: fontFamily);
-  static const IconData mousePointerBan = IconData(0xe5ec, fontFamily: fontFamily);
-  static const IconData mousePointerClick = IconData(0xe124, fontFamily: fontFamily);
+  static const IconData mousePointer2 = IconData(
+    0xe1c3,
+    fontFamily: fontFamily,
+  );
+  static const IconData mousePointerBan = IconData(
+    0xe5ec,
+    fontFamily: fontFamily,
+  );
+  static const IconData mousePointerClick = IconData(
+    0xe124,
+    fontFamily: fontFamily,
+  );
   static const IconData move = IconData(0xe125, fontFamily: fontFamily);
   static const IconData move3d = IconData(0xe2e5, fontFamily: fontFamily);
   static const IconData moveDiagonal = IconData(0xe1c4, fontFamily: fontFamily);
-  static const IconData moveDiagonal2 = IconData(0xe1c5, fontFamily: fontFamily);
+  static const IconData moveDiagonal2 = IconData(
+    0xe1c5,
+    fontFamily: fontFamily,
+  );
   static const IconData moveDown = IconData(0xe491, fontFamily: fontFamily);
   static const IconData moveDownLeft = IconData(0xe492, fontFamily: fontFamily);
-  static const IconData moveDownRight = IconData(0xe493, fontFamily: fontFamily);
-  static const IconData moveHorizontal = IconData(0xe1c6, fontFamily: fontFamily);
+  static const IconData moveDownRight = IconData(
+    0xe493,
+    fontFamily: fontFamily,
+  );
+  static const IconData moveHorizontal = IconData(
+    0xe1c6,
+    fontFamily: fontFamily,
+  );
   static const IconData moveLeft = IconData(0xe494, fontFamily: fontFamily);
   static const IconData moveRight = IconData(0xe495, fontFamily: fontFamily);
   static const IconData moveUp = IconData(0xe496, fontFamily: fontFamily);
@@ -984,8 +1719,14 @@ abstract final class HiveIcons {
   static const IconData music4 = IconData(0xe350, fontFamily: fontFamily);
   static const IconData navigation = IconData(0xe127, fontFamily: fontFamily);
   static const IconData navigation2 = IconData(0xe128, fontFamily: fontFamily);
-  static const IconData navigation2Off = IconData(0xe2a7, fontFamily: fontFamily);
-  static const IconData navigationOff = IconData(0xe2a8, fontFamily: fontFamily);
+  static const IconData navigation2Off = IconData(
+    0xe2a7,
+    fontFamily: fontFamily,
+  );
+  static const IconData navigationOff = IconData(
+    0xe2a8,
+    fontFamily: fontFamily,
+  );
   static const IconData network = IconData(0xe129, fontFamily: fontFamily);
   static const IconData newspaper = IconData(0xe34c, fontFamily: fontFamily);
   static const IconData nfc = IconData(0xe3c7, fontFamily: fontFamily);
@@ -994,7 +1735,10 @@ abstract final class HiveIcons {
   static const IconData notebookTabs = IconData(0xe59c, fontFamily: fontFamily);
   static const IconData notebookText = IconData(0xe59d, fontFamily: fontFamily);
   static const IconData notepadText = IconData(0xe59e, fontFamily: fontFamily);
-  static const IconData notepadTextDashed = IconData(0xe59f, fontFamily: fontFamily);
+  static const IconData notepadTextDashed = IconData(
+    0xe59f,
+    fontFamily: fontFamily,
+  );
   static const IconData nut = IconData(0xe39f, fontFamily: fontFamily);
   static const IconData nutOff = IconData(0xe3a0, fontFamily: fontFamily);
   static const IconData octagon = IconData(0xe12a, fontFamily: fontFamily);
@@ -1012,32 +1756,80 @@ abstract final class HiveIcons {
   static const IconData packageMinus = IconData(0xe267, fontFamily: fontFamily);
   static const IconData packageOpen = IconData(0xe2cc, fontFamily: fontFamily);
   static const IconData packagePlus = IconData(0xe268, fontFamily: fontFamily);
-  static const IconData packageSearch = IconData(0xe269, fontFamily: fontFamily);
+  static const IconData packageSearch = IconData(
+    0xe269,
+    fontFamily: fontFamily,
+  );
   static const IconData packageX = IconData(0xe26a, fontFamily: fontFamily);
   static const IconData paintBucket = IconData(0xe2e6, fontFamily: fontFamily);
   static const IconData paintRoller = IconData(0xe5a3, fontFamily: fontFamily);
   static const IconData paintbrush = IconData(0xe2e7, fontFamily: fontFamily);
-  static const IconData paintbrushVertical = IconData(0xe2e8, fontFamily: fontFamily);
+  static const IconData paintbrushVertical = IconData(
+    0xe2e8,
+    fontFamily: fontFamily,
+  );
   static const IconData palette = IconData(0xe1dd, fontFamily: fontFamily);
   static const IconData panelBottom = IconData(0xe431, fontFamily: fontFamily);
-  static const IconData panelBottomClose = IconData(0xe432, fontFamily: fontFamily);
-  static const IconData panelBottomDashed = IconData(0xe433, fontFamily: fontFamily);
-  static const IconData panelBottomOpen = IconData(0xe434, fontFamily: fontFamily);
+  static const IconData panelBottomClose = IconData(
+    0xe432,
+    fontFamily: fontFamily,
+  );
+  static const IconData panelBottomDashed = IconData(
+    0xe433,
+    fontFamily: fontFamily,
+  );
+  static const IconData panelBottomOpen = IconData(
+    0xe434,
+    fontFamily: fontFamily,
+  );
   static const IconData panelLeft = IconData(0xe12e, fontFamily: fontFamily);
-  static const IconData panelLeftClose = IconData(0xe21c, fontFamily: fontFamily);
-  static const IconData panelLeftDashed = IconData(0xe435, fontFamily: fontFamily);
-  static const IconData panelLeftOpen = IconData(0xe21d, fontFamily: fontFamily);
+  static const IconData panelLeftClose = IconData(
+    0xe21c,
+    fontFamily: fontFamily,
+  );
+  static const IconData panelLeftDashed = IconData(
+    0xe435,
+    fontFamily: fontFamily,
+  );
+  static const IconData panelLeftOpen = IconData(
+    0xe21d,
+    fontFamily: fontFamily,
+  );
   static const IconData panelRight = IconData(0xe436, fontFamily: fontFamily);
-  static const IconData panelRightClose = IconData(0xe437, fontFamily: fontFamily);
-  static const IconData panelRightDashed = IconData(0xe438, fontFamily: fontFamily);
-  static const IconData panelRightOpen = IconData(0xe439, fontFamily: fontFamily);
+  static const IconData panelRightClose = IconData(
+    0xe437,
+    fontFamily: fontFamily,
+  );
+  static const IconData panelRightDashed = IconData(
+    0xe438,
+    fontFamily: fontFamily,
+  );
+  static const IconData panelRightOpen = IconData(
+    0xe439,
+    fontFamily: fontFamily,
+  );
   static const IconData panelTop = IconData(0xe43a, fontFamily: fontFamily);
-  static const IconData panelTopClose = IconData(0xe43b, fontFamily: fontFamily);
-  static const IconData panelTopDashed = IconData(0xe43c, fontFamily: fontFamily);
+  static const IconData panelTopClose = IconData(
+    0xe43b,
+    fontFamily: fontFamily,
+  );
+  static const IconData panelTopDashed = IconData(
+    0xe43c,
+    fontFamily: fontFamily,
+  );
   static const IconData panelTopOpen = IconData(0xe43d, fontFamily: fontFamily);
-  static const IconData panelsLeftBottom = IconData(0xe12f, fontFamily: fontFamily);
-  static const IconData panelsRightBottom = IconData(0xe58d, fontFamily: fontFamily);
-  static const IconData panelsTopLeft = IconData(0xe130, fontFamily: fontFamily);
+  static const IconData panelsLeftBottom = IconData(
+    0xe12f,
+    fontFamily: fontFamily,
+  );
+  static const IconData panelsRightBottom = IconData(
+    0xe58d,
+    fontFamily: fontFamily,
+  );
+  static const IconData panelsTopLeft = IconData(
+    0xe130,
+    fontFamily: fontFamily,
+  );
   static const IconData paperclip = IconData(0xe131, fontFamily: fontFamily);
   static const IconData parentheses = IconData(0xe449, fontFamily: fontFamily);
   static const IconData parkingMeter = IconData(0xe505, fontFamily: fontFamily);
@@ -1055,20 +1847,41 @@ abstract final class HiveIcons {
   static const IconData pencilRuler = IconData(0xe4f6, fontFamily: fontFamily);
   static const IconData pentagon = IconData(0xe530, fontFamily: fontFamily);
   static const IconData percent = IconData(0xe136, fontFamily: fontFamily);
-  static const IconData personStanding = IconData(0xe21e, fontFamily: fontFamily);
-  static const IconData philippinePeso = IconData(0xe609, fontFamily: fontFamily);
+  static const IconData personStanding = IconData(
+    0xe21e,
+    fontFamily: fontFamily,
+  );
+  static const IconData philippinePeso = IconData(
+    0xe609,
+    fontFamily: fontFamily,
+  );
   static const IconData phone = IconData(0xe137, fontFamily: fontFamily);
   static const IconData phoneCall = IconData(0xe138, fontFamily: fontFamily);
-  static const IconData phoneForwarded = IconData(0xe139, fontFamily: fontFamily);
-  static const IconData phoneIncoming = IconData(0xe13a, fontFamily: fontFamily);
+  static const IconData phoneForwarded = IconData(
+    0xe139,
+    fontFamily: fontFamily,
+  );
+  static const IconData phoneIncoming = IconData(
+    0xe13a,
+    fontFamily: fontFamily,
+  );
   static const IconData phoneMissed = IconData(0xe13b, fontFamily: fontFamily);
   static const IconData phoneOff = IconData(0xe13c, fontFamily: fontFamily);
-  static const IconData phoneOutgoing = IconData(0xe13d, fontFamily: fontFamily);
+  static const IconData phoneOutgoing = IconData(
+    0xe13d,
+    fontFamily: fontFamily,
+  );
   static const IconData pi = IconData(0xe477, fontFamily: fontFamily);
   static const IconData piano = IconData(0xe566, fontFamily: fontFamily);
   static const IconData pickaxe = IconData(0xe5cb, fontFamily: fontFamily);
-  static const IconData pictureInPicture = IconData(0xe3b2, fontFamily: fontFamily);
-  static const IconData pictureInPicture2 = IconData(0xe3b3, fontFamily: fontFamily);
+  static const IconData pictureInPicture = IconData(
+    0xe3b2,
+    fontFamily: fontFamily,
+  );
+  static const IconData pictureInPicture2 = IconData(
+    0xe3b3,
+    fontFamily: fontFamily,
+  );
   static const IconData piggyBank = IconData(0xe13e, fontFamily: fontFamily);
   static const IconData pilcrow = IconData(0xe3a7, fontFamily: fontFamily);
   static const IconData pilcrowLeft = IconData(0xe5e1, fontFamily: fontFamily);
@@ -1094,7 +1907,10 @@ abstract final class HiveIcons {
   static const IconData pointerOff = IconData(0xe584, fontFamily: fontFamily);
   static const IconData popcorn = IconData(0xe4c3, fontFamily: fontFamily);
   static const IconData popsicle = IconData(0xe4c4, fontFamily: fontFamily);
-  static const IconData poundSterling = IconData(0xe143, fontFamily: fontFamily);
+  static const IconData poundSterling = IconData(
+    0xe143,
+    fontFamily: fontFamily,
+  );
   static const IconData power = IconData(0xe144, fontFamily: fontFamily);
   static const IconData powerOff = IconData(0xe209, fontFamily: fontFamily);
   static const IconData presentation = IconData(0xe4b3, fontFamily: fontFamily);
@@ -1111,7 +1927,10 @@ abstract final class HiveIcons {
   static const IconData radiation = IconData(0xe447, fontFamily: fontFamily);
   static const IconData radical = IconData(0xe5c7, fontFamily: fontFamily);
   static const IconData radio = IconData(0xe146, fontFamily: fontFamily);
-  static const IconData radioReceiver = IconData(0xe1fb, fontFamily: fontFamily);
+  static const IconData radioReceiver = IconData(
+    0xe1fb,
+    fontFamily: fontFamily,
+  );
   static const IconData radioTower = IconData(0xe409, fontFamily: fontFamily);
   static const IconData radius = IconData(0xe532, fontFamily: fontFamily);
   static const IconData railSymbol = IconData(0xe506, fontFamily: fontFamily);
@@ -1121,26 +1940,56 @@ abstract final class HiveIcons {
   static const IconData receipt = IconData(0xe3d7, fontFamily: fontFamily);
   static const IconData receiptCent = IconData(0xe5aa, fontFamily: fontFamily);
   static const IconData receiptEuro = IconData(0xe5ab, fontFamily: fontFamily);
-  static const IconData receiptIndianRupee = IconData(0xe5ac, fontFamily: fontFamily);
-  static const IconData receiptJapaneseYen = IconData(0xe5ad, fontFamily: fontFamily);
-  static const IconData receiptPoundSterling = IconData(0xe5ae, fontFamily: fontFamily);
-  static const IconData receiptRussianRuble = IconData(0xe5af, fontFamily: fontFamily);
-  static const IconData receiptSwissFranc = IconData(0xe5b0, fontFamily: fontFamily);
+  static const IconData receiptIndianRupee = IconData(
+    0xe5ac,
+    fontFamily: fontFamily,
+  );
+  static const IconData receiptJapaneseYen = IconData(
+    0xe5ad,
+    fontFamily: fontFamily,
+  );
+  static const IconData receiptPoundSterling = IconData(
+    0xe5ae,
+    fontFamily: fontFamily,
+  );
+  static const IconData receiptRussianRuble = IconData(
+    0xe5af,
+    fontFamily: fontFamily,
+  );
+  static const IconData receiptSwissFranc = IconData(
+    0xe5b0,
+    fontFamily: fontFamily,
+  );
   static const IconData receiptText = IconData(0xe5b1, fontFamily: fontFamily);
-  static const IconData rectangleEllipsis = IconData(0xe21f, fontFamily: fontFamily);
-  static const IconData rectangleHorizontal = IconData(0xe37a, fontFamily: fontFamily);
-  static const IconData rectangleVertical = IconData(0xe37b, fontFamily: fontFamily);
+  static const IconData rectangleEllipsis = IconData(
+    0xe21f,
+    fontFamily: fontFamily,
+  );
+  static const IconData rectangleHorizontal = IconData(
+    0xe37a,
+    fontFamily: fontFamily,
+  );
+  static const IconData rectangleVertical = IconData(
+    0xe37b,
+    fontFamily: fontFamily,
+  );
   static const IconData recycle = IconData(0xe2e9, fontFamily: fontFamily);
   static const IconData redo = IconData(0xe147, fontFamily: fontFamily);
   static const IconData redo2 = IconData(0xe2a0, fontFamily: fontFamily);
   static const IconData redoDot = IconData(0xe455, fontFamily: fontFamily);
   static const IconData refreshCcw = IconData(0xe148, fontFamily: fontFamily);
-  static const IconData refreshCcwDot = IconData(0xe4b7, fontFamily: fontFamily);
+  static const IconData refreshCcwDot = IconData(
+    0xe4b7,
+    fontFamily: fontFamily,
+  );
   static const IconData refreshCw = IconData(0xe149, fontFamily: fontFamily);
   static const IconData refreshCwOff = IconData(0xe49d, fontFamily: fontFamily);
   static const IconData refrigerator = IconData(0xe37f, fontFamily: fontFamily);
   static const IconData regex = IconData(0xe1fc, fontFamily: fontFamily);
-  static const IconData removeFormatting = IconData(0xe3b7, fontFamily: fontFamily);
+  static const IconData removeFormatting = IconData(
+    0xe3b7,
+    fontFamily: fontFamily,
+  );
   static const IconData repeat = IconData(0xe14a, fontFamily: fontFamily);
   static const IconData repeat1 = IconData(0xe1fd, fontFamily: fontFamily);
   static const IconData repeat2 = IconData(0xe416, fontFamily: fontFamily);
@@ -1152,12 +2001,21 @@ abstract final class HiveIcons {
   static const IconData ribbon = IconData(0xe55d, fontFamily: fontFamily);
   static const IconData rocket = IconData(0xe286, fontFamily: fontFamily);
   static const IconData rockingChair = IconData(0xe233, fontFamily: fontFamily);
-  static const IconData rollerCoaster = IconData(0xe485, fontFamily: fontFamily);
+  static const IconData rollerCoaster = IconData(
+    0xe485,
+    fontFamily: fontFamily,
+  );
   static const IconData rotate3d = IconData(0xe2ea, fontFamily: fontFamily);
   static const IconData rotateCcw = IconData(0xe14c, fontFamily: fontFamily);
-  static const IconData rotateCcwSquare = IconData(0xe5d5, fontFamily: fontFamily);
+  static const IconData rotateCcwSquare = IconData(
+    0xe5d5,
+    fontFamily: fontFamily,
+  );
   static const IconData rotateCw = IconData(0xe14d, fontFamily: fontFamily);
-  static const IconData rotateCwSquare = IconData(0xe5d6, fontFamily: fontFamily);
+  static const IconData rotateCwSquare = IconData(
+    0xe5d6,
+    fontFamily: fontFamily,
+  );
   static const IconData route = IconData(0xe543, fontFamily: fontFamily);
   static const IconData routeOff = IconData(0xe544, fontFamily: fontFamily);
   static const IconData router = IconData(0xe3c3, fontFamily: fontFamily);
@@ -1171,7 +2029,10 @@ abstract final class HiveIcons {
   static const IconData salad = IconData(0xe3ac, fontFamily: fontFamily);
   static const IconData sandwich = IconData(0xe3ad, fontFamily: fontFamily);
   static const IconData satellite = IconData(0xe44c, fontFamily: fontFamily);
-  static const IconData satelliteDish = IconData(0xe44d, fontFamily: fontFamily);
+  static const IconData satelliteDish = IconData(
+    0xe44d,
+    fontFamily: fontFamily,
+  );
   static const IconData save = IconData(0xe151, fontFamily: fontFamily);
   static const IconData saveAll = IconData(0xe414, fontFamily: fontFamily);
   static const IconData saveOff = IconData(0xe5f8, fontFamily: fontFamily);
@@ -1188,9 +2049,15 @@ abstract final class HiveIcons {
   static const IconData scanText = IconData(0xe53d, fontFamily: fontFamily);
   static const IconData school = IconData(0xe3e7, fontFamily: fontFamily);
   static const IconData scissors = IconData(0xe152, fontFamily: fontFamily);
-  static const IconData scissorsLineDashed = IconData(0xe4ee, fontFamily: fontFamily);
+  static const IconData scissorsLineDashed = IconData(
+    0xe4ee,
+    fontFamily: fontFamily,
+  );
   static const IconData screenShare = IconData(0xe153, fontFamily: fontFamily);
-  static const IconData screenShareOff = IconData(0xe154, fontFamily: fontFamily);
+  static const IconData screenShareOff = IconData(
+    0xe154,
+    fontFamily: fontFamily,
+  );
   static const IconData scroll = IconData(0xe2ed, fontFamily: fontFamily);
   static const IconData scrollText = IconData(0xe464, fontFamily: fontFamily);
   static const IconData search = IconData(0xe155, fontFamily: fontFamily);
@@ -1200,10 +2067,19 @@ abstract final class HiveIcons {
   static const IconData searchX = IconData(0xe4b2, fontFamily: fontFamily);
   static const IconData section = IconData(0xe5ed, fontFamily: fontFamily);
   static const IconData send = IconData(0xe156, fontFamily: fontFamily);
-  static const IconData sendHorizontal = IconData(0xe4f7, fontFamily: fontFamily);
+  static const IconData sendHorizontal = IconData(
+    0xe4f7,
+    fontFamily: fontFamily,
+  );
   static const IconData sendToBack = IconData(0xe4f8, fontFamily: fontFamily);
-  static const IconData separatorHorizontal = IconData(0xe1c8, fontFamily: fontFamily);
-  static const IconData separatorVertical = IconData(0xe1c9, fontFamily: fontFamily);
+  static const IconData separatorHorizontal = IconData(
+    0xe1c8,
+    fontFamily: fontFamily,
+  );
+  static const IconData separatorVertical = IconData(
+    0xe1c9,
+    fontFamily: fontFamily,
+  );
   static const IconData server = IconData(0xe157, fontFamily: fontFamily);
   static const IconData serverCog = IconData(0xe345, fontFamily: fontFamily);
   static const IconData serverCrash = IconData(0xe1e9, fontFamily: fontFamily);
@@ -1219,18 +2095,27 @@ abstract final class HiveIcons {
   static const IconData shieldAlert = IconData(0xe1fe, fontFamily: fontFamily);
   static const IconData shieldBan = IconData(0xe15d, fontFamily: fontFamily);
   static const IconData shieldCheck = IconData(0xe1ff, fontFamily: fontFamily);
-  static const IconData shieldEllipsis = IconData(0xe51b, fontFamily: fontFamily);
+  static const IconData shieldEllipsis = IconData(
+    0xe51b,
+    fontFamily: fontFamily,
+  );
   static const IconData shieldHalf = IconData(0xe51c, fontFamily: fontFamily);
   static const IconData shieldMinus = IconData(0xe51d, fontFamily: fontFamily);
   static const IconData shieldOff = IconData(0xe15e, fontFamily: fontFamily);
   static const IconData shieldPlus = IconData(0xe51e, fontFamily: fontFamily);
-  static const IconData shieldQuestion = IconData(0xe413, fontFamily: fontFamily);
+  static const IconData shieldQuestion = IconData(
+    0xe413,
+    fontFamily: fontFamily,
+  );
   static const IconData shieldX = IconData(0xe200, fontFamily: fontFamily);
   static const IconData ship = IconData(0xe3be, fontFamily: fontFamily);
   static const IconData shipWheel = IconData(0xe507, fontFamily: fontFamily);
   static const IconData shirt = IconData(0xe1ca, fontFamily: fontFamily);
   static const IconData shoppingBag = IconData(0xe15f, fontFamily: fontFamily);
-  static const IconData shoppingBasket = IconData(0xe4ef, fontFamily: fontFamily);
+  static const IconData shoppingBasket = IconData(
+    0xe4ef,
+    fontFamily: fontFamily,
+  );
   static const IconData shoppingCart = IconData(0xe160, fontFamily: fontFamily);
   static const IconData shovel = IconData(0xe161, fontFamily: fontFamily);
   static const IconData showerHead = IconData(0xe380, fontFamily: fontFamily);
@@ -1253,11 +2138,23 @@ abstract final class HiveIcons {
   static const IconData slack = IconData(0xe165, fontFamily: fontFamily);
   static const IconData slash = IconData(0xe522, fontFamily: fontFamily);
   static const IconData slice = IconData(0xe2f0, fontFamily: fontFamily);
-  static const IconData slidersHorizontal = IconData(0xe29a, fontFamily: fontFamily);
-  static const IconData slidersVertical = IconData(0xe166, fontFamily: fontFamily);
+  static const IconData slidersHorizontal = IconData(
+    0xe29a,
+    fontFamily: fontFamily,
+  );
+  static const IconData slidersVertical = IconData(
+    0xe166,
+    fontFamily: fontFamily,
+  );
   static const IconData smartphone = IconData(0xe167, fontFamily: fontFamily);
-  static const IconData smartphoneCharging = IconData(0xe22e, fontFamily: fontFamily);
-  static const IconData smartphoneNfc = IconData(0xe3c8, fontFamily: fontFamily);
+  static const IconData smartphoneCharging = IconData(
+    0xe22e,
+    fontFamily: fontFamily,
+  );
+  static const IconData smartphoneNfc = IconData(
+    0xe3c8,
+    fontFamily: fontFamily,
+  );
   static const IconData smile = IconData(0xe168, fontFamily: fontFamily);
   static const IconData smilePlus = IconData(0xe301, fontFamily: fontFamily);
   static const IconData snail = IconData(0xe4fd, fontFamily: fontFamily);
@@ -1277,64 +2174,178 @@ abstract final class HiveIcons {
   static const IconData sprayCan = IconData(0xe49a, fontFamily: fontFamily);
   static const IconData sprout = IconData(0xe1eb, fontFamily: fontFamily);
   static const IconData square = IconData(0xe16b, fontFamily: fontFamily);
-  static const IconData squareActivity = IconData(0xe4b9, fontFamily: fontFamily);
-  static const IconData squareArrowDown = IconData(0xe42c, fontFamily: fontFamily);
-  static const IconData squareArrowDownLeft = IconData(0xe4ba, fontFamily: fontFamily);
-  static const IconData squareArrowDownRight = IconData(0xe4bb, fontFamily: fontFamily);
-  static const IconData squareArrowLeft = IconData(0xe42d, fontFamily: fontFamily);
-  static const IconData squareArrowOutDownLeft = IconData(0xe5a6, fontFamily: fontFamily);
-  static const IconData squareArrowOutDownRight = IconData(0xe5a7, fontFamily: fontFamily);
-  static const IconData squareArrowOutUpLeft = IconData(0xe5a8, fontFamily: fontFamily);
-  static const IconData squareArrowOutUpRight = IconData(0xe5a9, fontFamily: fontFamily);
-  static const IconData squareArrowRight = IconData(0xe42e, fontFamily: fontFamily);
-  static const IconData squareArrowUp = IconData(0xe42f, fontFamily: fontFamily);
-  static const IconData squareArrowUpLeft = IconData(0xe4bc, fontFamily: fontFamily);
-  static const IconData squareArrowUpRight = IconData(0xe4bd, fontFamily: fontFamily);
-  static const IconData squareAsterisk = IconData(0xe16c, fontFamily: fontFamily);
-  static const IconData squareBottomDashedScissors = IconData(0xe4f0, fontFamily: fontFamily);
-  static const IconData squareChartGantt = IconData(0xe16d, fontFamily: fontFamily);
+  static const IconData squareActivity = IconData(
+    0xe4b9,
+    fontFamily: fontFamily,
+  );
+  static const IconData squareArrowDown = IconData(
+    0xe42c,
+    fontFamily: fontFamily,
+  );
+  static const IconData squareArrowDownLeft = IconData(
+    0xe4ba,
+    fontFamily: fontFamily,
+  );
+  static const IconData squareArrowDownRight = IconData(
+    0xe4bb,
+    fontFamily: fontFamily,
+  );
+  static const IconData squareArrowLeft = IconData(
+    0xe42d,
+    fontFamily: fontFamily,
+  );
+  static const IconData squareArrowOutDownLeft = IconData(
+    0xe5a6,
+    fontFamily: fontFamily,
+  );
+  static const IconData squareArrowOutDownRight = IconData(
+    0xe5a7,
+    fontFamily: fontFamily,
+  );
+  static const IconData squareArrowOutUpLeft = IconData(
+    0xe5a8,
+    fontFamily: fontFamily,
+  );
+  static const IconData squareArrowOutUpRight = IconData(
+    0xe5a9,
+    fontFamily: fontFamily,
+  );
+  static const IconData squareArrowRight = IconData(
+    0xe42e,
+    fontFamily: fontFamily,
+  );
+  static const IconData squareArrowUp = IconData(
+    0xe42f,
+    fontFamily: fontFamily,
+  );
+  static const IconData squareArrowUpLeft = IconData(
+    0xe4bc,
+    fontFamily: fontFamily,
+  );
+  static const IconData squareArrowUpRight = IconData(
+    0xe4bd,
+    fontFamily: fontFamily,
+  );
+  static const IconData squareAsterisk = IconData(
+    0xe16c,
+    fontFamily: fontFamily,
+  );
+  static const IconData squareBottomDashedScissors = IconData(
+    0xe4f0,
+    fontFamily: fontFamily,
+  );
+  static const IconData squareChartGantt = IconData(
+    0xe16d,
+    fontFamily: fontFamily,
+  );
   static const IconData squareCheck = IconData(0xe55e, fontFamily: fontFamily);
-  static const IconData squareCheckBig = IconData(0xe16e, fontFamily: fontFamily);
-  static const IconData squareChevronDown = IconData(0xe3d3, fontFamily: fontFamily);
-  static const IconData squareChevronLeft = IconData(0xe3d4, fontFamily: fontFamily);
-  static const IconData squareChevronRight = IconData(0xe3d5, fontFamily: fontFamily);
-  static const IconData squareChevronUp = IconData(0xe3d6, fontFamily: fontFamily);
+  static const IconData squareCheckBig = IconData(
+    0xe16e,
+    fontFamily: fontFamily,
+  );
+  static const IconData squareChevronDown = IconData(
+    0xe3d3,
+    fontFamily: fontFamily,
+  );
+  static const IconData squareChevronLeft = IconData(
+    0xe3d4,
+    fontFamily: fontFamily,
+  );
+  static const IconData squareChevronRight = IconData(
+    0xe3d5,
+    fontFamily: fontFamily,
+  );
+  static const IconData squareChevronUp = IconData(
+    0xe3d6,
+    fontFamily: fontFamily,
+  );
   static const IconData squareCode = IconData(0xe16f, fontFamily: fontFamily);
   static const IconData squareDashed = IconData(0xe1cb, fontFamily: fontFamily);
-  static const IconData squareDashedBottom = IconData(0xe4c5, fontFamily: fontFamily);
-  static const IconData squareDashedBottomCode = IconData(0xe4c6, fontFamily: fontFamily);
-  static const IconData squareDashedKanban = IconData(0xe170, fontFamily: fontFamily);
-  static const IconData squareDashedMousePointer = IconData(0xe50e, fontFamily: fontFamily);
+  static const IconData squareDashedBottom = IconData(
+    0xe4c5,
+    fontFamily: fontFamily,
+  );
+  static const IconData squareDashedBottomCode = IconData(
+    0xe4c6,
+    fontFamily: fontFamily,
+  );
+  static const IconData squareDashedKanban = IconData(
+    0xe170,
+    fontFamily: fontFamily,
+  );
+  static const IconData squareDashedMousePointer = IconData(
+    0xe50e,
+    fontFamily: fontFamily,
+  );
   static const IconData squareDivide = IconData(0xe171, fontFamily: fontFamily);
   static const IconData squareDot = IconData(0xe172, fontFamily: fontFamily);
   static const IconData squareEqual = IconData(0xe173, fontFamily: fontFamily);
-  static const IconData squareFunction = IconData(0xe22d, fontFamily: fontFamily);
+  static const IconData squareFunction = IconData(
+    0xe22d,
+    fontFamily: fontFamily,
+  );
   static const IconData squareKanban = IconData(0xe174, fontFamily: fontFamily);
-  static const IconData squareLibrary = IconData(0xe554, fontFamily: fontFamily);
+  static const IconData squareLibrary = IconData(
+    0xe554,
+    fontFamily: fontFamily,
+  );
   static const IconData squareM = IconData(0xe508, fontFamily: fontFamily);
   static const IconData squareMenu = IconData(0xe458, fontFamily: fontFamily);
   static const IconData squareMinus = IconData(0xe175, fontFamily: fontFamily);
-  static const IconData squareMousePointer = IconData(0xe202, fontFamily: fontFamily);
-  static const IconData squareParking = IconData(0xe3cf, fontFamily: fontFamily);
-  static const IconData squareParkingOff = IconData(0xe3d0, fontFamily: fontFamily);
+  static const IconData squareMousePointer = IconData(
+    0xe202,
+    fontFamily: fontFamily,
+  );
+  static const IconData squareParking = IconData(
+    0xe3cf,
+    fontFamily: fontFamily,
+  );
+  static const IconData squareParkingOff = IconData(
+    0xe3d0,
+    fontFamily: fontFamily,
+  );
   static const IconData squarePen = IconData(0xe176, fontFamily: fontFamily);
-  static const IconData squarePercent = IconData(0xe521, fontFamily: fontFamily);
+  static const IconData squarePercent = IconData(
+    0xe521,
+    fontFamily: fontFamily,
+  );
   static const IconData squarePi = IconData(0xe48d, fontFamily: fontFamily);
-  static const IconData squarePilcrow = IconData(0xe490, fontFamily: fontFamily);
+  static const IconData squarePilcrow = IconData(
+    0xe490,
+    fontFamily: fontFamily,
+  );
   static const IconData squarePlay = IconData(0xe486, fontFamily: fontFamily);
   static const IconData squarePlus = IconData(0xe177, fontFamily: fontFamily);
   static const IconData squarePower = IconData(0xe556, fontFamily: fontFamily);
-  static const IconData squareRadical = IconData(0xe5c8, fontFamily: fontFamily);
-  static const IconData squareScissors = IconData(0xe4f1, fontFamily: fontFamily);
+  static const IconData squareRadical = IconData(
+    0xe5c8,
+    fontFamily: fontFamily,
+  );
+  static const IconData squareScissors = IconData(
+    0xe4f1,
+    fontFamily: fontFamily,
+  );
   static const IconData squareSigma = IconData(0xe48e, fontFamily: fontFamily);
   static const IconData squareSlash = IconData(0xe178, fontFamily: fontFamily);
-  static const IconData squareSplitHorizontal = IconData(0xe3ba, fontFamily: fontFamily);
-  static const IconData squareSplitVertical = IconData(0xe3bb, fontFamily: fontFamily);
+  static const IconData squareSplitHorizontal = IconData(
+    0xe3ba,
+    fontFamily: fontFamily,
+  );
+  static const IconData squareSplitVertical = IconData(
+    0xe3bb,
+    fontFamily: fontFamily,
+  );
   static const IconData squareSquare = IconData(0xe613, fontFamily: fontFamily);
   static const IconData squareStack = IconData(0xe4a7, fontFamily: fontFamily);
-  static const IconData squareTerminal = IconData(0xe20a, fontFamily: fontFamily);
+  static const IconData squareTerminal = IconData(
+    0xe20a,
+    fontFamily: fontFamily,
+  );
   static const IconData squareUser = IconData(0xe46a, fontFamily: fontFamily);
-  static const IconData squareUserRound = IconData(0xe46b, fontFamily: fontFamily);
+  static const IconData squareUserRound = IconData(
+    0xe46b,
+    fontFamily: fontFamily,
+  );
   static const IconData squareX = IconData(0xe179, fontFamily: fontFamily);
   static const IconData squircle = IconData(0xe57f, fontFamily: fontFamily);
   static const IconData squirrel = IconData(0xe4a4, fontFamily: fontFamily);
@@ -1348,9 +2359,18 @@ abstract final class HiveIcons {
   static const IconData sticker = IconData(0xe302, fontFamily: fontFamily);
   static const IconData stickyNote = IconData(0xe303, fontFamily: fontFamily);
   static const IconData store = IconData(0xe3e8, fontFamily: fontFamily);
-  static const IconData stretchHorizontal = IconData(0xe27c, fontFamily: fontFamily);
-  static const IconData stretchVertical = IconData(0xe27d, fontFamily: fontFamily);
-  static const IconData strikethrough = IconData(0xe17b, fontFamily: fontFamily);
+  static const IconData stretchHorizontal = IconData(
+    0xe27c,
+    fontFamily: fontFamily,
+  );
+  static const IconData stretchVertical = IconData(
+    0xe27d,
+    fontFamily: fontFamily,
+  );
+  static const IconData strikethrough = IconData(
+    0xe17b,
+    fontFamily: fontFamily,
+  );
   static const IconData subscript = IconData(0xe25c, fontFamily: fontFamily);
   static const IconData sun = IconData(0xe17c, fontFamily: fontFamily);
   static const IconData sunDim = IconData(0xe299, fontFamily: fontFamily);
@@ -1368,14 +2388,35 @@ abstract final class HiveIcons {
   static const IconData syringe = IconData(0xe2f2, fontFamily: fontFamily);
   static const IconData table = IconData(0xe181, fontFamily: fontFamily);
   static const IconData table2 = IconData(0xe2f9, fontFamily: fontFamily);
-  static const IconData tableCellsMerge = IconData(0xe5cc, fontFamily: fontFamily);
-  static const IconData tableCellsSplit = IconData(0xe5cd, fontFamily: fontFamily);
-  static const IconData tableColumnsSplit = IconData(0xe5ce, fontFamily: fontFamily);
-  static const IconData tableOfContents = IconData(0xe623, fontFamily: fontFamily);
-  static const IconData tableProperties = IconData(0xe4e0, fontFamily: fontFamily);
-  static const IconData tableRowsSplit = IconData(0xe5cf, fontFamily: fontFamily);
+  static const IconData tableCellsMerge = IconData(
+    0xe5cc,
+    fontFamily: fontFamily,
+  );
+  static const IconData tableCellsSplit = IconData(
+    0xe5cd,
+    fontFamily: fontFamily,
+  );
+  static const IconData tableColumnsSplit = IconData(
+    0xe5ce,
+    fontFamily: fontFamily,
+  );
+  static const IconData tableOfContents = IconData(
+    0xe623,
+    fontFamily: fontFamily,
+  );
+  static const IconData tableProperties = IconData(
+    0xe4e0,
+    fontFamily: fontFamily,
+  );
+  static const IconData tableRowsSplit = IconData(
+    0xe5cf,
+    fontFamily: fontFamily,
+  );
   static const IconData tablet = IconData(0xe182, fontFamily: fontFamily);
-  static const IconData tabletSmartphone = IconData(0xe50f, fontFamily: fontFamily);
+  static const IconData tabletSmartphone = IconData(
+    0xe50f,
+    fontFamily: fontFamily,
+  );
   static const IconData tablets = IconData(0xe3c2, fontFamily: fontFamily);
   static const IconData tag = IconData(0xe183, fontFamily: fontFamily);
   static const IconData tags = IconData(0xe360, fontFamily: fontFamily);
@@ -1391,24 +2432,39 @@ abstract final class HiveIcons {
   static const IconData tentTree = IconData(0xe540, fontFamily: fontFamily);
   static const IconData terminal = IconData(0xe185, fontFamily: fontFamily);
   static const IconData testTube = IconData(0xe40a, fontFamily: fontFamily);
-  static const IconData testTubeDiagonal = IconData(0xe40b, fontFamily: fontFamily);
+  static const IconData testTubeDiagonal = IconData(
+    0xe40b,
+    fontFamily: fontFamily,
+  );
   static const IconData testTubes = IconData(0xe40c, fontFamily: fontFamily);
   static const IconData text = IconData(0xe3ef, fontFamily: fontFamily);
   static const IconData textCursor = IconData(0xe264, fontFamily: fontFamily);
-  static const IconData textCursorInput = IconData(0xe265, fontFamily: fontFamily);
+  static const IconData textCursorInput = IconData(
+    0xe265,
+    fontFamily: fontFamily,
+  );
   static const IconData textQuote = IconData(0xe4a3, fontFamily: fontFamily);
   static const IconData textSearch = IconData(0xe5b2, fontFamily: fontFamily);
   static const IconData textSelect = IconData(0xe3e2, fontFamily: fontFamily);
   static const IconData theater = IconData(0xe527, fontFamily: fontFamily);
   static const IconData thermometer = IconData(0xe186, fontFamily: fontFamily);
-  static const IconData thermometerSnowflake = IconData(0xe187, fontFamily: fontFamily);
-  static const IconData thermometerSun = IconData(0xe188, fontFamily: fontFamily);
+  static const IconData thermometerSnowflake = IconData(
+    0xe187,
+    fontFamily: fontFamily,
+  );
+  static const IconData thermometerSun = IconData(
+    0xe188,
+    fontFamily: fontFamily,
+  );
   static const IconData thumbsDown = IconData(0xe189, fontFamily: fontFamily);
   static const IconData thumbsUp = IconData(0xe18a, fontFamily: fontFamily);
   static const IconData ticket = IconData(0xe20f, fontFamily: fontFamily);
   static const IconData ticketCheck = IconData(0xe5b3, fontFamily: fontFamily);
   static const IconData ticketMinus = IconData(0xe5b4, fontFamily: fontFamily);
-  static const IconData ticketPercent = IconData(0xe5b5, fontFamily: fontFamily);
+  static const IconData ticketPercent = IconData(
+    0xe5b5,
+    fontFamily: fontFamily,
+  );
   static const IconData ticketPlus = IconData(0xe5b6, fontFamily: fontFamily);
   static const IconData ticketSlash = IconData(0xe5b7, fontFamily: fontFamily);
   static const IconData ticketX = IconData(0xe5b8, fontFamily: fontFamily);
@@ -1429,28 +2485,46 @@ abstract final class HiveIcons {
   static const IconData tractor = IconData(0xe509, fontFamily: fontFamily);
   static const IconData trafficCone = IconData(0xe50a, fontFamily: fontFamily);
   static const IconData trainFront = IconData(0xe50b, fontFamily: fontFamily);
-  static const IconData trainFrontTunnel = IconData(0xe50c, fontFamily: fontFamily);
+  static const IconData trainFrontTunnel = IconData(
+    0xe50c,
+    fontFamily: fontFamily,
+  );
   static const IconData trainTrack = IconData(0xe50d, fontFamily: fontFamily);
   static const IconData tramFront = IconData(0xe2a9, fontFamily: fontFamily);
   static const IconData trash = IconData(0xe18d, fontFamily: fontFamily);
   static const IconData trash2 = IconData(0xe18e, fontFamily: fontFamily);
-  static const IconData treeDeciduous = IconData(0xe2f3, fontFamily: fontFamily);
+  static const IconData treeDeciduous = IconData(
+    0xe2f3,
+    fontFamily: fontFamily,
+  );
   static const IconData treePalm = IconData(0xe281, fontFamily: fontFamily);
   static const IconData treePine = IconData(0xe2f4, fontFamily: fontFamily);
   static const IconData trees = IconData(0xe2f5, fontFamily: fontFamily);
   static const IconData trello = IconData(0xe18f, fontFamily: fontFamily);
   static const IconData trendingDown = IconData(0xe190, fontFamily: fontFamily);
   static const IconData trendingUp = IconData(0xe191, fontFamily: fontFamily);
-  static const IconData trendingUpDown = IconData(0xe62a, fontFamily: fontFamily);
+  static const IconData trendingUpDown = IconData(
+    0xe62a,
+    fontFamily: fontFamily,
+  );
   static const IconData triangle = IconData(0xe192, fontFamily: fontFamily);
-  static const IconData triangleAlert = IconData(0xe193, fontFamily: fontFamily);
-  static const IconData triangleRight = IconData(0xe4f2, fontFamily: fontFamily);
+  static const IconData triangleAlert = IconData(
+    0xe193,
+    fontFamily: fontFamily,
+  );
+  static const IconData triangleRight = IconData(
+    0xe4f2,
+    fontFamily: fontFamily,
+  );
   static const IconData trophy = IconData(0xe377, fontFamily: fontFamily);
   static const IconData truck = IconData(0xe194, fontFamily: fontFamily);
   static const IconData turtle = IconData(0xe4fe, fontFamily: fontFamily);
   static const IconData tv = IconData(0xe195, fontFamily: fontFamily);
   static const IconData tvMinimal = IconData(0xe203, fontFamily: fontFamily);
-  static const IconData tvMinimalPlay = IconData(0xe5f1, fontFamily: fontFamily);
+  static const IconData tvMinimalPlay = IconData(
+    0xe5f1,
+    fontFamily: fontFamily,
+  );
   static const IconData twitch = IconData(0xe196, fontFamily: fontFamily);
   static const IconData twitter = IconData(0xe197, fontFamily: fontFamily);
   static const IconData type = IconData(0xe198, fontFamily: fontFamily);
@@ -1461,8 +2535,14 @@ abstract final class HiveIcons {
   static const IconData undo = IconData(0xe19b, fontFamily: fontFamily);
   static const IconData undo2 = IconData(0xe2a1, fontFamily: fontFamily);
   static const IconData undoDot = IconData(0xe456, fontFamily: fontFamily);
-  static const IconData unfoldHorizontal = IconData(0xe442, fontFamily: fontFamily);
-  static const IconData unfoldVertical = IconData(0xe443, fontFamily: fontFamily);
+  static const IconData unfoldHorizontal = IconData(
+    0xe442,
+    fontFamily: fontFamily,
+  );
+  static const IconData unfoldVertical = IconData(
+    0xe443,
+    fontFamily: fontFamily,
+  );
   static const IconData ungroup = IconData(0xe46c, fontFamily: fontFamily);
   static const IconData university = IconData(0xe3e9, fontFamily: fontFamily);
   static const IconData unlink = IconData(0xe19c, fontFamily: fontFamily);
@@ -1477,19 +2557,34 @@ abstract final class HiveIcons {
   static const IconData userPen = IconData(0xe601, fontFamily: fontFamily);
   static const IconData userPlus = IconData(0xe1a2, fontFamily: fontFamily);
   static const IconData userRound = IconData(0xe46d, fontFamily: fontFamily);
-  static const IconData userRoundCheck = IconData(0xe46e, fontFamily: fontFamily);
+  static const IconData userRoundCheck = IconData(
+    0xe46e,
+    fontFamily: fontFamily,
+  );
   static const IconData userRoundCog = IconData(0xe46f, fontFamily: fontFamily);
-  static const IconData userRoundMinus = IconData(0xe470, fontFamily: fontFamily);
+  static const IconData userRoundMinus = IconData(
+    0xe470,
+    fontFamily: fontFamily,
+  );
   static const IconData userRoundPen = IconData(0xe602, fontFamily: fontFamily);
-  static const IconData userRoundPlus = IconData(0xe471, fontFamily: fontFamily);
-  static const IconData userRoundSearch = IconData(0xe57d, fontFamily: fontFamily);
+  static const IconData userRoundPlus = IconData(
+    0xe471,
+    fontFamily: fontFamily,
+  );
+  static const IconData userRoundSearch = IconData(
+    0xe57d,
+    fontFamily: fontFamily,
+  );
   static const IconData userRoundX = IconData(0xe472, fontFamily: fontFamily);
   static const IconData userSearch = IconData(0xe57e, fontFamily: fontFamily);
   static const IconData userX = IconData(0xe1a3, fontFamily: fontFamily);
   static const IconData users = IconData(0xe1a4, fontFamily: fontFamily);
   static const IconData usersRound = IconData(0xe473, fontFamily: fontFamily);
   static const IconData utensils = IconData(0xe2f6, fontFamily: fontFamily);
-  static const IconData utensilsCrossed = IconData(0xe2f7, fontFamily: fontFamily);
+  static const IconData utensilsCrossed = IconData(
+    0xe2f7,
+    fontFamily: fontFamily,
+  );
   static const IconData utilityPole = IconData(0xe3c6, fontFamily: fontFamily);
   static const IconData variable = IconData(0xe478, fontFamily: fontFamily);
   static const IconData vault = IconData(0xe594, fontFamily: fontFamily);
@@ -1511,12 +2606,18 @@ abstract final class HiveIcons {
   static const IconData vote = IconData(0xe3b1, fontFamily: fontFamily);
   static const IconData wallet = IconData(0xe204, fontFamily: fontFamily);
   static const IconData walletCards = IconData(0xe4d1, fontFamily: fontFamily);
-  static const IconData walletMinimal = IconData(0xe4d2, fontFamily: fontFamily);
+  static const IconData walletMinimal = IconData(
+    0xe4d2,
+    fontFamily: fontFamily,
+  );
   static const IconData wallpaper = IconData(0xe450, fontFamily: fontFamily);
   static const IconData wand = IconData(0xe246, fontFamily: fontFamily);
   static const IconData wandSparkles = IconData(0xe35b, fontFamily: fontFamily);
   static const IconData warehouse = IconData(0xe3ea, fontFamily: fontFamily);
-  static const IconData washingMachine = IconData(0xe595, fontFamily: fontFamily);
+  static const IconData washingMachine = IconData(
+    0xe595,
+    fontFamily: fontFamily,
+  );
   static const IconData watch = IconData(0xe1ad, fontFamily: fontFamily);
   static const IconData waves = IconData(0xe283, fontFamily: fontFamily);
   static const IconData waypoints = IconData(0xe547, fontFamily: fontFamily);
@@ -1533,7 +2634,10 @@ abstract final class HiveIcons {
   static const IconData wifiOff = IconData(0xe1af, fontFamily: fontFamily);
   static const IconData wifiZero = IconData(0xe5fe, fontFamily: fontFamily);
   static const IconData wind = IconData(0xe1b0, fontFamily: fontFamily);
-  static const IconData windArrowDown = IconData(0xe636, fontFamily: fontFamily);
+  static const IconData windArrowDown = IconData(
+    0xe636,
+    fontFamily: fontFamily,
+  );
   static const IconData wine = IconData(0xe2f8, fontFamily: fontFamily);
   static const IconData wineOff = IconData(0xe3a4, fontFamily: fontFamily);
   static const IconData workflow = IconData(0xe42a, fontFamily: fontFamily);

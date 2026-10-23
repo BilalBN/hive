@@ -10,6 +10,7 @@ import '../../player/output_route.dart';
 import '../../player/player_controller.dart';
 import '../../ui/art_backdrop.dart';
 import '../../ui/artwork.dart';
+import '../../ui/preferences.dart';
 import '../../ui/nav.dart';
 import '../../ui/track_actions.dart';
 import 'player_parts.dart';
@@ -116,6 +117,7 @@ class NowPlayingScreen extends ConsumerWidget {
       ],
     );
 
+    final simple = ref.watch(simpleModeProvider);
     Widget controls({required bool wide}) => Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -135,27 +137,33 @@ class NowPlayingScreen extends ConsumerWidget {
           middle: BadgeButton(showDetail: false, onArt: true),
         ),
         SizedBox(height: wide ? HiveSpace.md : HiveSpace.lg),
-        TransportControls(size: 44, showModes: wide, onArt: true),
+        TransportControls(
+          size: simple ? 60 : 44,
+          showModes: wide && !simple,
+          onArt: true,
+        ),
         SizedBox(height: wide ? HiveSpace.md : HiveSpace.lg),
         if (wide)
           const Padding(
             padding: EdgeInsets.only(bottom: HiveSpace.md),
             child: VolumeControl(width: null, onArt: true),
           ),
-        _BottomRow(
-          lyricsOn: wide && ref.watch(wideLyricsProvider),
-          // On computers the lyrics open right here, beside the cover; the
-          // queue opens in the window's side panel, so this closes.
-          onLyrics: wide
-              ? () => ref.read(wideLyricsProvider.notifier).toggle()
-              : context.openLyrics,
-          onQueue: wide
-              ? () {
-                  ref.read(sidePanelProvider.notifier).show(SidePanel.queue);
-                  _close(context);
-                }
-              : context.openQueue,
-        ),
+        // Simple mode: just the song and its controls.
+        if (!simple)
+          _BottomRow(
+            lyricsOn: wide && ref.watch(wideLyricsProvider),
+            // On computers the lyrics open right here, beside the cover; the
+            // queue opens in the window's side panel, so this closes.
+            onLyrics: wide
+                ? () => ref.read(wideLyricsProvider.notifier).toggle()
+                : context.openLyrics,
+            onQueue: wide
+                ? () {
+                    ref.read(sidePanelProvider.notifier).show(SidePanel.queue);
+                    _close(context);
+                  }
+                : context.openQueue,
+          ),
       ],
     );
 

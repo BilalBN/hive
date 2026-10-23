@@ -75,22 +75,85 @@ class HivePalette {
     danger: Color(0xFFC2372D),
     onDanger: Color(0xFFFFFFFF),
   );
-
 }
 
 /// Type scale. Inter with Malayalam and Devanagari fallbacks for song titles.
 abstract final class HiveType {
   static const String family = 'Inter';
-  static const List<String> fallbacks = ['NotoSansMalayalam', 'NotoSansDevanagari'];
+  static const List<String> fallbacks = [
+    'NotoSansMalayalam',
+    'NotoSansDevanagari',
+  ];
 
-  static const TextStyle display = TextStyle(fontFamily: family, fontFamilyFallback: fallbacks, fontSize: 34, height: 1.1765, fontWeight: FontWeight.w700, fontFeatures: [FontFeature.tabularFigures()], letterSpacing: -0.748);
-  static const TextStyle title1 = TextStyle(fontFamily: family, fontFamilyFallback: fallbacks, fontSize: 28, height: 1.2143, fontWeight: FontWeight.w700, fontFeatures: [FontFeature.tabularFigures()], letterSpacing: -0.56);
-  static const TextStyle title2 = TextStyle(fontFamily: family, fontFamilyFallback: fallbacks, fontSize: 22, height: 1.2727, fontWeight: FontWeight.w700, fontFeatures: [FontFeature.tabularFigures()], letterSpacing: -0.352);
-  static const TextStyle headline = TextStyle(fontFamily: family, fontFamilyFallback: fallbacks, fontSize: 17, height: 1.2941, fontWeight: FontWeight.w600, fontFeatures: [FontFeature.tabularFigures()], letterSpacing: -0.17);
-  static const TextStyle body = TextStyle(fontFamily: family, fontFamilyFallback: fallbacks, fontSize: 15, height: 1.3333, fontWeight: FontWeight.w400, fontFeatures: [FontFeature.tabularFigures()]);
-  static const TextStyle callout = TextStyle(fontFamily: family, fontFamilyFallback: fallbacks, fontSize: 14, height: 1.3571, fontWeight: FontWeight.w400, fontFeatures: [FontFeature.tabularFigures()]);
-  static const TextStyle caption = TextStyle(fontFamily: family, fontFamilyFallback: fallbacks, fontSize: 12, height: 1.3333, fontWeight: FontWeight.w400, fontFeatures: [FontFeature.tabularFigures()]);
-  static const TextStyle overline = TextStyle(fontFamily: family, fontFamilyFallback: fallbacks, fontSize: 11, height: 1.2727, fontWeight: FontWeight.w600, fontFeatures: [FontFeature.tabularFigures()], letterSpacing: 0.66);
+  static const TextStyle display = TextStyle(
+    fontFamily: family,
+    fontFamilyFallback: fallbacks,
+    fontSize: 34,
+    height: 1.1765,
+    fontWeight: FontWeight.w700,
+    fontFeatures: [FontFeature.tabularFigures()],
+    letterSpacing: -0.748,
+  );
+  static const TextStyle title1 = TextStyle(
+    fontFamily: family,
+    fontFamilyFallback: fallbacks,
+    fontSize: 28,
+    height: 1.2143,
+    fontWeight: FontWeight.w700,
+    fontFeatures: [FontFeature.tabularFigures()],
+    letterSpacing: -0.56,
+  );
+  static const TextStyle title2 = TextStyle(
+    fontFamily: family,
+    fontFamilyFallback: fallbacks,
+    fontSize: 22,
+    height: 1.2727,
+    fontWeight: FontWeight.w700,
+    fontFeatures: [FontFeature.tabularFigures()],
+    letterSpacing: -0.352,
+  );
+  static const TextStyle headline = TextStyle(
+    fontFamily: family,
+    fontFamilyFallback: fallbacks,
+    fontSize: 17,
+    height: 1.2941,
+    fontWeight: FontWeight.w600,
+    fontFeatures: [FontFeature.tabularFigures()],
+    letterSpacing: -0.17,
+  );
+  static const TextStyle body = TextStyle(
+    fontFamily: family,
+    fontFamilyFallback: fallbacks,
+    fontSize: 15,
+    height: 1.3333,
+    fontWeight: FontWeight.w400,
+    fontFeatures: [FontFeature.tabularFigures()],
+  );
+  static const TextStyle callout = TextStyle(
+    fontFamily: family,
+    fontFamilyFallback: fallbacks,
+    fontSize: 14,
+    height: 1.3571,
+    fontWeight: FontWeight.w400,
+    fontFeatures: [FontFeature.tabularFigures()],
+  );
+  static const TextStyle caption = TextStyle(
+    fontFamily: family,
+    fontFamilyFallback: fallbacks,
+    fontSize: 12,
+    height: 1.3333,
+    fontWeight: FontWeight.w400,
+    fontFeatures: [FontFeature.tabularFigures()],
+  );
+  static const TextStyle overline = TextStyle(
+    fontFamily: family,
+    fontFamilyFallback: fallbacks,
+    fontSize: 11,
+    height: 1.2727,
+    fontWeight: FontWeight.w600,
+    fontFeatures: [FontFeature.tabularFigures()],
+    letterSpacing: 0.66,
+  );
 }
 
 /// Spacing on a 4-point grid.

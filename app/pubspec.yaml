@@ -25,6 +25,8 @@ dependencies:
   mobile_scanner: ^7.4.2
   record: ^7.1.2
   path_provider: ^2.1.6
+  tray_manager: ^0.5.0
+  window_manager: ^0.5.2
 
 # shared_preferences_android 2.5.0 (17 Oct 2026) moved to JNI and fails in
 # release builds with NoSuchMethodError on getAll, so the app can't start.
@@ -35,6 +37,10 @@ dependency_overrides:
   # Patched copy that builds with current Visual Studio; see third_party/README.md.
   audio_service_win:
     path: third_party/audio_service_win
+  # Copy that lets Settings choose the output device and exclusive mode on
+  # Windows; see third_party/just_audio_media_kit/HIVE.md.
+  just_audio_media_kit:
+    path: third_party/just_audio_media_kit
 
 dev_dependencies:
   flutter_test:
@@ -43,6 +49,8 @@ dev_dependencies:
 
 flutter:
   uses-material-design: false
+  assets:
+    - assets/tray/
 
   # Bundled so the app never fetches fonts from the internet. Licences sit
   # beside the files in assets/fonts.

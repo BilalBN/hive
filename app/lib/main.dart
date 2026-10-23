@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'app.dart';
 import 'core/home_connection.dart';
 import 'core/startup.dart';
+import 'desktop/desktop.dart';
 import 'player/media_session.dart';
 
 /// Starts Hive. Any failure before the first screen is shown on screen rather
@@ -28,6 +29,10 @@ void main() {
         overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
       );
       await initAudio(container);
+      // Computers: tray / menu-bar icon, closing without stopping the music.
+      if (desktopFeatures) {
+        await container.read(desktopShellProvider).start();
+      }
       // This device's saved sign-in, before the first screen decides where to go.
       await container
           .read(authLoadedProvider.future)

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../desktop/desktop.dart';
 import '../../design/glass.dart';
 import '../../design/glyphs.dart';
 import '../../design/icons.g.dart';
@@ -187,6 +188,17 @@ class PlayerBar extends ConsumerWidget {
                   HiveIcons.messageSquareQuote,
                 ),
                 panelButton(SidePanel.queue, 'Queue', HiveIcons.listMusic),
+                if (desktopFeatures)
+                  IconButton(
+                    tooltip: 'Mini player',
+                    icon: Icon(
+                      HiveIcons.pictureInPicture2,
+                      size: 18,
+                      color: p.textSecondary,
+                    ),
+                    onPressed: () =>
+                        ref.read(miniWindowProvider.notifier).set(true),
+                  ),
                 const VolumeControl(width: 76),
               ],
             ),
