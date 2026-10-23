@@ -33,6 +33,7 @@ def settings(tmp_path: Path) -> Settings:
         lookup_worker=False,
         fingerprint_worker=False,
         backup_worker=False,
+        watch_worker=False,
     )
 
 
@@ -149,3 +150,12 @@ def _no_extra_keys(body, schema, spec, where: str) -> None:
     elif isinstance(body, list) and "items" in schema:
         for i, v in enumerate(body):
             _no_extra_keys(v, schema["items"], spec, f"{where}[{i}]")
+
+
+@pytest.fixture
+def server(settings: Settings) -> Iterator[TestClient]:
+    """The server used from the home computer, with sign-in codes quick to repeat."""
+    with TestClient(create_app(settings), client=HOME_COMPUTER) as c:
+        c.app.state.people.resend_seconds = 0  # several devices join within seconds here
+        c.app.state.people.codes_per_hour = 50
+        yield c

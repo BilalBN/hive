@@ -3,19 +3,15 @@ sign-in, the audit log, and retiring the development key."""
 
 from __future__ import annotations
 
-from collections.abc import Iterator
-
 import pytest
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 from fastapi.testclient import TestClient
 
-from hive.app import create_app
-from hive.config import Settings
 from hive.people import crypto as X
 from hive.people import mail
 
-from .conftest import HOME_COMPUTER, assert_matches, away
+from .conftest import assert_matches, away
 
 
 class Phone:
@@ -82,14 +78,6 @@ class Phone:
         if r.status_code == 200:
             self.session = r.json()
         return r
-
-
-@pytest.fixture
-def server(settings: Settings) -> Iterator[TestClient]:
-    with TestClient(create_app(settings), client=HOME_COMPUTER) as c:
-        c.app.state.people.resend_seconds = 0  # several devices join within seconds here
-        c.app.state.people.codes_per_hour = 50
-        yield c
 
 
 def code_for(home: TestClient, email: str) -> str:

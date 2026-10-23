@@ -1398,3 +1398,68 @@ code {
   gap: var(--hv-space-sm);
   margin-bottom: var(--hv-space-sm);
 }
+
+/* M4: Logs */
+.logs__filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--hv-space-sm);
+  align-items: end;
+}
+
+.logs__download {
+  justify-self: start;
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+.logs {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font: var(--hv-type-caption);
+}
+
+.log {
+  display: grid;
+  grid-template-columns: 6.5rem 3.5rem 5.5rem 1fr;
+  gap: var(--hv-space-xs);
+  padding: 3px 0;
+  border-top: 1px solid var(--hv-border);
+  align-items: baseline;
+}
+
+.log__time,
+.log__area {
+  color: var(--hv-text-secondary);
+}
+
+.log__level {
+  font-weight: 700;
+  color: var(--hv-text-secondary);
+}
+
+.log__text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--hv-text-primary);
+}
+
+.log--warning .log__level {
+  color: var(--hv-warning);
+}
+
+.log--error .log__level,
+.log--critical .log__level {
+  color: var(--hv-danger);
+}
+
+@media (max-width: 640px) {
+  .log {
+    grid-template-columns: 4.5rem 1fr;
+  }
+  .log__area,
+  .log__level {
+    display: none;
+  }
+}

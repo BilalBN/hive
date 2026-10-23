@@ -95,6 +95,8 @@ class Settings(BaseSettings):
     fingerprint_worker: bool = True
     # The daily backup (Hive Admin → Backups). Off in tests.
     backup_worker: bool = True
+    # Disk and backup alerts by email (Hive Admin → System health). Off in tests.
+    watch_worker: bool = True
 
     admin_dist: Path = Field(
         default_factory=lambda: APP_DIR / "admin" if FROZEN else REPO_ROOT / "admin" / "dist"

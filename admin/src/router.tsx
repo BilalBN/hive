@@ -7,6 +7,8 @@ import { allSections } from "./nav";
 import { type AlbumFilter } from "./api/client";
 import { AlbumsPage, FILTERS } from "./pages/Albums";
 import { BackupsPage } from "./pages/Backups";
+import { LogsPage } from "./pages/Logs";
+import { SystemPage } from "./pages/System";
 import { ActivityPage } from "./pages/Activity";
 import { DevicesPage } from "./pages/Devices";
 import { InvitePage } from "./pages/Invite";
@@ -30,6 +32,8 @@ const built: Record<string, () => ReactElement> = {
   "/settings": SettingsPage,
   "/recognition": RecognitionPage,
   "/backups": BackupsPage,
+  "/system": SystemPage,
+  "/logs": LogsPage,
 };
 
 const rootRoute = createRootRoute({

@@ -8,10 +8,12 @@ test("the server hosts Hive Admin and it shows home online", async ({ page }) =>
   await expect(page.getByText("E2E home online")).toBeVisible();
 });
 
-test("client-side pages load directly and say when they arrive", async ({ page }) => {
+test("client-side pages load directly, and Logs and System health show the server", async ({ page }) => {
   await page.goto("/admin/logs");
-  await expect(page.getByRole("heading", { name: "Logs" })).toBeVisible();
-  await expect(page.getByText("Arrives in M4")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Logs", level: 1 })).toBeVisible();
+  await expect(page.locator(".log").first()).toBeVisible(); // the server's own start-up lines
+  await page.getByRole("link", { name: "System health" }).click();
+  await expect(page.getByRole("heading", { name: "Drives" })).toBeVisible();
   await page.getByRole("link", { name: "Overview" }).click();
   await expect(page).toHaveURL(/\/admin\/$/);
 });

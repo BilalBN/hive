@@ -54,6 +54,7 @@ function Home({ s }: { s: AdminSettings }) {
   const [link, setLink] = useState(s.privateNetworkLink ?? "");
   const [devices, setDevices] = useState(s.devicesPerPerson);
   const [swaps, setSwaps] = useState(s.swapsPerMonth);
+  const [minApp, setMinApp] = useState(s.minAppVersion ?? "");
   const submit = (e: FormEvent) => {
     e.preventDefault();
     // Only what changed: the address shown may be Hive's own guess, not a saved one.
@@ -63,6 +64,7 @@ function Home({ s }: { s: AdminSettings }) {
     if (link.trim() !== (s.privateNetworkLink ?? "")) body.privateNetworkLink = link.trim();
     if (devices !== s.devicesPerPerson) body.devicesPerPerson = devices;
     if (swaps !== s.swapsPerMonth) body.swapsPerMonth = swaps;
+    if (minApp.trim() && minApp.trim() !== (s.minAppVersion ?? "")) body.minAppVersion = minApp.trim();
     save.mutate(body);
   };
   const loopback = isLoopback(address);
@@ -138,6 +140,21 @@ function Home({ s }: { s: AdminSettings }) {
             />
           </label>
           <span className="field__hint">Removing a device to add another. You can always override for someone.</span>
+        </div>
+        <div className="field">
+          <label className="field__control">
+            <span>Oldest app allowed</span>
+            <input
+              className="input mono"
+              placeholder="0.2.0"
+              pattern="\d+\.\d+\.\d+"
+              value={minApp}
+              onChange={(e) => setMinApp(e.target.value)}
+            />
+          </label>
+          <span className="field__hint">
+            Apps older than this show “Time for an update”. System health counts them.
+          </span>
         </div>
       </div>
       {save.error && <p className="note note--error">{save.error.message}</p>}

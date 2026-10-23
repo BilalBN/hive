@@ -80,6 +80,7 @@ class SettingsBody(Strict):
     swapsPerMonth: int | None = Field(None, ge=0, le=20)  # noqa: N815
     address: str | None = Field(None, max_length=200)
     privateNetworkLink: str | None = Field(None, max_length=500)  # noqa: N815
+    minAppVersion: str | None = Field(None, pattern=r"^\d+\.\d+\.\d+$")  # noqa: N815
     email: EmailSettingsBody | None = None
 
 
@@ -272,6 +273,12 @@ def overview(request: Request, who: AdminDep) -> dict[str, Any]:
                     "computer (Settings → Your sign-in).",
                 }
             )
+        # Disks, backups and FFmpeg (System health has the details).
+        from hive.watch import report
+
+        for p in report(request.app)["problems"]:
+            if p["level"] != "info":
+                alerts.insert(0, {"level": p["level"], "text": p["text"]})
         return {
             "homeName": people.home.home_name,
             "pendingRequests": pending or 0,
@@ -419,6 +426,7 @@ def settings_body(request: Request) -> dict[str, Any]:
         "devicesPerPerson": home.devices_per_person,
         "swapsPerMonth": home.swaps_per_month,
         "address": home.get("address") or home_address(request),
+        "minAppVersion": home.get("min_app_version") or request.app.state.settings.min_app_version,
         "email": {
             "host": cfg.host,
             "port": cfg.port,
@@ -450,6 +458,7 @@ def update_settings(body: SettingsBody, request: Request, who: AdminDep) -> dict
         "swapsPerMonth": "swaps_per_month",
         "address": "address",
         "privateNetworkLink": "private_network_link",
+        "minAppVersion": "min_app_version",
     }
     changed = []
     for field, key in keys.items():

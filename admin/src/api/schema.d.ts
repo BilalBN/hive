@@ -1562,8 +1562,42 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Recent server log lines with level and text filters. */
+        /** Recent server log lines, newest first, with level, area and text filters. */
         get: operations["adminGetLogs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/logs/file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The server's log file, to download. */
+        get: operations["adminDownloadLog"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/system": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** How the home computer is doing - disks, backups, uptime, devices on old apps. */
+        get: operations["adminSystemHealth"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2025,6 +2059,56 @@ export interface components {
         };
         AdminSongRequests: {
             items: components["schemas"]["SongRequest"][];
+        };
+        LogLine: {
+            id: number;
+            /** Format: date-time */
+            at: string;
+            /** @enum {string} */
+            level: "DEBUG" | "INFO" | "WARNING" | "ERROR" | "CRITICAL";
+            /** @description The part of the server: auth, scan, stream, backups… */
+            area: string;
+            text: string;
+        };
+        LogPage: {
+            items: components["schemas"]["LogLine"][];
+            areas: string[];
+        };
+        DiskSpace: {
+            label: string;
+            path: string;
+            freeBytes: number;
+            totalBytes: number;
+            /** @enum {string} */
+            level: "ok" | "low" | "full";
+        };
+        HealthProblem: {
+            key: string;
+            /** @enum {string} */
+            level: "problem" | "warning" | "info";
+            text: string;
+        };
+        SystemHealth: {
+            serverVersion: string;
+            /** Format: date-time */
+            startedAt: string;
+            uptimeSeconds: number;
+            system: string;
+            python: string;
+            /** @description Installed from the installer (not run from the code). */
+            packaged: boolean;
+            dataFolder: string;
+            databaseBytes: number;
+            disks: components["schemas"]["DiskSpace"][];
+            minAppVersion: string;
+            devices: number;
+            devicesOnOldApps: number;
+            errorsToday: number;
+            warningsToday: number;
+            ffmpeg: boolean;
+            /** Format: date-time */
+            lastBackupAt?: string;
+            problems: components["schemas"]["HealthProblem"][];
         };
         Backup: {
             /** @description The file name. */
@@ -2669,6 +2753,8 @@ export interface components {
             address?: string;
             /** @description Tailscale's share link for this computer, sent with every invite. */
             privateNetworkLink?: string;
+            /** @description M4: apps older than this are asked to update. */
+            minAppVersion?: string;
             email: components["schemas"]["EmailSettings"];
         };
         AdminSettingsEdit: {
@@ -2677,6 +2763,7 @@ export interface components {
             swapsPerMonth?: number;
             address?: string;
             privateNetworkLink?: string;
+            minAppVersion?: string;
             email?: components["schemas"]["EmailSettingsEdit"];
         };
         EmailTest: {
@@ -5446,6 +5533,33 @@ export interface operations {
     };
     adminGetLogs: {
         parameters: {
+            query?: {
+                /** @description This level and above. */
+                level?: "DEBUG" | "INFO" | "WARNING" | "ERROR";
+                q?: string;
+                area?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The lines. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LogPage"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    adminDownloadLog: {
+        parameters: {
             query?: never;
             header?: never;
             path?: never;
@@ -5453,8 +5567,37 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            200: components["responses"]["Pending"];
-            501: components["responses"]["NotImplemented"];
+            /** @description The log. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    adminSystemHealth: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The report. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SystemHealth"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
         };
     };
 }

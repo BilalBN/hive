@@ -2,6 +2,7 @@ import {
   Activity,
   AudioWaveform,
   DatabaseBackup,
+  Gauge,
   Disc3,
   LayoutGrid,
   Library,
@@ -103,6 +104,13 @@ export const sectionGroups: Section[][] = [
       icon: Activity,
       milestone: "M2",
       summary: "Every admin action, for the record.",
+    },
+    {
+      path: "/system",
+      label: "System health",
+      icon: Gauge,
+      milestone: "M4",
+      summary: "Disks, backups and devices on old apps.",
     },
     {
       path: "/backups",

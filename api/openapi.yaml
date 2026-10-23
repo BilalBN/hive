@@ -1344,9 +1344,34 @@ paths:
     get:
       tags: [admin]
       operationId: adminGetLogs
-      summary: Recent server log lines with level and text filters.
+      summary: Recent server log lines, newest first, with level, area and text filters.
       x-milestone: M4
-      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+      parameters:
+        - { name: level, in: query, schema: { type: string, enum: [DEBUG, INFO, WARNING, ERROR], default: INFO }, description: This level and above. }
+        - { name: q, in: query, schema: { type: string, maxLength: 200 } }
+        - { name: area, in: query, schema: { type: string, maxLength: 24 } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 2000, default: 300 } }
+      responses:
+        "200": { description: The lines., content: { application/json: { schema: { $ref: "#/components/schemas/LogPage" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /api/v1/admin/logs/file:
+    get:
+      tags: [admin]
+      operationId: adminDownloadLog
+      summary: The server's log file, to download.
+      x-milestone: M4
+      responses:
+        "200": { description: The log., content: { text/plain: { schema: { type: string } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /api/v1/admin/system:
+    get:
+      tags: [admin]
+      operationId: adminSystemHealth
+      summary: How the home computer is doing - disks, backups, uptime, devices on old apps.
+      x-milestone: M4
+      responses:
+        "200": { description: The report., content: { application/json: { schema: { $ref: "#/components/schemas/SystemHealth" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
 
 components:
   securitySchemes:
@@ -1932,6 +1957,58 @@ components:
       required: [items]
       properties:
         items: { type: array, items: { $ref: "#/components/schemas/SongRequest" } }
+    LogLine:
+      type: object
+      required: [id, at, level, area, text]
+      properties:
+        id: { type: integer }
+        at: { type: string, format: date-time }
+        level: { type: string, enum: [DEBUG, INFO, WARNING, ERROR, CRITICAL] }
+        area: { type: string, description: "The part of the server: auth, scan, stream, backups…" }
+        text: { type: string }
+    LogPage:
+      type: object
+      required: [items, areas]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/LogLine" } }
+        areas: { type: array, items: { type: string } }
+    DiskSpace:
+      type: object
+      required: [label, path, freeBytes, totalBytes, level]
+      properties:
+        label: { type: string }
+        path: { type: string }
+        freeBytes: { type: integer }
+        totalBytes: { type: integer }
+        level: { type: string, enum: [ok, low, full] }
+    HealthProblem:
+      type: object
+      required: [key, level, text]
+      properties:
+        key: { type: string }
+        level: { type: string, enum: [problem, warning, info] }
+        text: { type: string }
+    SystemHealth:
+      type: object
+      required: [serverVersion, startedAt, uptimeSeconds, system, python, packaged, dataFolder, databaseBytes, disks, minAppVersion, devices, devicesOnOldApps, errorsToday, warningsToday, ffmpeg, problems]
+      properties:
+        serverVersion: { type: string }
+        startedAt: { type: string, format: date-time }
+        uptimeSeconds: { type: integer }
+        system: { type: string }
+        python: { type: string }
+        packaged: { type: boolean, description: Installed from the installer (not run from the code). }
+        dataFolder: { type: string }
+        databaseBytes: { type: integer }
+        disks: { type: array, items: { $ref: "#/components/schemas/DiskSpace" } }
+        minAppVersion: { type: string }
+        devices: { type: integer }
+        devicesOnOldApps: { type: integer }
+        errorsToday: { type: integer }
+        warningsToday: { type: integer }
+        ffmpeg: { type: boolean }
+        lastBackupAt: { type: string, format: date-time }
+        problems: { type: array, items: { $ref: "#/components/schemas/HealthProblem" } }
     Backup:
       type: object
       required: [id, at, sizeBytes, kind, serverVersion, people, tracks, musicFolders]
@@ -2585,6 +2662,7 @@ components:
         swapsPerMonth: { type: integer }
         address: { type: string, description: 'How apps reach home, put in invites (e.g. "http://100.84.12.7:8443").' }
         privateNetworkLink: { type: string, description: 'Tailscale''s share link for this computer, sent with every invite.' }
+        minAppVersion: { type: string, description: "M4: apps older than this are asked to update." }
         email: { $ref: "#/components/schemas/EmailSettings" }
     AdminSettingsEdit:
       type: object
@@ -2594,6 +2672,7 @@ components:
         swapsPerMonth: { type: integer, minimum: 0, maximum: 20 }
         address: { type: string, maxLength: 200 }
         privateNetworkLink: { type: string, maxLength: 500 }
+        minAppVersion: { type: string, pattern: "^\\d+\\.\\d+\\.\\d+$" }
         email: { $ref: "#/components/schemas/EmailSettingsEdit" }
     EmailTest:
       type: object

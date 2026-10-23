@@ -41,12 +41,6 @@ describe("Hive Admin shell", () => {
     expect(await screen.findByText("1,240")).toBeInTheDocument();
   });
 
-  it("says which milestone builds an unbuilt page", async () => {
-    renderAt("/logs");
-    expect(await screen.findByRole("heading", { name: "Logs" })).toBeInTheDocument();
-    expect(screen.getByText("Arrives in M4")).toBeInTheDocument();
-  });
-
   it("explains when the server can't be reached", async () => {
     mockFetch(false);
     renderAt("/");

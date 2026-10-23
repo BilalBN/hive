@@ -1388,6 +1388,196 @@ class AdminSongRequests {
       };
 }
 
+class LogLine {
+  const LogLine({
+    required this.id,
+    required this.at,
+    required this.level,
+    required this.area,
+    required this.text,
+  });
+
+  final int id;
+  final DateTime at;
+  final String level;
+  /// The part of the server: auth, scan, stream, backups…
+  final String area;
+  final String text;
+
+  factory LogLine.fromJson(Map<String, dynamic> json) => LogLine(
+        id: json['id'] as int,
+        at: DateTime.parse(json['at'] as String),
+        level: json['level'] as String,
+        area: json['area'] as String,
+        text: json['text'] as String,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'at': at.toUtc().toIso8601String(),
+        'level': level,
+        'area': area,
+        'text': text,
+      };
+}
+
+class LogPage {
+  const LogPage({
+    required this.items,
+    required this.areas,
+  });
+
+  final List<LogLine> items;
+  final List<String> areas;
+
+  factory LogPage.fromJson(Map<String, dynamic> json) => LogPage(
+        items: (json['items'] as List<dynamic>).map((e) => LogLine.fromJson((e as Map).cast<String, dynamic>())).toList(),
+        areas: (json['areas'] as List<dynamic>).map((e) => e as String).toList(),
+      );
+
+  Map<String, dynamic> toJson() => {
+        'items': items.map((e) => e.toJson()).toList(),
+        'areas': areas.map((e) => e).toList(),
+      };
+}
+
+class DiskSpace {
+  const DiskSpace({
+    required this.label,
+    required this.path,
+    required this.freeBytes,
+    required this.totalBytes,
+    required this.level,
+  });
+
+  final String label;
+  final String path;
+  final int freeBytes;
+  final int totalBytes;
+  final String level;
+
+  factory DiskSpace.fromJson(Map<String, dynamic> json) => DiskSpace(
+        label: json['label'] as String,
+        path: json['path'] as String,
+        freeBytes: json['freeBytes'] as int,
+        totalBytes: json['totalBytes'] as int,
+        level: json['level'] as String,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'label': label,
+        'path': path,
+        'freeBytes': freeBytes,
+        'totalBytes': totalBytes,
+        'level': level,
+      };
+}
+
+class HealthProblem {
+  const HealthProblem({
+    required this.key,
+    required this.level,
+    required this.text,
+  });
+
+  final String key;
+  final String level;
+  final String text;
+
+  factory HealthProblem.fromJson(Map<String, dynamic> json) => HealthProblem(
+        key: json['key'] as String,
+        level: json['level'] as String,
+        text: json['text'] as String,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'key': key,
+        'level': level,
+        'text': text,
+      };
+}
+
+class SystemHealth {
+  const SystemHealth({
+    required this.serverVersion,
+    required this.startedAt,
+    required this.uptimeSeconds,
+    required this.system,
+    required this.python,
+    required this.packaged,
+    required this.dataFolder,
+    required this.databaseBytes,
+    required this.disks,
+    required this.minAppVersion,
+    required this.devices,
+    required this.devicesOnOldApps,
+    required this.errorsToday,
+    required this.warningsToday,
+    required this.ffmpeg,
+    this.lastBackupAt,
+    required this.problems,
+  });
+
+  final String serverVersion;
+  final DateTime startedAt;
+  final int uptimeSeconds;
+  final String system;
+  final String python;
+  /// Installed from the installer (not run from the code).
+  final bool packaged;
+  final String dataFolder;
+  final int databaseBytes;
+  final List<DiskSpace> disks;
+  final String minAppVersion;
+  final int devices;
+  final int devicesOnOldApps;
+  final int errorsToday;
+  final int warningsToday;
+  final bool ffmpeg;
+  final DateTime? lastBackupAt;
+  final List<HealthProblem> problems;
+
+  factory SystemHealth.fromJson(Map<String, dynamic> json) => SystemHealth(
+        serverVersion: json['serverVersion'] as String,
+        startedAt: DateTime.parse(json['startedAt'] as String),
+        uptimeSeconds: json['uptimeSeconds'] as int,
+        system: json['system'] as String,
+        python: json['python'] as String,
+        packaged: json['packaged'] as bool,
+        dataFolder: json['dataFolder'] as String,
+        databaseBytes: json['databaseBytes'] as int,
+        disks: (json['disks'] as List<dynamic>).map((e) => DiskSpace.fromJson((e as Map).cast<String, dynamic>())).toList(),
+        minAppVersion: json['minAppVersion'] as String,
+        devices: json['devices'] as int,
+        devicesOnOldApps: json['devicesOnOldApps'] as int,
+        errorsToday: json['errorsToday'] as int,
+        warningsToday: json['warningsToday'] as int,
+        ffmpeg: json['ffmpeg'] as bool,
+        lastBackupAt: json['lastBackupAt'] == null ? null : DateTime.parse(json['lastBackupAt'] as String),
+        problems: (json['problems'] as List<dynamic>).map((e) => HealthProblem.fromJson((e as Map).cast<String, dynamic>())).toList(),
+      );
+
+  Map<String, dynamic> toJson() => {
+        'serverVersion': serverVersion,
+        'startedAt': startedAt.toUtc().toIso8601String(),
+        'uptimeSeconds': uptimeSeconds,
+        'system': system,
+        'python': python,
+        'packaged': packaged,
+        'dataFolder': dataFolder,
+        'databaseBytes': databaseBytes,
+        'disks': disks.map((e) => e.toJson()).toList(),
+        'minAppVersion': minAppVersion,
+        'devices': devices,
+        'devicesOnOldApps': devicesOnOldApps,
+        'errorsToday': errorsToday,
+        'warningsToday': warningsToday,
+        'ffmpeg': ffmpeg,
+        'lastBackupAt': ?lastBackupAt?.toUtc().toIso8601String(),
+        'problems': problems.map((e) => e.toJson()).toList(),
+      };
+}
+
 class Backup {
   const Backup({
     required this.id,
@@ -3501,6 +3691,7 @@ class AdminSettings {
     required this.swapsPerMonth,
     this.address,
     this.privateNetworkLink,
+    this.minAppVersion,
     required this.email,
   });
 
@@ -3511,6 +3702,8 @@ class AdminSettings {
   final String? address;
   /// Tailscale's share link for this computer, sent with every invite.
   final String? privateNetworkLink;
+  /// M4: apps older than this are asked to update.
+  final String? minAppVersion;
   final EmailSettings email;
 
   factory AdminSettings.fromJson(Map<String, dynamic> json) => AdminSettings(
@@ -3519,6 +3712,7 @@ class AdminSettings {
         swapsPerMonth: json['swapsPerMonth'] as int,
         address: json['address'] == null ? null : json['address'] as String,
         privateNetworkLink: json['privateNetworkLink'] == null ? null : json['privateNetworkLink'] as String,
+        minAppVersion: json['minAppVersion'] == null ? null : json['minAppVersion'] as String,
         email: EmailSettings.fromJson((json['email'] as Map).cast<String, dynamic>()),
       );
 
@@ -3528,6 +3722,7 @@ class AdminSettings {
         'swapsPerMonth': swapsPerMonth,
         'address': ?address,
         'privateNetworkLink': ?privateNetworkLink,
+        'minAppVersion': ?minAppVersion,
         'email': email.toJson(),
       };
 }
@@ -3539,6 +3734,7 @@ class AdminSettingsEdit {
     this.swapsPerMonth,
     this.address,
     this.privateNetworkLink,
+    this.minAppVersion,
     this.email,
   });
 
@@ -3547,6 +3743,7 @@ class AdminSettingsEdit {
   final int? swapsPerMonth;
   final String? address;
   final String? privateNetworkLink;
+  final String? minAppVersion;
   final EmailSettingsEdit? email;
 
   factory AdminSettingsEdit.fromJson(Map<String, dynamic> json) => AdminSettingsEdit(
@@ -3555,6 +3752,7 @@ class AdminSettingsEdit {
         swapsPerMonth: json['swapsPerMonth'] == null ? null : json['swapsPerMonth'] as int,
         address: json['address'] == null ? null : json['address'] as String,
         privateNetworkLink: json['privateNetworkLink'] == null ? null : json['privateNetworkLink'] as String,
+        minAppVersion: json['minAppVersion'] == null ? null : json['minAppVersion'] as String,
         email: json['email'] == null ? null : EmailSettingsEdit.fromJson((json['email'] as Map).cast<String, dynamic>()),
       );
 
@@ -3564,6 +3762,7 @@ class AdminSettingsEdit {
         'swapsPerMonth': ?swapsPerMonth,
         'address': ?address,
         'privateNetworkLink': ?privateNetworkLink,
+        'minAppVersion': ?minAppVersion,
         'email': ?email?.toJson(),
       };
 }

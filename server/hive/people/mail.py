@@ -103,3 +103,11 @@ def song_request_note(home_name: str) -> tuple[str, str]:
         f"Someone asked for a song to be added to {home_name} on Hive.\n\n"
         "Open Hive Admin → Requests → Songs to see it.\n",
     )
+
+
+def health_note(home_name: str, problem: str) -> tuple[str, str]:
+    """Something about the home computer needs the admins (no personal details)."""
+    return (
+        f"Hive needs a look: {home_name}",
+        f"{problem}\n\nOpen Hive Admin → System health for more.\n",
+    )

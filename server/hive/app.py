@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from datetime import UTC, datetime
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -36,6 +37,8 @@ from hive.people.api import router as people_router
 from hive.people.service import People, Problem
 from hive.people.settings import HomeSettings
 from hive.system import router as system_router
+from hive.watch import Watch, keep_recent_lines
+from hive.watch_api import router as watch_router
 
 log = logging.getLogger("hive.server")
 
@@ -43,6 +46,7 @@ log = logging.getLogger("hive.server")
 def create_app(settings: Settings | None = None, lookup_http: Http | None = None) -> FastAPI:
     """[lookup_http] lets tests answer the online lookup themselves."""
     settings = settings or get_settings()
+    keep_recent_lines()  # for Hive Admin → Logs
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
@@ -56,8 +60,6 @@ def create_app(settings: Settings | None = None, lookup_http: Http | None = None
         app.state.people = People(app.state.db, home)
         app.state.backups = Backups(settings, home)
         if restored:
-            from datetime import UTC, datetime
-
             at = datetime.now(UTC).isoformat().replace("+00:00", "Z")
             home.set("backup_restored", f"{restored}|{at}")
             with Session(app.state.db.engine) as s:
@@ -71,6 +73,10 @@ def create_app(settings: Settings | None = None, lookup_http: Http | None = None
                 s.commit()
         if settings.backup_worker:
             app.state.backups.start()
+        app.state.started_at = datetime.now(UTC)
+        app.state.watch = Watch(app)
+        if settings.watch_worker:
+            app.state.watch.start()
         app.state.library = Library(settings, app.state.db)
         app.state.library.start()
         app.state.lookup = LookupService(
@@ -100,6 +106,7 @@ def create_app(settings: Settings | None = None, lookup_http: Http | None = None
         app.state.lookup.stop()
         app.state.recognition.stop()
         app.state.backups.stop()
+        app.state.watch.stop()
         app.state.library.stop()
         app.state.db.engine.dispose()
         log.info("Hive stopped")
@@ -123,6 +130,7 @@ def create_app(settings: Settings | None = None, lookup_http: Http | None = None
     app.include_router(admin_library_router)
     app.include_router(uploads_router)
     app.include_router(backups_router)
+    app.include_router(watch_router)
     app.include_router(listen_router)
     app.include_router(listen_admin_router)
     register_unbuilt_operations(app, load_contract())

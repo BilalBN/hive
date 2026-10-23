@@ -39,6 +39,6 @@ async def get_health(request: Request) -> Health:
         home_name=people.home.home_name,
         server_version=__version__,
         api_version=load_contract()["info"]["version"],
-        min_app_version=settings.min_app_version,
+        min_app_version=people.home.get("min_app_version") or settings.min_app_version,
         access="invites" if people.admin_exists() else "developmentKey",
     )
