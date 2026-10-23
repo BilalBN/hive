@@ -55,3 +55,8 @@ app/windows/flutter/generated_*
 # IDE project files
 *.iml
 pytest-report.xml
+
+# Windows server installer (deploy/windows/build.ps1)
+/dist/
+/build/
+/dist-installer/

@@ -308,6 +308,40 @@ jobs:
           path: emulator-*.png
           if-no-files-found: ignore
 
+  server-windows:
+    name: Windows server installer
+    needs: admin
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - uses: AnimMouse/setup-ffmpeg@v1
+      - uses: actions/download-artifact@v5
+        with:
+          name: hive-admin-dist
+          path: admin/dist
+      - name: Build the installer
+        shell: pwsh
+        run: deploy/windows/build.ps1
+      # On this throwaway machine: install, check, update, remove.
+      - name: Install, update and remove it
+        shell: pwsh
+        run: deploy/windows/smoke.ps1
+      - name: What Hive and the installer said
+        if: failure()
+        shell: pwsh
+        run: |
+          Get-ChildItem $env:RUNNER_TEMP\*.log | ForEach-Object { "--- $($_.Name)"; Get-Content $_ -Tail 60 }
+          Get-ChildItem "$env:ProgramData\Hive\service-logs", "$env:ProgramData\Hive\logs" -Recurse -File -ErrorAction SilentlyContinue |
+            ForEach-Object { "--- $($_.FullName)"; Get-Content $_ -Tail 80 }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hive-server-windows
+          path: dist-installer/*.exe
+          retention-days: 30
+
   build-windows:
     name: Build Windows
     needs: app

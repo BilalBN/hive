@@ -1,4 +1,4 @@
-"""Command line: ``hive serve``, ``hive migrate``, ``hive info``.
+"""Command line: ``hive serve``, ``hive migrate``, ``hive info``, ``hive backup``.
 
 Run from the server folder with ``python -m hive serve`` (or ``hive serve`` once
 installed).
@@ -96,6 +96,26 @@ def serve(settings: Settings) -> None:
     uvicorn.Server(config).run(sockets=bind_sockets(hosts, settings.port))
 
 
+def backup(settings: Settings, kind: str) -> int:
+    """A backup with the server stopped (the installer does this before an
+    update). Nothing to back up on a new install is fine."""
+    from hive.backups import BackupProblem, Backups
+    from hive.db import Database
+    from hive.people.settings import HomeSettings
+
+    if not settings.database_path.exists():
+        print("nothing to back up yet")
+        return 0
+    db = Database(settings.database_url, settings.database_path)
+    try:
+        item = Backups(settings, HomeSettings(db, settings.home_name)).run(kind)
+    except BackupProblem as e:
+        print(f"backup failed: {e}", file=sys.stderr)
+        return 1
+    print(f"backup made: {item['id']}")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(prog="hive", description="Hive family music server")
     parser.add_argument("--version", action="version", version=f"hive {__version__}")
@@ -105,6 +125,8 @@ def main(argv: list[str] | None = None) -> None:
     p_serve.add_argument("--port", type=int)
     sub.add_parser("migrate", help="bring the database up to date")
     sub.add_parser("info", help="show the settings in use")
+    p_backup = sub.add_parser("backup", help="make a backup now (as Hive Admin → Backups)")
+    p_backup.add_argument("--kind", default="manual", choices=["manual", "before-update"])
     args = parser.parse_args(argv)
 
     settings = get_settings()
@@ -124,6 +146,8 @@ def main(argv: list[str] | None = None) -> None:
 
         settings.data_dir.mkdir(parents=True, exist_ok=True)
         migrate(settings.database_url)
+    elif args.command == "backup":
+        sys.exit(backup(settings, args.kind))
     elif args.command == "info":
         from hive.auth import development_key
         from hive.db import Database, migrate

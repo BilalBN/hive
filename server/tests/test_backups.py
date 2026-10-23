@@ -158,3 +158,19 @@ def test_signed_in_admin_only(settings: Settings) -> None:
         assert other.post("/api/v1/admin/backups").status_code == 401
     finally:
         c.__exit__(None, None, None)
+
+
+def test_backup_from_the_command_line_before_an_update(settings: Settings, capsys) -> None:
+    """The installer runs `hive backup --kind before-update` with Hive stopped."""
+    from hive.__main__ import backup
+
+    assert backup(settings, "before-update") == 0  # a new install: nothing yet
+    assert "nothing to back up" in capsys.readouterr().out
+    c = started(settings)
+    set_up_admin(c)
+    c.__exit__(None, None, None)
+    assert backup(settings, "before-update") == 0
+    made = list((settings.data_dir / "backups").glob("hive-backup-*-before-update.zip"))
+    assert len(made) == 1
+    with zipfile.ZipFile(made[0]) as z:
+        assert "server.db" in z.namelist()

@@ -298,6 +298,30 @@ the music files themselves: back up the music drive separately.
 Your data lives in the `data` folder inside the code folder (unless you set
 `HIVE_DATA_DIR`). Never delete that folder when updating the code.
 
+## M4: Hive on the Windows home PC
+
+The Windows server comes as one installer, **HiveServerSetup-<version>.exe**
+(GitHub → Actions → the latest green run → *hive-server-windows*). It carries
+everything: Hive with Python inside, FFmpeg and fpcalc. Nothing else is
+installed by hand.
+
+1. On the home PC: install Tailscale and sign in (same account as your
+   other devices).
+2. Run the installer. It asks where the music is (for example `D:\Music`),
+   then installs Hive to `C:\Program Files\Hive` and starts it as a Windows
+   service: it starts by itself at boot, and restarts itself if it stops.
+   Everything Hive knows lives in `C:\ProgramData\Hive`, apart from the
+   program.
+3. Open Hive Admin on the PC (`http://localhost:8443/admin/`).
+4. **Updating:** run the newer installer. It stops Hive, makes a backup
+   ("Safety copy before an update"), replaces the program and starts Hive
+   again. If the backup can't be made (for example the backup drive isn't
+   connected) it changes nothing and says so.
+5. **Removing** Hive (Settings → Apps) keeps `C:\ProgramData\Hive`.
+
+Moving from the Mac is the next part of M4 (back up on the Mac, restore on
+the PC, with the music folder paths changed over).
+
 ## Useful commands
 
 | What | Command |

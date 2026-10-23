@@ -32,6 +32,11 @@ _COMMON_FFMPEG = [
 def find_ffmpeg(configured: Path | None = None) -> Path | None:
     if configured is not None:
         return configured if configured.is_file() else None
+    from hive.config import bundled_tool
+
+    bundled = bundled_tool("ffmpeg")
+    if bundled:
+        return bundled
     on_path = shutil.which("ffmpeg")
     if on_path:
         return Path(on_path)

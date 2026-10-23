@@ -327,6 +327,11 @@ def wikidata_films(http: Http, ids: list[str]) -> list[Film]:
 
 
 def find_fpcalc() -> str | None:
+    from hive.config import bundled_tool
+
+    bundled = bundled_tool("fpcalc")
+    if bundled:
+        return str(bundled)
     for candidate in ("fpcalc", "/opt/homebrew/bin/fpcalc", "/usr/local/bin/fpcalc"):
         found = shutil.which(candidate)
         if found:

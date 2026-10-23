@@ -9,6 +9,7 @@ Settings come from, in order of priority:
 from __future__ import annotations
 
 import os
+import sys
 from functools import lru_cache
 from pathlib import Path
 
@@ -22,11 +23,30 @@ from pydantic_settings import (
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
+# Installed from the Windows installer (or another package): one program
+# folder holds hive.exe, tools\ (FFmpeg, fpcalc) and admin\ (Hive Admin),
+# and the data lives elsewhere, never inside the program.
+FROZEN = bool(getattr(sys, "frozen", False))
+APP_DIR = Path(sys.executable).resolve().parent if FROZEN else REPO_ROOT
+
+
+def bundled_tool(name: str) -> Path | None:
+    """A program shipped with Hive (FFmpeg, fpcalc), when installed as a package."""
+    for candidate in (name, f"{name}.exe"):
+        path = APP_DIR / "tools" / candidate
+        if path.is_file():
+            return path
+    return None
+
 
 def _default_data_dir() -> Path:
     env = os.environ.get("HIVE_DATA_DIR")
     if env:
         return Path(env)
+    if FROZEN and sys.platform == "win32":
+        return Path(os.environ.get("PROGRAMDATA", r"C:\ProgramData")) / "Hive"
+    if FROZEN and sys.platform == "darwin":
+        return Path.home() / "Library" / "Application Support" / "Hive"
     return REPO_ROOT / "data"
 
 
@@ -76,7 +96,9 @@ class Settings(BaseSettings):
     # The daily backup (Hive Admin → Backups). Off in tests.
     backup_worker: bool = True
 
-    admin_dist: Path = Field(default_factory=lambda: REPO_ROOT / "admin" / "dist")
+    admin_dist: Path = Field(
+        default_factory=lambda: APP_DIR / "admin" if FROZEN else REPO_ROOT / "admin" / "dist"
+    )
     log_level: str = "INFO"
     min_app_version: str = "0.1.0"
 

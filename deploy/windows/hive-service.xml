@@ -1,0 +1,22 @@
+<!-- Runs hive.exe as a Windows service (WinSW, renamed hive-service.exe).
+     It starts at boot, waits for the network, and restarts itself if it stops:
+     for example until Tailscale is up after a reboot. -->
+<service>
+  <id>Hive</id>
+  <name>Hive music server</name>
+  <description>Hive: the family's music, from this computer.</description>
+  <executable>%BASE%\hive.exe</executable>
+  <arguments>serve</arguments>
+  <env name="HIVE_DATA_DIR" value="%ProgramData%\Hive"/>
+  <startmode>Automatic</startmode>
+  <delayedAutoStart>true</delayedAutoStart>
+  <onfailure action="restart" delay="10 sec"/>
+  <onfailure action="restart" delay="30 sec"/>
+  <resetfailure>1 hour</resetfailure>
+  <stoptimeout>20 sec</stoptimeout>
+  <logpath>%ProgramData%\Hive\service-logs</logpath>
+  <log mode="roll-by-size">
+    <sizeThreshold>10240</sizeThreshold>
+    <keepFiles>5</keepFiles>
+  </log>
+</service>
