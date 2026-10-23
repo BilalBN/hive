@@ -47,9 +47,8 @@ Name: "{commonappdata}\Hive"
 ; Devices reach Hive over Tailscale only (its addresses are 100.64.0.0/10).
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""Hive"""; Flags: runhidden; StatusMsg: "Letting devices on your private network reach Hive…"
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall add rule name=""Hive"" dir=in action=allow protocol=TCP localport=8443 remoteip=100.64.0.0/10"; Flags: runhidden
-; "install" fails harmlessly on an update (already installed); "refresh" picks up a changed service file.
+; An update removed the service first (see PrepareToInstall), so this also picks up a changed service file.
 Filename: "{app}\hive-service.exe"; Parameters: "install"; Flags: runhidden; StatusMsg: "Starting Hive…"
-Filename: "{app}\hive-service.exe"; Parameters: "refresh"; Flags: runhidden
 Filename: "{app}\hive-service.exe"; Parameters: "start"; Flags: runhidden
 Filename: "http://localhost:8443/admin/"; Description: "Open Hive Admin"; Flags: postinstall shellexec nowait skipifsilent
 
@@ -98,10 +97,13 @@ begin
     { An update: stop Hive, then back up before anything is replaced. }
     Exec(ExpandConstant('{app}\hive-service.exe'), 'stop', '', SW_HIDE, ewWaitUntilTerminated, Code);
     Sleep(2000);
+    { Registered again after the files are replaced, with the new service file. }
+    Exec(ExpandConstant('{app}\hive-service.exe'), 'uninstall', '', SW_HIDE, ewWaitUntilTerminated, Code);
     if FileExists(ExpandConstant('{app}\hive.exe')) then
       if not Exec(ExpandConstant('{app}\hive.exe'), 'backup --kind before-update', '', SW_HIDE,
                   ewWaitUntilTerminated, Code) or (Code <> 0) then
       begin
+        Exec(ExpandConstant('{app}\hive-service.exe'), 'install', '', SW_HIDE, ewWaitUntilTerminated, Code);
         Exec(ExpandConstant('{app}\hive-service.exe'), 'start', '', SW_HIDE, ewWaitUntilTerminated, Code);
         Result := 'Hive couldn''t make a backup before updating, so nothing was changed and Hive is running as before. ' +
                   'Is the backup drive connected? Check Hive Admin → Backups, then run this installer again.';

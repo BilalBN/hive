@@ -28,8 +28,15 @@ function WaitForHive {
 
 Step "install"
 Install "install.log"
-$service = Get-Service Hive
-if ($service.Status -ne "Running") { throw "the Hive service is $($service.Status)" }
+function WaitForService {
+  for ($i = 0; $i -lt 30; $i++) {
+    $s = Get-Service Hive -ErrorAction SilentlyContinue
+    if ($s -and $s.Status -eq "Running") { return }
+    Start-Sleep 2
+  }
+  throw "the Hive service is $((Get-Service Hive -ErrorAction SilentlyContinue).Status)"
+}
+WaitForService
 if ((Get-CimInstance Win32_Service -Filter "Name='Hive'").StartMode -ne "Auto") { throw "Hive doesn't start at boot" }
 $health = WaitForHive
 if ($health.status -ne "ok") { throw "health: $($health | ConvertTo-Json)" }
@@ -58,6 +65,7 @@ Install "update.log"
 $before = Get-ChildItem "$data\backups\hive-backup-*-before-update.zip" -ErrorAction SilentlyContinue
 if (-not $before) { throw "no backup was made before the update" }
 Write-Host "backed up first: $($before[0].Name)"
+WaitForService
 $health = WaitForHive
 $backups = Invoke-RestMethod "$base/api/v1/admin/backups"
 if (@($backups.items).Count -lt 2) { throw "backups were lost in the update" }
