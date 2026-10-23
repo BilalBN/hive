@@ -43,4 +43,17 @@ test("an album can be corrected and given a cover", async ({ page, request }) =>
 
   await page.getByRole("button", { name: /Undo/ }).first().click();
   await expect(page.getByText("Set by you")).toHaveCount(0);
+
+  // One song's details, corrected and put back.
+  await page
+    .getByRole("button", { name: /^Edit / })
+    .first()
+    .click();
+  await page.getByLabel("Song title").fill("Corrected in e2e");
+  await page.getByRole("button", { name: "Save song" }).click();
+  await expect(page.getByText("Corrected", { exact: true })).toBeVisible();
+  await expect(page.locator(".row__title").filter({ hasText: "Corrected in e2e" })).toBeVisible();
+  await page.getByRole("button", { name: "Edit Corrected in e2e" }).click();
+  await page.getByRole("button", { name: "Undo song title" }).click();
+  await expect(page.getByText("Corrected", { exact: true })).toHaveCount(0);
 });

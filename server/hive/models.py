@@ -134,6 +134,10 @@ class Track(Base):
     # clean one the admin chose to show instead. The file never changes.
     file_title: Mapped[str | None] = mapped_column(String(512))
     title_override: Mapped[str | None] = mapped_column(String(512))
+    # M4: corrections made in Hive Admin ({"title": …, "artistName": …,
+    # "trackNumber": …, "discNumber": …, "composer": …, "lyricist": …});
+    # rescans keep them, the file is never changed.
+    overrides: Mapped[str] = mapped_column(Text, default="{}", server_default="{}")
     lufs: Mapped[float | None] = mapped_column(Float)
     true_peak: Mapped[float | None] = mapped_column(Float)
     search_text: Mapped[str] = mapped_column(Text, default="")

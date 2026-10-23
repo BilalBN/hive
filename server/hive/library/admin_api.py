@@ -288,6 +288,16 @@ def _admin_album(request: Request, s, caller, album: Album) -> dict[str, Any]:
         body["found"] = json.loads(album.lookup_candidate)["found"]
     if album.folder_path:
         body["folder"] = _rel(album.folder_path, _root_of(request, album.folder_path))
+    # M4: songs corrected by hand, and which details.
+    from hive.library.scanner import track_overrides
+
+    edited = {}
+    for t in s.scalars(select(Track).where(Track.album_id == album.id)):
+        fields = sorted(track_overrides(t))
+        if fields:
+            edited[t.id] = fields
+    if edited:
+        body["editedTracks"] = edited
     return body
 
 

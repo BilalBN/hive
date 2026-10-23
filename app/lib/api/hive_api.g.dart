@@ -1413,6 +1413,207 @@ class SessionSource {
       };
 }
 
+/// Set a field to change it; null puts back what the file says.
+class TrackEdit {
+  const TrackEdit({
+    this.title,
+    this.artistName,
+    this.trackNumber,
+    this.discNumber,
+    this.composer,
+    this.lyricist,
+  });
+
+  final String? title;
+  final String? artistName;
+  final int? trackNumber;
+  final int? discNumber;
+  final String? composer;
+  final String? lyricist;
+
+  factory TrackEdit.fromJson(Map<String, dynamic> json) => TrackEdit(
+        title: json['title'] == null ? null : json['title'] as String,
+        artistName: json['artistName'] == null ? null : json['artistName'] as String,
+        trackNumber: json['trackNumber'] == null ? null : json['trackNumber'] as int,
+        discNumber: json['discNumber'] == null ? null : json['discNumber'] as int,
+        composer: json['composer'] == null ? null : json['composer'] as String,
+        lyricist: json['lyricist'] == null ? null : json['lyricist'] as String,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'title': ?title,
+        'artistName': ?artistName,
+        'trackNumber': ?trackNumber,
+        'discNumber': ?discNumber,
+        'composer': ?composer,
+        'lyricist': ?lyricist,
+      };
+}
+
+class SameSongCopy {
+  const SameSongCopy({
+    required this.trackId,
+    required this.title,
+    required this.artistName,
+    required this.albumId,
+    required this.albumTitle,
+    required this.format,
+    required this.lossless,
+    required this.sizeBytes,
+    required this.durationMs,
+    required this.file,
+    required this.likes,
+    required this.plays,
+    required this.inPlaylists,
+    required this.best,
+  });
+
+  final String trackId;
+  final String title;
+  final String artistName;
+  final String albumId;
+  final String albumTitle;
+  /// e.g. FLAC 16-bit 44.1 kHz, MP3 320 kbps
+  final String format;
+  final bool lossless;
+  final int sizeBytes;
+  final int durationMs;
+  /// Relative to its music folder.
+  final String file;
+  final int likes;
+  final int plays;
+  final int inPlaylists;
+  /// The copy Hive suggests keeping.
+  final bool best;
+
+  factory SameSongCopy.fromJson(Map<String, dynamic> json) => SameSongCopy(
+        trackId: json['trackId'] as String,
+        title: json['title'] as String,
+        artistName: json['artistName'] as String,
+        albumId: json['albumId'] as String,
+        albumTitle: json['albumTitle'] as String,
+        format: json['format'] as String,
+        lossless: json['lossless'] as bool,
+        sizeBytes: json['sizeBytes'] as int,
+        durationMs: json['durationMs'] as int,
+        file: json['file'] as String,
+        likes: json['likes'] as int,
+        plays: json['plays'] as int,
+        inPlaylists: json['inPlaylists'] as int,
+        best: json['best'] as bool,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'trackId': trackId,
+        'title': title,
+        'artistName': artistName,
+        'albumId': albumId,
+        'albumTitle': albumTitle,
+        'format': format,
+        'lossless': lossless,
+        'sizeBytes': sizeBytes,
+        'durationMs': durationMs,
+        'file': file,
+        'likes': likes,
+        'plays': plays,
+        'inPlaylists': inPlaylists,
+        'best': best,
+      };
+}
+
+class SameSongGroup {
+  const SameSongGroup({
+    required this.key,
+    required this.copies,
+  });
+
+  final String key;
+  final List<SameSongCopy> copies;
+
+  factory SameSongGroup.fromJson(Map<String, dynamic> json) => SameSongGroup(
+        key: json['key'] as String,
+        copies: (json['copies'] as List<dynamic>).map((e) => SameSongCopy.fromJson((e as Map).cast<String, dynamic>())).toList(),
+      );
+
+  Map<String, dynamic> toJson() => {
+        'key': key,
+        'copies': copies.map((e) => e.toJson()).toList(),
+      };
+}
+
+class SameSongs {
+  const SameSongs({
+    required this.items,
+  });
+
+  final List<SameSongGroup> items;
+
+  factory SameSongs.fromJson(Map<String, dynamic> json) => SameSongs(
+        items: (json['items'] as List<dynamic>).map((e) => SameSongGroup.fromJson((e as Map).cast<String, dynamic>())).toList(),
+      );
+
+  Map<String, dynamic> toJson() => {
+        'items': items.map((e) => e.toJson()).toList(),
+      };
+}
+
+class SameSongResolve {
+  const SameSongResolve({
+    required this.keep,
+    required this.remove,
+  });
+
+  final String keep;
+  final List<String> remove;
+
+  factory SameSongResolve.fromJson(Map<String, dynamic> json) => SameSongResolve(
+        keep: json['keep'] as String,
+        remove: (json['remove'] as List<dynamic>).map((e) => e as String).toList(),
+      );
+
+  Map<String, dynamic> toJson() => {
+        'keep': keep,
+        'remove': remove.map((e) => e).toList(),
+      };
+}
+
+class SameSongKeep {
+  const SameSongKeep({
+    required this.key,
+  });
+
+  final String key;
+
+  factory SameSongKeep.fromJson(Map<String, dynamic> json) => SameSongKeep(
+        key: json['key'] as String,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'key': key,
+      };
+}
+
+class SameSongResult {
+  const SameSongResult({
+    required this.moved,
+    required this.deleted,
+  });
+
+  final Map<String, dynamic> moved;
+  /// Files deleted.
+  final int deleted;
+
+  factory SameSongResult.fromJson(Map<String, dynamic> json) => SameSongResult(
+        moved: (json['moved'] as Map).cast<String, dynamic>(),
+        deleted: json['deleted'] as int,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'moved': moved,
+        'deleted': deleted,
+      };
+}
+
 class PlaySessionUpdate {
   const PlaySessionUpdate({
     required this.installId,
@@ -2472,6 +2673,7 @@ class AdminAlbum {
     required this.edited,
     required this.sources,
     this.folder,
+    this.editedTracks,
   });
 
   final Album album;
@@ -2485,6 +2687,8 @@ class AdminAlbum {
   final Map<String, dynamic> sources;
   /// Where its files are, relative to the music folder.
   final String? folder;
+  /// M4: songs corrected by hand (song id → the details corrected).
+  final Map<String, dynamic>? editedTracks;
 
   factory AdminAlbum.fromJson(Map<String, dynamic> json) => AdminAlbum(
         album: Album.fromJson((json['album'] as Map).cast<String, dynamic>()),
@@ -2494,6 +2698,7 @@ class AdminAlbum {
         edited: (json['edited'] as List<dynamic>).map((e) => e as String).toList(),
         sources: (json['sources'] as Map).cast<String, dynamic>(),
         folder: json['folder'] == null ? null : json['folder'] as String,
+        editedTracks: json['editedTracks'] == null ? null : (json['editedTracks'] as Map).cast<String, dynamic>(),
       );
 
   Map<String, dynamic> toJson() => {
@@ -2504,6 +2709,7 @@ class AdminAlbum {
         'edited': edited.map((e) => e).toList(),
         'sources': sources,
         'folder': ?folder,
+        'editedTracks': ?editedTracks,
       };
 }
 

@@ -18,6 +18,7 @@ import {
 } from "../api/client";
 import { Artwork } from "../components/Artwork";
 import { LyricsEditor } from "../components/LyricsEditor";
+import { SongEditor } from "../components/SongEditor";
 import { lookupQuery } from "../components/LookupPanel";
 import { QueryError } from "../components/QueryError";
 import { LANGUAGES, languageName } from "../languages";
@@ -295,6 +296,7 @@ function AlbumEditor({ albumId }: { albumId: string }) {
   const { data, error, refetch, isFetching } = useQuery({ queryKey: key, queryFn: () => fetchAdminAlbum(albumId) });
   const [form, setForm] = useState<Record<Field, string> | null>(null);
   const [lyricsFor, setLyricsFor] = useState<string | null>(null);
+  const [editing, setEditing] = useState<string | null>(null);
   useEffect(() => {
     if (data) setForm(initial(data));
   }, [data]);
@@ -484,6 +486,16 @@ function AlbumEditor({ albumId }: { albumId: string }) {
                       .join(" · ")}
                   </p>
                 </div>
+                {data.editedTracks?.[t.id] && <span className="tag">Corrected</span>}
+                <button
+                  className="link-button"
+                  type="button"
+                  aria-expanded={editing === t.id}
+                  aria-label={`Edit ${t.title}`}
+                  onClick={() => setEditing(editing === t.id ? null : t.id)}
+                >
+                  Edit
+                </button>
                 <button
                   className="link-button"
                   type="button"
@@ -495,6 +507,14 @@ function AlbumEditor({ albumId }: { albumId: string }) {
                 </button>
                 <span className={`quality quality--${t.format.tier}`}>{t.format.label}</span>
               </div>
+              {editing === t.id && (
+                <SongEditor
+                  song={t}
+                  edited={data.editedTracks?.[t.id] ?? []}
+                  onSaved={done}
+                  onClose={() => setEditing(null)}
+                />
+              )}
               {lyricsFor === t.id && (
                 <LyricsEditor
                   trackId={t.id}

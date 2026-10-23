@@ -23,6 +23,7 @@ from hive.contract import contract_path, load_contract, problem, register_unbuil
 from hive.db import Database, migrate
 from hive.library.admin_api import router as admin_library_router
 from hive.library.api import router as library_router
+from hive.library.editor_api import router as editor_router
 from hive.library.listen_api import admin_router as listen_admin_router
 from hive.library.listen_api import router as listen_router
 from hive.library.lookup.http import Http
@@ -133,6 +134,7 @@ def create_app(settings: Settings | None = None, lookup_http: Http | None = None
     app.include_router(backups_router)
     app.include_router(watch_router)
     app.include_router(sync_router)
+    app.include_router(editor_router)
     app.include_router(listen_router)
     app.include_router(listen_admin_router)
     register_unbuilt_operations(app, load_contract())

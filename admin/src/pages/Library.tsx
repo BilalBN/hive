@@ -12,6 +12,7 @@ import {
 } from "../api/client";
 import { Artwork } from "../components/Artwork";
 import { LookupPanel } from "../components/LookupPanel";
+import { SameSongs } from "../components/SameSongs";
 import { TidyPanel } from "../components/TidyPanel";
 import { QueryError } from "../components/QueryError";
 import { formatBytes } from "../upload/queue";
@@ -295,6 +296,8 @@ export function LibraryPage() {
           </section>
 
           {data.duplicates && data.duplicates.length > 0 && <Duplicates items={data.duplicates} />}
+
+          <SameSongs />
 
           {data.recentlyAdded && data.recentlyAdded.length > 0 && (
             <section className="panel" aria-labelledby="recent-h">

@@ -1465,6 +1465,76 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/library/tracks/{trackId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                trackId: components["parameters"]["TrackId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Correct a song's details (Hive's own; the file is never changed). Null puts back what the file says. */
+        patch: operations["adminUpdateTrack"];
+        trace?: never;
+    };
+    "/api/v1/admin/library/same-songs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The same song in two or more different files (identical files are under duplicate copies). */
+        get: operations["adminListSameSongs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/library/same-songs/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Keep one copy; likes, plays and playlist entries move to it and the other copies' files are deleted. */
+        post: operations["adminResolveSameSong"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/library/same-songs/keep-both": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** They're different recordings; stop suggesting them. */
+        post: operations["adminKeepSameSongs"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/backups": {
         parameters: {
             query?: never;
@@ -2069,6 +2139,57 @@ export interface components {
             id: string;
             name: string;
         };
+        /** @description Set a field to change it; null puts back what the file says. */
+        TrackEdit: {
+            title?: string | null;
+            artistName?: string | null;
+            trackNumber?: number | null;
+            discNumber?: number | null;
+            composer?: string | null;
+            lyricist?: string | null;
+        };
+        SameSongCopy: {
+            trackId: string;
+            title: string;
+            artistName: string;
+            albumId: string;
+            albumTitle: string;
+            /** @description e.g. FLAC 16-bit 44.1 kHz, MP3 320 kbps */
+            format: string;
+            lossless: boolean;
+            sizeBytes: number;
+            durationMs: number;
+            /** @description Relative to its music folder. */
+            file: string;
+            likes: number;
+            plays: number;
+            inPlaylists: number;
+            /** @description The copy Hive suggests keeping. */
+            best: boolean;
+        };
+        SameSongGroup: {
+            key: string;
+            copies: components["schemas"]["SameSongCopy"][];
+        };
+        SameSongs: {
+            items: components["schemas"]["SameSongGroup"][];
+        };
+        SameSongResolve: {
+            keep: string;
+            remove: string[];
+        };
+        SameSongKeep: {
+            key: string;
+        };
+        SameSongResult: {
+            moved: {
+                likes: number;
+                plays: number;
+                playlistEntries: number;
+            };
+            /** @description Files deleted. */
+            deleted: number;
+        };
         PlaySessionUpdate: {
             /** @description This app on this device (stays the same across sign-ins). */
             installId: string;
@@ -2410,6 +2531,10 @@ export interface components {
             };
             /** @description Where its files are, relative to the music folder. */
             folder?: string;
+            /** @description M4: songs corrected by hand (song id → the details corrected). */
+            editedTracks?: {
+                [key: string]: ("title" | "artistName" | "trackNumber" | "discNumber" | "composer" | "lyricist")[];
+            };
         };
         AdminAlbumPage: {
             items: {
@@ -5437,6 +5562,117 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AuditPage"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    adminUpdateTrack: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                trackId: components["parameters"]["TrackId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TrackEdit"];
+            };
+        };
+        responses: {
+            /** @description The song's album. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminAlbum"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Invalid"];
+        };
+    };
+    adminListSameSongs: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The groups. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SameSongs"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    adminResolveSameSong: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SameSongResolve"];
+            };
+        };
+        responses: {
+            /** @description What moved. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SameSongResult"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            /** @description The copy to keep is missing. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: components["responses"]["Invalid"];
+        };
+    };
+    adminKeepSameSongs: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SameSongKeep"];
+            };
+        };
+        responses: {
+            /** @description The groups left. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SameSongs"];
                 };
             };
             401: components["responses"]["Unauthorized"];

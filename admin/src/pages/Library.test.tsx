@@ -1,4 +1,4 @@
-import { fireEvent, screen } from "@testing-library/react";
+import { fireEvent, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { library, lookup, mockApi } from "../test/mockApi";
@@ -200,5 +200,65 @@ describe("Library page", () => {
     fireEvent.click(screen.getByRole("button", { name: "Tidy 2 songs" }));
     expect(await screen.findByText(/2 tidied so far/)).toBeInTheDocument();
     expect(applied).toEqual(["t1", "t2"]);
+  });
+
+  it("keeps the better copy of the same song", async () => {
+    let sent: unknown;
+    const copy = {
+      title: "Dreams",
+      artistName: "Fleetwood Mac",
+      durationMs: 257000,
+      likes: 0,
+      plays: 0,
+      inPlaylists: 0,
+    };
+    const group = {
+      key: "a+b",
+      copies: [
+        {
+          ...copy,
+          trackId: "a",
+          albumId: "r",
+          albumTitle: "Rumours",
+          format: "FLAC 24-bit 96 kHz",
+          lossless: true,
+          sizeBytes: 98e6,
+          file: "Fleetwood Mac/Rumours/02 Dreams.flac",
+          best: true,
+        },
+        {
+          ...copy,
+          trackId: "b",
+          albumId: "c",
+          albumTitle: "Best of 77",
+          format: "MP3 192 kbps",
+          lossless: false,
+          sizeBytes: 6e6,
+          file: "Compilations/05 Dreams.mp3",
+          likes: 2,
+          inPlaylists: 1,
+          best: false,
+        },
+      ],
+    };
+    let groups = [group];
+    mockApi({
+      "GET /api/v1/admin/library/same-songs": () => ({ body: { items: groups } }),
+      "POST /api/v1/admin/library/same-songs/resolve": (req) => {
+        void req
+          .clone()
+          .json()
+          .then((b) => (sent = b));
+        groups = [];
+        return { body: { moved: { likes: 2, plays: 0, playlistEntries: 1 }, deleted: 1 } };
+      },
+    });
+    vi.stubGlobal("confirm", () => true);
+    renderAt("/library");
+    expect(await screen.findByText("Same song twice · 1")).toBeInTheDocument();
+    expect(screen.getByText("2 likes · in 1 playlist")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Keep the FLAC 24-bit 96 kHz copy on Rumours" }));
+    await waitFor(() => expect(sent).toEqual({ keep: "a", remove: ["b"] }));
+    await waitFor(() => expect(screen.queryByText("Same song twice · 1")).not.toBeInTheDocument());
   });
 });

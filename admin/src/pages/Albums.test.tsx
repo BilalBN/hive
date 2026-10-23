@@ -173,4 +173,37 @@ describe("Albums page", () => {
     const put = fetchMock.mock.calls.map(([r]) => r as Request).find((r) => r.method === "PUT")!;
     expect(await put.clone().json()).toEqual({ text: lrc });
   });
+
+  it("corrects one song's details and can undo it", async () => {
+    let saved: unknown;
+    const song = kumbalangi.album.tracks[0];
+    mockApi({
+      "GET /api/v1/admin/library/albums/kn": { body: { ...kumbalangi, lookup: "found", found: undefined } },
+      "PATCH /api/v1/admin/library/tracks/t1": (req) => {
+        void req
+          .clone()
+          .json()
+          .then((b) => (saved = b));
+        return {
+          body: {
+            ...kumbalangi,
+            lookup: "found",
+            found: undefined,
+            editedTracks: { t1: ["composer"] },
+            album: { ...kumbalangi.album, tracks: [{ ...song, composer: "Shahabaz Aman" }] },
+          },
+        };
+      },
+    });
+    renderAt("/albums?album=kn");
+    fireEvent.click(await screen.findByRole("button", { name: `Edit ${song.title}` }));
+    fireEvent.change(screen.getByLabelText("Music"), { target: { value: "Shahabaz Aman" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save song" }));
+    await waitFor(() => expect(saved).toEqual({ composer: "Shahabaz Aman" }));
+    expect(await screen.findByText("Corrected")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Save song" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: `Edit ${song.title}` }));
+    fireEvent.click(screen.getByRole("button", { name: "Undo music" }));
+    await waitFor(() => expect(saved).toEqual({ composer: null }));
+  });
 });

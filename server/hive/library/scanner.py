@@ -659,6 +659,7 @@ def _upsert(s, path, root, st, digest, info: FileInfo, loudness, artwork_id) -> 
     track.language = L.from_tag(info.language)
     track.composer = info.composer
     track.lyricist = info.lyricist
+    apply_track_overrides(s, track)
     track.mbid_recording = info.mb_recording_id
     track.folder = str(root)
     track.size = st.st_size
@@ -716,3 +717,33 @@ def _album_lufs(s: Session, album_id: str) -> float | None:
 
 def _prune(s: Session) -> None:
     C.prune(s)
+
+
+# The fields Hive Admin can correct on a song, and the Track attribute each sets.
+TRACK_FIELDS = {
+    "title": "title",
+    "artistName": "artist_name",
+    "trackNumber": "track_no",
+    "discNumber": "disc_no",
+    "composer": "composer",
+    "lyricist": "lyricist",
+}
+
+
+def track_overrides(track: Track) -> dict:
+    import json
+
+    try:
+        return json.loads(track.overrides or "{}")
+    except ValueError:
+        return {}
+
+
+def apply_track_overrides(s: Session, track: Track) -> None:
+    """Corrections made in Hive Admin win over the file's tags."""
+    edits = track_overrides(track)
+    for field, attr in TRACK_FIELDS.items():
+        if field in edits:
+            setattr(track, attr, edits[field])
+    if "artistName" in edits and edits["artistName"]:
+        track.artist_id = _artist(s, edits["artistName"]).id

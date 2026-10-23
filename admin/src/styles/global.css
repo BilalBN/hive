@@ -572,7 +572,9 @@ code {
   border: 2px dashed var(--hv-border);
   border-radius: var(--hv-radius-card);
   text-align: center;
-  transition: border-color var(--hv-motion-fast), background var(--hv-motion-fast);
+  transition:
+    border-color var(--hv-motion-fast),
+    background var(--hv-motion-fast);
 }
 
 .dropzone--over {
@@ -733,7 +735,9 @@ code {
   height: 18px;
   border-radius: 50%;
   background: var(--hv-text-secondary);
-  transition: transform var(--hv-motion-fast), background var(--hv-motion-fast);
+  transition:
+    transform var(--hv-motion-fast),
+    background var(--hv-motion-fast);
 }
 
 .switch input:checked {
@@ -1462,4 +1466,11 @@ code {
   .log__level {
     display: none;
   }
+}
+
+/* M4: correcting one song's details, inside the album's song list. */
+.song-editor {
+  margin-top: var(--hv-space-sm);
+  padding-top: var(--hv-space-sm);
+  border-top: 1px solid var(--hv-border);
 }
