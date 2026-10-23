@@ -319,8 +319,73 @@ installed by hand.
    connected) it changes nothing and says so.
 5. **Removing** Hive (Settings → Apps) keeps `C:\ProgramData\Hive`.
 
-Moving from the Mac is the next part of M4 (back up on the Mac, restore on
-the PC, with the music folder paths changed over).
+## M4: moving Hive from the Mac to the PC
+
+Everything Hive knows moves with one backup; the music is copied separately.
+
+1. Copy the music to the PC (for example to `D:\Music`), keeping the same
+   folders inside.
+2. On the Mac: Hive Admin → Backups → **Back up now**. The backup is a zip
+   in the Mac's backup folder.
+3. On the PC: install Hive (above), point it at the music folder, then copy
+   the zip into the PC's backup folder (`C:\ProgramData\Hive\backups`
+   unless you changed it). It shows in Hive Admin → Backups.
+4. **Restore** it. Hive asks where each of the Mac's music folders is now
+   (for example `/Users/bilal/Music` → *Now in D:\Music*), so every song
+   keeps its likes, plays and playlists. Settings that belong to the
+   computer (its address, backup folder) stay the PC's own.
+5. Restart Hive (Services → Hive → Restart, or restart the PC). The restore
+   finishes as it starts; today's PC state is backed up first.
+6. Stop Hive on the Mac.
+7. **Keep the phones working without signing in again:** in the Tailscale
+   admin console (Machines), give the Mac a different address, then give
+   the PC the Mac's old one (machine menu → *Edit machine IPv4*). The apps
+   already point at that address, so they just carry on.
+
+## M4: Hive on a Mac, as a package
+
+**HiveServer-<version>-mac.pkg** (Actions → *hive-server-mac*) installs
+Hive the same way on a Mac (Apple silicon), for when the home computer is a
+Mac. It goes in **Applications → Hive Server** with Python, Hive Admin and
+fpcalc inside; FFmpeg comes from Homebrew (`brew install ffmpeg`) if it
+isn't inside. It starts when you sign in and again if it stops; its data is
+in `~/Library/Application Support/Hive` (the music starts in **Music →
+Hive**). The package isn't signed by Apple yet, so the first time
+right-click it → **Open**. Installing a newer one backs up first; **Uninstall
+Hive** in that folder keeps the data. Your current way of running Hive
+(`start-hive.sh` with `HIVE_DATA_DIR`) keeps working; you don't need this.
+
+## M4: health, logs and the oldest app allowed
+
+- Hive Admin → **System health**: drive space, the last backup, how long
+  Hive has been running, and anything wrong. Overview shows the same
+  problems. With email set up, the admin gets a short note when something
+  goes wrong (no personal details in it).
+- **Logs**: what Hive has been doing, searchable, for when something looks
+  off; the log files are in the data folder's `logs`.
+- Hive Admin → Settings → **Oldest app allowed**: older apps are asked to update.
+
+## M4: carry on from another device, and the app extras
+
+- **Continue:** play something on the Mac, stop it, then open Hive on the
+  phone: a bar offers *Continue <song> from <device>*. **Continue** picks
+  up the same queue at the same place; **Not now** hides it.
+- Settings → **Simple mode**: big buttons that start music at once, fewer
+  choices (for the grandparents). **Appearance**: system, light or dark.
+- Computers: Hive stays in the menu bar / tray with play, pause, next and
+  a **Mini player** that stays on top. **Keep playing when the window
+  closes** is on by default.
+- Windows: Settings → **Output** chooses the speakers or DAC, and
+  **Exclusive mode** sends the music bit-perfect.
+- Hive Admin → Albums → an album → **Edit** beside a song corrects its
+  title, singers, number, music and lyrics (the file isn't changed; Undo
+  puts back what the file says).
+- Hive Admin → Library → **Same song twice**: the same song in two files
+  (an MP3 and a FLAC, say). **Keep this copy** moves likes, plays and
+  playlists to it and deletes the other file; **They're different, keep
+  both** stops suggesting them.
+
+**Testing M4:** one checklist for all of it is in `docs/m4-test-checklist.md`.
 
 ## Useful commands
 
