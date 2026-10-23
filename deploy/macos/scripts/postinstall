@@ -1,0 +1,35 @@
+#!/bin/bash
+# Set Hive up for the person signed in to this Mac: its data folder, its
+# settings on a first install, and starting it at sign-in.
+set -u
+user="$(stat -f%Su /dev/console)"
+[ "$user" = "root" ] && user="${SUDO_USER:-${USER:-root}}"
+uid="$(id -u "$user")"
+group="$(id -gn "$user")"
+home="$(dscl . -read "/Users/$user" NFSHomeDirectory | awk '{print $2}')"
+app="/Applications/Hive Server"
+data="$home/Library/Application Support/Hive"
+agents="$home/Library/LaunchAgents"
+agent="$agents/family.hive.server.plist"
+
+as_user() { sudo -u "$user" -H "$@"; }
+as_user mkdir -p "$data/service-logs" "$agents"
+
+if [ ! -f "$data/hive.toml" ]; then
+  music="$home/Music/Hive"
+  as_user mkdir -p "$music"
+  as_user tee "$data/hive.toml" >/dev/null <<TOML
+# Hive server settings. Hive Admin changes most of these for you.
+# Listen on this computer and its Tailscale address.
+host = "tailscale"
+music_folders = ['$music']
+TOML
+fi
+
+sed "s#@DATA@#$data#g" "$app/family.hive.server.plist" > "$agent"
+chown "$user:$group" "$agent"
+chmod 644 "$agent"
+launchctl bootout "gui/$uid/family.hive.server" 2>/dev/null || true
+launchctl bootstrap "gui/$uid" "$agent" 2>/dev/null || as_user launchctl load -w "$agent"
+launchctl kickstart -k "gui/$uid/family.hive.server" 2>/dev/null || true
+exit 0

@@ -1,0 +1,18 @@
+#!/bin/bash
+# Before an update: stop Hive and back everything up. If the backup can't be
+# made, nothing changes and Hive starts again as before.
+user="$(stat -f%Su /dev/console)"
+[ "$user" = "root" ] && user="${SUDO_USER:-${USER:-root}}"
+uid="$(id -u "$user")"
+app="/Applications/Hive Server"
+agent="/Users/$user/Library/LaunchAgents/family.hive.server.plist"
+[ -x "$app/hive" ] || exit 0
+
+launchctl bootout "gui/$uid/family.hive.server" 2>/dev/null || true
+sleep 2
+if ! sudo -u "$user" -H "$app/hive" backup --kind before-update; then
+  echo "Hive couldn't make a backup before updating, so nothing was changed." >&2
+  [ -f "$agent" ] && launchctl bootstrap "gui/$uid" "$agent" 2>/dev/null
+  exit 1
+fi
+exit 0

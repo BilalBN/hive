@@ -1,7 +1,9 @@
-# PyInstaller recipe for hive.exe: the server with Python inside, so the home
-# PC needs nothing installed. Built by build.ps1.
+# PyInstaller recipe for hive.exe (Windows) and hive (Mac): the server with
+# Python inside, so the home computer needs nothing installed. Built by
+# windows/build.ps1 and macos/build.sh.
 # ruff: noqa
 import os
+import sys
 
 from PyInstaller.utils.hooks import collect_data_files, collect_submodules
 
@@ -36,6 +38,8 @@ exe = EXE(
     exclude_binaries=True,
     name="hive",
     console=True,
-    icon=os.path.join(root, "app", "windows", "runner", "resources", "app_icon.ico"),
+    icon=os.path.join(root, "app", "windows", "runner", "resources", "app_icon.ico")
+    if sys.platform == "win32"
+    else None,
 )
 coll = COLLECT(exe, a.binaries, a.datas, name="hive")

@@ -346,6 +346,39 @@ jobs:
           path: dist-installer/*.exe
           retention-days: 30
 
+  server-mac:
+    name: Mac server package
+    needs: admin
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - uses: AnimMouse/setup-ffmpeg@v1
+      - uses: actions/download-artifact@v5
+        with:
+          name: hive-admin-dist
+          path: admin/dist
+      - name: Build the package
+        run: deploy/macos/build.sh
+      # On this throwaway Mac: install, check, update, remove.
+      - name: Install, update and remove it
+        run: deploy/macos/smoke.sh
+      - name: What Hive said
+        if: failure()
+        run: |
+          for f in "$HOME/Library/Application Support/Hive"/service-logs/* "$HOME/Library/Application Support/Hive"/logs/*; do
+            [ -f "$f" ] || continue
+            echo "::warning title=$(basename "$f")::$(tail -25 "$f" | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')"
+          done
+          sudo tail -40 /var/log/install.log | grep -iE "hive|error|script" | while IFS= read -r l; do echo "::warning title=install.log::${l:0:300}"; done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hive-server-mac
+          path: dist-installer/*.pkg
+          retention-days: 30
+
   build-windows:
     name: Build Windows
     needs: app

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<installer-gui-script minSpecVersion="2">
+  <title>Hive Server</title>
+  <welcome file="welcome.html"/>
+  <options customize="never" require-scripts="false" hostArchitectures="arm64"/>
+  <domains enable_localSystem="true"/>
+  <choices-outline><line choice="hive"/></choices-outline>
+  <choice id="hive" title="Hive Server"><pkg-ref id="family.hive.server"/></choice>
+  <pkg-ref id="family.hive.server" version="@VERSION@">hive.pkg</pkg-ref>
+</installer-gui-script>

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Starts Hive when this person signs in to the Mac, and again if it stops.
+     Installed into ~/Library/LaunchAgents by the package. -->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>family.hive.server</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/Applications/Hive Server/hive</string>
+    <string>serve</string>
+  </array>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <true/>
+  <!-- Waiting for Tailscale after sign-in: try again every 20 seconds. -->
+  <key>ThrottleInterval</key>
+  <integer>20</integer>
+  <key>ProcessType</key>
+  <string>Interactive</string>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+  </dict>
+  <key>StandardOutPath</key>
+  <string>@DATA@/service-logs/hive.out.log</string>
+  <key>StandardErrorPath</key>
+  <string>@DATA@/service-logs/hive.err.log</string>
+</dict>
+</plist>
