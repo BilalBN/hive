@@ -30,6 +30,7 @@ from hive.library.lookup.service import LookupService
 from hive.library.media_api import router as media_router
 from hive.library.recognition import Recognition
 from hive.library.scanner import Library
+from hive.library.sync_api import router as sync_router
 from hive.library.uploads import router as uploads_router
 from hive.models import AuditEntry
 from hive.people.admin_api import router as people_admin_router
@@ -131,6 +132,7 @@ def create_app(settings: Settings | None = None, lookup_http: Http | None = None
     app.include_router(uploads_router)
     app.include_router(backups_router)
     app.include_router(watch_router)
+    app.include_router(sync_router)
     app.include_router(listen_router)
     app.include_router(listen_admin_router)
     register_unbuilt_operations(app, load_contract())

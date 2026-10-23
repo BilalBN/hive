@@ -46,7 +46,6 @@ def test_health_matches_contract_schema(client) -> None:
     [
         ("post", "/api/v1/admin/session/passkey/options", "M6"),
         ("post", "/api/v1/listen/shazam-token", "M5"),
-        ("get", "/api/v1/sync/session", "M4"),
     ],
 )
 def test_unbuilt_operations_say_when(client, method, path, milestone) -> None:

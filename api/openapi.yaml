@@ -610,16 +610,28 @@ paths:
     get:
       tags: [sync]
       operationId: getPlaySession
-      summary: The person's live play session, for the continuity offer.
+      summary: The person's last play session, for the continuity offer ("Continue from Bilal's MacBook").
+      description: >-
+        Empty when there's nothing to offer. Changes also arrive over a WebSocket at
+        /api/v1/sync/events?install=<installId> (same Authorization header): messages
+        {"type":"session","session":PlaySession} from the person's other devices, and
+        {"type":"ping"} every 30 seconds.
       x-milestone: M4
-      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+      responses:
+        "200": { description: "The session, if any.", content: { application/json: { schema: { $ref: "#/components/schemas/PlaySessionState" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
     put:
       tags: [sync]
       operationId: updatePlaySession
-      summary: Report play, pause, seek, skip or queue changes from the playing device.
+      summary: The playing device reports what it's playing (after a change, and every 15 seconds while playing).
       x-milestone: M4
-      requestBody: { $ref: "#/components/requestBodies/Pending" }
-      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/PlaySessionUpdate" } } }
+      responses:
+        "200": { description: The session now., content: { application/json: { schema: { $ref: "#/components/schemas/PlaySessionState" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "422": { $ref: "#/components/responses/Invalid" }
 
   # --------------------------------------------------------------- admin (M1+)
   /api/v1/admin/session:
@@ -1957,6 +1969,44 @@ components:
       required: [items]
       properties:
         items: { type: array, items: { $ref: "#/components/schemas/SongRequest" } }
+    SessionSource:
+      type: object
+      required: [kind, id, name]
+      properties:
+        kind: { type: string, maxLength: 16, description: "album, playlist, artist, liked, downloads, songs" }
+        id: { type: string, maxLength: 64 }
+        name: { type: string, maxLength: 200 }
+    PlaySessionUpdate:
+      type: object
+      additionalProperties: false
+      required: [installId, deviceName]
+      properties:
+        installId: { type: string, minLength: 8, maxLength: 64, description: "This app on this device (stays the same across sign-ins)." }
+        deviceName: { type: string, minLength: 1, maxLength: 80 }
+        trackId: { type: string, maxLength: 32, description: Absent when playback stopped. }
+        positionMs: { type: integer, minimum: 0 }
+        playing: { type: boolean }
+        queue: { type: array, maxItems: 200, items: { type: string }, description: Track ids around the current one. }
+        index: { type: integer, minimum: 0 }
+        source: { $ref: "#/components/schemas/SessionSource" }
+    PlaySession:
+      type: object
+      required: [installId, deviceName, track, positionMs, playing, queue, index, updatedAt, offer]
+      properties:
+        installId: { type: string }
+        deviceName: { type: string }
+        track: { $ref: "#/components/schemas/TrackSummary" }
+        positionMs: { type: integer, description: "Where it is now (counted on while it's still playing)." }
+        playing: { type: boolean }
+        queue: { type: array, items: { $ref: "#/components/schemas/TrackSummary" } }
+        index: { type: integer }
+        source: { $ref: "#/components/schemas/SessionSource" }
+        updatedAt: { type: string, format: date-time }
+        offer: { type: boolean, description: Recent enough to offer carrying on. }
+    PlaySessionState:
+      type: object
+      properties:
+        session: { $ref: "#/components/schemas/PlaySession" }
     LogLine:
       type: object
       required: [id, at, level, area, text]

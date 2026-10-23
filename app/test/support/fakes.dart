@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:hive/api/hive_api.g.dart';
 import 'package:hive/downloads/downloads.dart';
+import 'package:hive/sync/continuity.dart';
 import 'package:hive/player/engine.dart';
 import 'package:hive/player/quality.dart';
 
@@ -234,4 +235,24 @@ class FakeDownloadTransport implements DownloadTransport {
   @override
   Future<Playlist> playlist(String playlistId) async =>
       playlists[playlistId] ?? (throw HiveApiException(404, null, 'gone'));
+}
+
+/// Home's side of continuity without a network.
+class FakeSessionLink implements SessionLink {
+  PlaySession? session;
+  final reports = <PlaySessionUpdate>[];
+  final _changes = StreamController<PlaySession?>.broadcast();
+
+  /// Another device changed something (as the WebSocket would say).
+  void push(PlaySession? s) {
+    session = s;
+    _changes.add(s);
+  }
+
+  @override
+  Future<PlaySession?> fetch() async => session;
+  @override
+  Future<void> report(PlaySessionUpdate update) async => reports.add(update);
+  @override
+  Stream<PlaySession?> changes() => _changes.stream;
 }

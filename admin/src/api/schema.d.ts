@@ -653,9 +653,12 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** The person's live play session, for the continuity offer. */
+        /**
+         * The person's last play session, for the continuity offer ("Continue from Bilal's MacBook").
+         * @description Empty when there's nothing to offer. Changes also arrive over a WebSocket at /api/v1/sync/events?install=<installId> (same Authorization header): messages {"type":"session","session":PlaySession} from the person's other devices, and {"type":"ping"} every 30 seconds.
+         */
         get: operations["getPlaySession"];
-        /** Report play, pause, seek, skip or queue changes from the playing device. */
+        /** The playing device reports what it's playing (after a change, and every 15 seconds while playing). */
         put: operations["updatePlaySession"];
         post?: never;
         delete?: never;
@@ -2059,6 +2062,43 @@ export interface components {
         };
         AdminSongRequests: {
             items: components["schemas"]["SongRequest"][];
+        };
+        SessionSource: {
+            /** @description album, playlist, artist, liked, downloads, songs */
+            kind: string;
+            id: string;
+            name: string;
+        };
+        PlaySessionUpdate: {
+            /** @description This app on this device (stays the same across sign-ins). */
+            installId: string;
+            deviceName: string;
+            /** @description Absent when playback stopped. */
+            trackId?: string;
+            positionMs?: number;
+            playing?: boolean;
+            /** @description Track ids around the current one. */
+            queue?: string[];
+            index?: number;
+            source?: components["schemas"]["SessionSource"];
+        };
+        PlaySession: {
+            installId: string;
+            deviceName: string;
+            track: components["schemas"]["TrackSummary"];
+            /** @description Where it is now (counted on while it's still playing). */
+            positionMs: number;
+            playing: boolean;
+            queue: components["schemas"]["TrackSummary"][];
+            index: number;
+            source?: components["schemas"]["SessionSource"];
+            /** Format: date-time */
+            updatedAt: string;
+            /** @description Recent enough to offer carrying on. */
+            offer: boolean;
+        };
+        PlaySessionState: {
+            session?: components["schemas"]["PlaySession"];
         };
         LogLine: {
             id: number;
@@ -4013,8 +4053,16 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            200: components["responses"]["Pending"];
-            501: components["responses"]["NotImplemented"];
+            /** @description The session, if any. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlaySessionState"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
         };
     };
     updatePlaySession: {
@@ -4024,10 +4072,23 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: components["requestBodies"]["Pending"];
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlaySessionUpdate"];
+            };
+        };
         responses: {
-            200: components["responses"]["Pending"];
-            501: components["responses"]["NotImplemented"];
+            /** @description The session now. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlaySessionState"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            422: components["responses"]["Invalid"];
         };
     };
     adminGetSession: {

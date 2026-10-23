@@ -10,6 +10,7 @@ import 'package:hive/core/api.dart';
 import 'package:hive/core/home_connection.dart';
 import 'package:hive/downloads/downloads.dart';
 import 'package:hive/downloads/vault.dart';
+import 'package:hive/sync/continuity.dart';
 import 'package:hive/player/player_controller.dart';
 import 'package:hive/player/quality.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -448,6 +449,7 @@ Future<List<Override>> fakeHomeOverrides({
   MemorySecretStore? secrets,
   MemoryVault? vault,
   FakeDownloadTransport? downloads,
+  FakeSessionLink? sessions,
 }) async {
   SharedPreferences.setMockInitialValues({
     if (connected) 'home.address': 'http://100.84.12.7:8443',
@@ -480,5 +482,6 @@ Future<List<Override>> fakeHomeOverrides({
     downloadTransportProvider.overrideWithValue(
       downloads ?? FakeDownloadTransport(),
     ),
+    sessionLinkProvider.overrideWithValue(sessions ?? FakeSessionLink()),
   ];
 }

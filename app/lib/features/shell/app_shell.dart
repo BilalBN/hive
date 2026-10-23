@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../library/library_providers.dart';
 import '../../player/player_controller.dart';
+import '../../sync/continuity.dart';
+import '../player/continuity_bar.dart';
 import '../player/mini_player.dart';
 import '../player/side_panel.dart';
 import '../search/search_screen.dart';
@@ -191,6 +193,19 @@ class AppShell extends ConsumerWidget {
               ],
             ),
           ),
+          if (ref.watch(continuityOfferProvider) != null)
+            const Padding(
+              padding: EdgeInsets.fromLTRB(
+                HiveSpace.md,
+                0,
+                HiveSpace.md,
+                HiveSpace.xs,
+              ),
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: SizedBox(width: 420, child: ContinuityBar()),
+              ),
+            ),
           const PlayerBar(),
         ],
       ),
@@ -219,6 +234,7 @@ class _MobileFrame extends ConsumerWidget {
     final p = HiveTheme.of(context);
     final mq = MediaQuery.of(context);
     final playing = ref.watch(playerProvider.select((s) => s.track != null));
+    final offered = ref.watch(continuityOfferProvider) != null;
     // While typing, the keyboard takes the bottom of the screen; the tab
     // bar and mini player step aside rather than ride on top of it.
     final typing = mq.viewInsets.bottom > 0;
@@ -226,7 +242,11 @@ class _MobileFrame extends ConsumerWidget {
     final bottom = safe > 0 ? safe : _gap + 4;
     final chrome = typing
         ? safe
-        : bottom + _barHeight + (playing ? miniPlayerHeight + _gap : 0) + _gap;
+        : bottom +
+              _barHeight +
+              (playing ? miniPlayerHeight + _gap : 0) +
+              (offered ? continuityBarHeight + _gap : 0) +
+              _gap;
 
     return Scaffold(
       body: Stack(
@@ -269,6 +289,10 @@ class _MobileFrame extends ConsumerWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  if (offered) ...[
+                    const ContinuityBar(),
+                    const SizedBox(height: _gap),
+                  ],
                   if (playing) ...[
                     const MiniPlayer(),
                     const SizedBox(height: _gap),

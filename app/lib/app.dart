@@ -7,6 +7,7 @@ import 'core/home_connection.dart';
 import 'design/theme.dart';
 import 'design/tokens.g.dart';
 import 'downloads/downloads.dart';
+import 'sync/continuity.dart';
 import 'features/connect/connect_screen.dart';
 import 'features/downloads/downloads_screen.dart';
 import 'features/home/home_screen.dart';
@@ -185,6 +186,8 @@ class HiveApp extends ConsumerWidget {
     // Downloads check in with home and carry on downloading in the
     // background; listening keeps them going without rebuilding the app.
     ref.listen(downloadsProvider, (_, _) {});
+    // Reports what plays here and hears your other devices ("Continue from …").
+    ref.listen(continuityProvider, (_, _) {});
     return MaterialApp.router(
       title: 'Hive',
       debugShowCheckedModeBanner: false,

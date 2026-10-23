@@ -8,11 +8,14 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/app.dart';
+import 'package:hive/api/hive_api.g.dart';
 import 'package:hive/downloads/downloads.dart';
+import 'package:hive/sync/continuity.dart';
 
 import 'app_test.dart' show health;
 import 'screens_test.dart' show openLibraryAlbum;
 import 'support/fake_home.dart';
+import 'support/fakes.dart';
 
 /// Renders key screens with the real fonts into test/goldens/ for visual review.
 /// Run with: flutter test --tags screenshots --update-goldens
@@ -158,6 +161,27 @@ final Map<String, (Size, bool, Steps?)> _shots = {
       await t.tap(find.bySemanticsLabel('Library'));
       await t.pumpAndSettle();
       await t.tap(find.textContaining('on this device'));
+      await t.pumpAndSettle();
+    },
+  ),
+  'phone-continuity': (
+    const Size(390, 844),
+    true,
+    (t) async {
+      final c = ProviderScope.containerOf(t.element(find.byType(HiveApp)));
+      (c.read(sessionLinkProvider) as FakeSessionLink).push(
+        PlaySession(
+          installId: 'mac-install-01',
+          deviceName: "Bilal's MacBook",
+          track: premam.tracks[0],
+          positionMs: 102000,
+          playing: false,
+          queue: premam.tracks,
+          index: 0,
+          updatedAt: DateTime.now().toUtc(),
+          offer: true,
+        ),
+      );
       await t.pumpAndSettle();
     },
   ),

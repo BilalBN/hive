@@ -1388,6 +1388,148 @@ class AdminSongRequests {
       };
 }
 
+class SessionSource {
+  const SessionSource({
+    required this.kind,
+    required this.id,
+    required this.name,
+  });
+
+  /// album, playlist, artist, liked, downloads, songs
+  final String kind;
+  final String id;
+  final String name;
+
+  factory SessionSource.fromJson(Map<String, dynamic> json) => SessionSource(
+        kind: json['kind'] as String,
+        id: json['id'] as String,
+        name: json['name'] as String,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'kind': kind,
+        'id': id,
+        'name': name,
+      };
+}
+
+class PlaySessionUpdate {
+  const PlaySessionUpdate({
+    required this.installId,
+    required this.deviceName,
+    this.trackId,
+    this.positionMs,
+    this.playing,
+    this.queue,
+    this.index,
+    this.source,
+  });
+
+  /// This app on this device (stays the same across sign-ins).
+  final String installId;
+  final String deviceName;
+  /// Absent when playback stopped.
+  final String? trackId;
+  final int? positionMs;
+  final bool? playing;
+  /// Track ids around the current one.
+  final List<String>? queue;
+  final int? index;
+  final SessionSource? source;
+
+  factory PlaySessionUpdate.fromJson(Map<String, dynamic> json) => PlaySessionUpdate(
+        installId: json['installId'] as String,
+        deviceName: json['deviceName'] as String,
+        trackId: json['trackId'] == null ? null : json['trackId'] as String,
+        positionMs: json['positionMs'] == null ? null : json['positionMs'] as int,
+        playing: json['playing'] == null ? null : json['playing'] as bool,
+        queue: json['queue'] == null ? null : (json['queue'] as List<dynamic>).map((e) => e as String).toList(),
+        index: json['index'] == null ? null : json['index'] as int,
+        source: json['source'] == null ? null : SessionSource.fromJson((json['source'] as Map).cast<String, dynamic>()),
+      );
+
+  Map<String, dynamic> toJson() => {
+        'installId': installId,
+        'deviceName': deviceName,
+        'trackId': ?trackId,
+        'positionMs': ?positionMs,
+        'playing': ?playing,
+        'queue': ?queue?.map((e) => e).toList(),
+        'index': ?index,
+        'source': ?source?.toJson(),
+      };
+}
+
+class PlaySession {
+  const PlaySession({
+    required this.installId,
+    required this.deviceName,
+    required this.track,
+    required this.positionMs,
+    required this.playing,
+    required this.queue,
+    required this.index,
+    this.source,
+    required this.updatedAt,
+    required this.offer,
+  });
+
+  final String installId;
+  final String deviceName;
+  final TrackSummary track;
+  /// Where it is now (counted on while it's still playing).
+  final int positionMs;
+  final bool playing;
+  final List<TrackSummary> queue;
+  final int index;
+  final SessionSource? source;
+  final DateTime updatedAt;
+  /// Recent enough to offer carrying on.
+  final bool offer;
+
+  factory PlaySession.fromJson(Map<String, dynamic> json) => PlaySession(
+        installId: json['installId'] as String,
+        deviceName: json['deviceName'] as String,
+        track: TrackSummary.fromJson((json['track'] as Map).cast<String, dynamic>()),
+        positionMs: json['positionMs'] as int,
+        playing: json['playing'] as bool,
+        queue: (json['queue'] as List<dynamic>).map((e) => TrackSummary.fromJson((e as Map).cast<String, dynamic>())).toList(),
+        index: json['index'] as int,
+        source: json['source'] == null ? null : SessionSource.fromJson((json['source'] as Map).cast<String, dynamic>()),
+        updatedAt: DateTime.parse(json['updatedAt'] as String),
+        offer: json['offer'] as bool,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'installId': installId,
+        'deviceName': deviceName,
+        'track': track.toJson(),
+        'positionMs': positionMs,
+        'playing': playing,
+        'queue': queue.map((e) => e.toJson()).toList(),
+        'index': index,
+        'source': ?source?.toJson(),
+        'updatedAt': updatedAt.toUtc().toIso8601String(),
+        'offer': offer,
+      };
+}
+
+class PlaySessionState {
+  const PlaySessionState({
+    this.session,
+  });
+
+  final PlaySession? session;
+
+  factory PlaySessionState.fromJson(Map<String, dynamic> json) => PlaySessionState(
+        session: json['session'] == null ? null : PlaySession.fromJson((json['session'] as Map).cast<String, dynamic>()),
+      );
+
+  Map<String, dynamic> toJson() => {
+        'session': ?session?.toJson(),
+      };
+}
+
 class LogLine {
   const LogLine({
     required this.id,
@@ -4324,20 +4466,20 @@ class HiveApi {
     return (data as Map).cast<String, dynamic>();
   }
 
-  /// The person's live play session, for the continuity offer.
+  /// The person's last play session, for the continuity offer ("Continue from Bilal's MacBook").
   ///
   /// `GET /api/v1/sync/session` · built in M4.
-  Future<Map<String, dynamic>> getPlaySession() async {
+  Future<PlaySessionState> getPlaySession() async {
     final data = await _send('GET', '/api/v1/sync/session');
-    return (data as Map).cast<String, dynamic>();
+    return PlaySessionState.fromJson((data as Map).cast<String, dynamic>());
   }
 
-  /// Report play, pause, seek, skip or queue changes from the playing device.
+  /// The playing device reports what it's playing (after a change, and every 15 seconds while playing).
   ///
   /// `PUT /api/v1/sync/session` · built in M4.
-  Future<Map<String, dynamic>> updatePlaySession({required Map<String, dynamic> body}) async {
-    final data = await _send('PUT', '/api/v1/sync/session', data: body);
-    return (data as Map).cast<String, dynamic>();
+  Future<PlaySessionState> updatePlaySession({required PlaySessionUpdate body}) async {
+    final data = await _send('PUT', '/api/v1/sync/session', data: body.toJson());
+    return PlaySessionState.fromJson((data as Map).cast<String, dynamic>());
   }
 
 }
