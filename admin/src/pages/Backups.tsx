@@ -14,6 +14,7 @@ import {
 } from "../api/backups";
 import { QueryError } from "../components/QueryError";
 import { formatBytes } from "../upload/queue";
+import { libraryQuery } from "./Library";
 
 export const backupsQuery = {
   queryKey: ["backups"],
@@ -114,62 +115,137 @@ function Schedule({ status }: { status: BackupStatus }) {
   );
 }
 
-function BackupRow({ b, pending }: { b: Backup; pending: boolean }) {
+/** Moving to this computer: where each of the backup's music folders is now. */
+function FolderMoves({
+  from,
+  here,
+  value,
+  onChange,
+}: {
+  from: string[];
+  here: string[];
+  value: Record<string, string>;
+  onChange: (v: Record<string, string>) => void;
+}) {
+  return (
+    <div className="moves">
+      <p className="note">
+        This backup was made on another computer, or before the music moved. Where is each music folder now? Songs keep
+        their likes, plays and playlists.
+      </p>
+      {from.map((old) => (
+        <label key={old} className="field">
+          <span className="mono">{old}</span>
+          <select
+            className="input"
+            value={value[old] ?? ""}
+            onChange={(e) => onChange({ ...value, [old]: e.target.value })}
+          >
+            <option value="">Leave it as it was</option>
+            {here.map((h) => (
+              <option key={h} value={h}>
+                Now in {h}
+              </option>
+            ))}
+          </select>
+        </label>
+      ))}
+    </div>
+  );
+}
+
+function BackupRow({ b, pending, here }: { b: Backup; pending: boolean; here: string[] }) {
   const client = useQueryClient();
+  const elsewhere = b.musicFolders.filter((f) => !here.includes(f));
+  const [asking, setAsking] = useState(false);
+  const [moves, setMoves] = useState<Record<string, string>>(() =>
+    Object.fromEntries(elsewhere.map((f, i) => [f, here[i] ?? here[0] ?? ""])),
+  );
   const restore = useMutation({
-    mutationFn: () => restoreBackup(b.id),
-    onSuccess: (fresh) => client.setQueryData(backupsQuery.queryKey, fresh),
+    mutationFn: () =>
+      restoreBackup(
+        b.id,
+        Object.entries(moves)
+          .filter(([, to]) => to)
+          .map(([from, to]) => ({ from, to })),
+      ),
+    onSuccess: (fresh) => {
+      setAsking(false);
+      client.setQueryData(backupsQuery.queryKey, fresh);
+    },
   });
   const remove = useMutation({
     mutationFn: () => deleteBackup(b.id),
     onSuccess: () => client.invalidateQueries({ queryKey: backupsQuery.queryKey }),
   });
   const at = when.format(new Date(b.at));
+  const confirmRestore = () => {
+    if (
+      globalThis.confirm?.(
+        `Restore the backup from ${at}? Everything changes back to how it was then when Hive restarts. ` +
+          "Today's state is backed up first, and anyone signed out since stays signed out.",
+      ) ??
+      true
+    )
+      restore.mutate();
+  };
   return (
-    <li className="row">
-      <span className="row__icon" aria-hidden>
-        <History size={16} />
-      </span>
-      <div className="row__text">
-        <p className="row__title">{at}</p>
-        <p className="row__meta">
-          {KIND[b.kind]} · {formatBytes(b.sizeBytes)} · {number.format(b.people)} {b.people === 1 ? "person" : "people"}{" "}
-          · {number.format(b.tracks)} {b.tracks === 1 ? "song" : "songs"} · Hive {b.serverVersion}
-        </p>
-        {(restore.error || remove.error) && (
-          <p className="note note--error">{(restore.error ?? remove.error)!.message}</p>
-        )}
+    <li className="row row--stack">
+      <div className="row__line">
+        <span className="row__icon" aria-hidden>
+          <History size={16} />
+        </span>
+        <div className="row__text">
+          <p className="row__title">{at}</p>
+          <p className="row__meta">
+            {KIND[b.kind]} · {formatBytes(b.sizeBytes)} · {number.format(b.people)}{" "}
+            {b.people === 1 ? "person" : "people"} · {number.format(b.tracks)} {b.tracks === 1 ? "song" : "songs"} ·
+            Hive {b.serverVersion}
+          </p>
+          {(restore.error || remove.error) && (
+            <p className="note note--error">{(restore.error ?? remove.error)!.message}</p>
+          )}
+        </div>
+        <div className="row__actions">
+          <button
+            className="button button--secondary"
+            type="button"
+            disabled={pending || restore.isPending}
+            onClick={() => (elsewhere.length && here.length ? setAsking(!asking) : confirmRestore())}
+          >
+            <RotateCcw size={16} aria-hidden /> Restore
+          </button>
+          <button
+            className="button button--secondary"
+            type="button"
+            aria-label={`Delete the backup from ${at}`}
+            disabled={remove.isPending}
+            onClick={() => {
+              if (globalThis.confirm?.(`Delete the backup from ${at}?`) ?? true) remove.mutate();
+            }}
+          >
+            <Trash2 size={16} aria-hidden />
+          </button>
+        </div>
       </div>
-      <div className="row__actions">
-        <button
-          className="button button--secondary"
-          type="button"
-          disabled={pending || restore.isPending}
-          onClick={() => {
-            if (
-              globalThis.confirm?.(
-                `Restore the backup from ${at}? Everything changes back to how it was then when Hive restarts. ` +
-                  "Today's state is backed up first, and anyone signed out since stays signed out.",
-              ) ??
-              true
-            )
-              restore.mutate();
-          }}
-        >
-          <RotateCcw size={16} aria-hidden /> Restore
-        </button>
-        <button
-          className="button button--secondary"
-          type="button"
-          aria-label={`Delete the backup from ${at}`}
-          disabled={remove.isPending}
-          onClick={() => {
-            if (globalThis.confirm?.(`Delete the backup from ${at}?`) ?? true) remove.mutate();
-          }}
-        >
-          <Trash2 size={16} aria-hidden />
-        </button>
-      </div>
+      {asking && (
+        <div className="row__more">
+          <FolderMoves from={elsewhere} here={here} value={moves} onChange={setMoves} />
+          <div className="actions">
+            <button className="button button--secondary" type="button" onClick={() => setAsking(false)}>
+              Cancel
+            </button>
+            <button
+              className="button button--primary"
+              type="button"
+              disabled={restore.isPending}
+              onClick={confirmRestore}
+            >
+              Restore this backup
+            </button>
+          </div>
+        </div>
+      )}
     </li>
   );
 }
@@ -178,6 +254,8 @@ function BackupRow({ b, pending }: { b: Backup; pending: boolean }) {
 export function BackupsPage() {
   const client = useQueryClient();
   const { data, error, refetch, isFetching } = useQuery(backupsQuery);
+  const library = useQuery(libraryQuery);
+  const here = library.data?.folders.map((f) => f.path) ?? [];
   const now = useMutation({
     mutationFn: runBackup,
     onSuccess: () => client.invalidateQueries({ queryKey: backupsQuery.queryKey }),
@@ -249,7 +327,7 @@ export function BackupsPage() {
             {data.items.length ? (
               <ul className="rows">
                 {data.items.map((b) => (
-                  <BackupRow key={b.id} b={b} pending={!!data.pendingRestore} />
+                  <BackupRow key={b.id} b={b} pending={!!data.pendingRestore} here={here} />
                 ))}
               </ul>
             ) : (

@@ -1320,6 +1320,9 @@ paths:
         Backs up today's state first, so the restore can be undone. The backup is put in place
         when Hive next starts, before anything opens the database.
       x-milestone: M4
+      requestBody:
+        required: false
+        content: { application/json: { schema: { $ref: "#/components/schemas/BackupRestore" } } }
       responses:
         "200": { description: "The backups, with the restore waiting.", content: { application/json: { schema: { $ref: "#/components/schemas/BackupStatus" } } } }
         "401": { $ref: "#/components/responses/Unauthorized" }
@@ -1931,7 +1934,7 @@ components:
         items: { type: array, items: { $ref: "#/components/schemas/SongRequest" } }
     Backup:
       type: object
-      required: [id, at, sizeBytes, kind, serverVersion, people, tracks]
+      required: [id, at, sizeBytes, kind, serverVersion, people, tracks, musicFolders]
       properties:
         id: { type: string, description: The file name. }
         at: { type: string, format: date-time }
@@ -1940,6 +1943,22 @@ components:
         serverVersion: { type: string }
         people: { type: integer }
         tracks: { type: integer }
+        musicFolders: { type: array, items: { type: string }, description: The music folders on the computer that made it. }
+    BackupRestore:
+      type: object
+      additionalProperties: false
+      properties:
+        folders:
+          type: array
+          maxItems: 20
+          description: "Moving to another computer: where each music folder of the backup is now. Songs keep their likes, plays and playlists."
+          items:
+            type: object
+            additionalProperties: false
+            required: [from, to]
+            properties:
+              from: { type: string, maxLength: 1024 }
+              to: { type: string, maxLength: 1024 }
     BackupSettings:
       type: object
       additionalProperties: false

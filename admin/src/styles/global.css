@@ -1388,3 +1388,13 @@ code {
 .field--wide {
   grid-column: 1 / -1;
 }
+
+.row__more {
+  padding: var(--hv-space-sm) 0 0 calc(16px + var(--hv-space-sm));
+}
+
+.moves {
+  display: grid;
+  gap: var(--hv-space-sm);
+  margin-bottom: var(--hv-space-sm);
+}

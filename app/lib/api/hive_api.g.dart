@@ -1397,6 +1397,7 @@ class Backup {
     required this.serverVersion,
     required this.people,
     required this.tracks,
+    required this.musicFolders,
   });
 
   /// The file name.
@@ -1407,6 +1408,8 @@ class Backup {
   final String serverVersion;
   final int people;
   final int tracks;
+  /// The music folders on the computer that made it.
+  final List<String> musicFolders;
 
   factory Backup.fromJson(Map<String, dynamic> json) => Backup(
         id: json['id'] as String,
@@ -1416,6 +1419,7 @@ class Backup {
         serverVersion: json['serverVersion'] as String,
         people: json['people'] as int,
         tracks: json['tracks'] as int,
+        musicFolders: (json['musicFolders'] as List<dynamic>).map((e) => e as String).toList(),
       );
 
   Map<String, dynamic> toJson() => {
@@ -1426,6 +1430,24 @@ class Backup {
         'serverVersion': serverVersion,
         'people': people,
         'tracks': tracks,
+        'musicFolders': musicFolders.map((e) => e).toList(),
+      };
+}
+
+class BackupRestore {
+  const BackupRestore({
+    this.folders,
+  });
+
+  /// Moving to another computer: where each music folder of the backup is now. Songs keep their likes, plays and playlists.
+  final List<Map<String, dynamic>>? folders;
+
+  factory BackupRestore.fromJson(Map<String, dynamic> json) => BackupRestore(
+        folders: json['folders'] == null ? null : (json['folders'] as List<dynamic>).map((e) => (e as Map).cast<String, dynamic>()).toList(),
+      );
+
+  Map<String, dynamic> toJson() => {
+        'folders': ?folders?.map((e) => e).toList(),
       };
 }
 

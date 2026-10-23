@@ -3,6 +3,7 @@ one at the next start without letting signed-out devices back in."""
 
 from __future__ import annotations
 
+import shutil
 import zipfile
 from datetime import datetime
 
@@ -11,7 +12,8 @@ from fastapi.testclient import TestClient
 from hive.app import create_app
 from hive.config import Settings
 
-from .conftest import HOME_COMPUTER, assert_matches
+from .audio_fixtures import music_like, write_audio
+from .conftest import HOME_COMPUTER, assert_matches, needs_ffmpeg
 from .test_people import invite, join, set_up_admin
 
 
@@ -174,3 +176,61 @@ def test_backup_from_the_command_line_before_an_update(settings: Settings, capsy
     assert len(made) == 1
     with zipfile.ZipFile(made[0]) as z:
         assert "server.db" in z.namelist()
+
+
+@needs_ffmpeg
+def test_moving_to_another_computer_keeps_likes_and_playlists(settings: Settings, tmp_path) -> None:
+    """Back up on one computer, restore on another whose music is somewhere
+    else: the songs are found in their new place with the same ids, so
+    likes and playlists stay; this computer's address and backup folder stay."""
+    old_music = settings.music_folders[0]
+    for i in range(2):
+        write_audio(old_music / "Band" / "Album" / f"0{i + 1} Song {i + 1}.flac", music_like(i, 4))
+    c = started(settings)
+    try:
+        assert c.app.state.library.wait_idle(60)
+        auth = {"Authorization": f"Bearer {c.app.state.dev_key}"}
+        tracks = c.get("/api/v1/library/tracks", headers=auth).json()["items"]
+        song = next(t for t in tracks if t["title"] == "Song 1")
+        assert c.put(f"/api/v1/library/likes/{song['id']}", headers=auth).status_code in (200, 204)
+        pl = c.post(
+            "/api/v1/library/playlists",
+            json={"name": "Car", "trackIds": [t["id"] for t in tracks]},
+            headers=auth,
+        ).json()
+        backup = c.post("/api/v1/admin/backups").json()
+        assert backup["musicFolders"] == [str(old_music)]
+    finally:
+        c.__exit__(None, None, None)
+
+    # The other computer: the music copied to another folder, its own address.
+    new_music = tmp_path / "PC" / "D" / "Music"
+    shutil.copytree(old_music, new_music)
+    shutil.rmtree(old_music)
+    pc = settings.model_copy(update={"music_folders": [new_music]})
+    c = started(pc)
+    try:
+        c.patch("/api/v1/admin/settings", json={"address": "http://100.101.1.2:8443"})
+        r = c.post(
+            f"/api/v1/admin/backups/{backup['id']}/restore",
+            json={"folders": [{"from": str(old_music), "to": str(new_music)}]},
+        )
+        assert r.status_code == 200, r.text
+    finally:
+        c.__exit__(None, None, None)
+
+    c = started(pc)
+    try:
+        assert c.app.state.library.wait_idle(60)
+        auth = {"Authorization": f"Bearer {c.app.state.dev_key}"}
+        after = c.get("/api/v1/library/tracks", headers=auth).json()["items"]
+        assert {t["id"] for t in after} == {t["id"] for t in tracks}  # same songs, same ids
+        assert next(t for t in after if t["id"] == song["id"])["liked"] is True
+        items = c.get(f"/api/v1/library/playlists/{pl['id']}", headers=auth).json()["items"]
+        assert len(items) == 2
+        status = c.get("/api/v1/admin/library/imports").json()
+        assert [f["path"] for f in status["folders"]] == [str(new_music)]
+        assert status["needsAttention"] == []
+        assert c.get("/api/v1/admin/settings").json()["address"] == "http://100.101.1.2:8443"
+    finally:
+        c.__exit__(None, None, None)

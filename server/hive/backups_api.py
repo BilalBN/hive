@@ -17,6 +17,17 @@ from hive.models import AuditEntry
 router = APIRouter(prefix="/api/v1/admin/backups", tags=["admin"])
 
 
+class FolderMove(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+    from_: str = Field(alias="from", max_length=1024)
+    to: str = Field(max_length=1024)
+
+
+class RestoreBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    folders: list[FolderMove] = Field(default_factory=list, max_length=20)
+
+
 class SettingsBody(BaseModel):
     model_config = ConfigDict(extra="forbid")
     folder: str | None = Field(None, max_length=1024)
@@ -113,10 +124,12 @@ async def restore_backup(
     backupId: str,  # noqa: N803
     request: Request,
     who: AdminDep,
+    body: RestoreBody | None = None,
 ) -> dict[str, Any]:
     b = _backups(request)
+    folders = {f.from_: f.to for f in (body.folders if body else []) if f.from_ != f.to}
     try:
-        await run_in_threadpool(b.stage_restore, backupId)
+        await run_in_threadpool(b.stage_restore, backupId, folders)
     except FileNotFoundError as e:
         raise HTTPException(404, "No such backup") from e
     except BackupProblem as e:

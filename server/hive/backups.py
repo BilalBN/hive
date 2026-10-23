@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import shutil
 import sqlite3
 import tempfile
@@ -159,6 +160,7 @@ class Backups:
                     "serverVersion": m.get("serverVersion", ""),
                     "people": m.get("people", 0),
                     "tracks": m.get("tracks", 0),
+                    "musicFolders": m.get("musicFolders", []),
                 }
             )
         return out
@@ -263,9 +265,16 @@ class Backups:
         except (OSError, ValueError):
             return None
 
-    def stage_restore(self, backup_id: str) -> dict[str, Any]:
+    def stage_restore(
+        self, backup_id: str, folders: dict[str, str] | None = None
+    ) -> dict[str, Any]:
+        """[folders]: where each of the backup's music folders is now (moving
+        to another computer); songs keep their likes, plays and playlists."""
         path = self.path_of(backup_id)
         manifest = read_manifest(path)
+        for new in (folders or {}).values():
+            if not Path(new).is_absolute():
+                raise BackupProblem("Give the full path of each music folder.")
         # Today's state is kept first, so the restore can be undone.
         safety = self.run("before-restore")
         staged = {
@@ -274,6 +283,7 @@ class Backups:
             "backupAt": manifest["createdAt"],
             "stagedAt": _iso(datetime.now(UTC)),
             "safety": safety["id"],
+            "folders": folders or {},
         }
         self.pending_file.write_text(json.dumps(staged))
         return staged
@@ -348,7 +358,11 @@ def finish_pending_restore(settings: Settings) -> str | None:
                     shutil.copyfileobj(src, dst)
     if later.exists():
         reapply_signouts(later, current)
+        keep_this_computer(later, current)
         later.unlink()
+    if staged.get("folders"):
+        moved = move_music_folders(current, staged["folders"])
+        log.info("music folders moved for %d songs", moved)
     log.info("backup restored (%s)", source.name)
     return source.name
 
@@ -394,3 +408,75 @@ def _reapply(con: sqlite3.Connection, later: Path) -> int:
     con.commit()
     con.execute("DETACH DATABASE later")
     return n
+
+
+# Settings about this computer rather than the family: restoring a backup
+# made on another computer keeps this computer's own.
+THIS_COMPUTER = ("address", "private_network_link", "backup_folder", "backup_scheduled_on")
+
+
+def keep_this_computer(later: Path, restored: Path) -> None:
+    con = sqlite3.connect(restored)
+    try:
+        con.execute("ATTACH DATABASE ? AS later", (str(later),))
+        marks = ",".join("?" * len(THIS_COMPUTER))
+        con.execute(f"DELETE FROM server_meta WHERE key IN ({marks})", THIS_COMPUTER)  # noqa: S608
+        con.execute(
+            f"INSERT INTO server_meta (key, value, updated_at) SELECT key, value, updated_at "  # noqa: S608
+            f"FROM later.server_meta "
+            f"WHERE key IN ({marks})",
+            THIS_COMPUTER,
+        )
+        con.commit()
+        con.execute("DETACH DATABASE later")
+    except sqlite3.OperationalError:
+        pass  # a very old backup without these settings
+    finally:
+        con.close()
+
+
+def _moved(path: str, old: str, new: str) -> str | None:
+    """[path] under [old], as it is under [new] on this computer (separators
+    converted, so a Mac path becomes a Windows one)."""
+    old_s = old.rstrip("/\\")
+    if path != old_s and not (path.startswith(old_s) and path[len(old_s)] in "/\\"):
+        return None
+    rest = [p for p in re.split(r"[/\\]", path[len(old_s) :]) if p]
+    return str(Path(new, *rest))
+
+
+def move_music_folders(db: Path, folders: dict[str, str]) -> int:
+    """Point songs, albums and the import list at the folders' new places.
+    Song ids stay the same, so likes, playlists and history stay with them.
+    Returns how many songs were moved."""
+    con = sqlite3.connect(db)
+    moved = 0
+    try:
+        for old, new in folders.items():
+            for table in ("tracks", "import_items"):
+                rows = con.execute(f"SELECT rowid, path FROM {table}").fetchall()  # noqa: S608
+                for rowid, path in rows:
+                    target = _moved(path, old, new)
+                    if target is None:
+                        continue
+                    try:
+                        con.execute(
+                            f"UPDATE {table} SET path = ?, folder = ? WHERE rowid = ?",  # noqa: S608
+                            (target, str(Path(new)), rowid),
+                        )
+                    except sqlite3.IntegrityError:
+                        continue  # already there under its new path
+                    if table == "tracks":
+                        moved += 1
+            for rowid, path in con.execute(
+                "SELECT rowid, folder_path FROM albums WHERE folder_path IS NOT NULL"
+            ).fetchall():
+                target = _moved(path, old, new)
+                if target is not None:
+                    con.execute(
+                        "UPDATE albums SET folder_path = ? WHERE rowid = ?", (target, rowid)
+                    )
+        con.commit()
+        return moved
+    finally:
+        con.close()

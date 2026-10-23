@@ -19,8 +19,14 @@ export const fetchBackups = async () => take(await api.GET("/api/v1/admin/backup
 export const runBackup = async () => take(await api.POST("/api/v1/admin/backups"));
 export const saveBackupSettings = async (body: BackupSettings) =>
   take(await api.PUT("/api/v1/admin/backups/settings", { body }));
-export const restoreBackup = async (backupId: string) =>
-  take(await api.POST("/api/v1/admin/backups/{backupId}/restore", id(backupId)));
+export type FolderMove = { from: string; to: string };
+export const restoreBackup = async (backupId: string, folders: FolderMove[] = []) =>
+  take(
+    await api.POST("/api/v1/admin/backups/{backupId}/restore", {
+      ...id(backupId),
+      body: folders.length ? { folders } : {},
+    }),
+  );
 export const cancelRestore = async () => take(await api.DELETE("/api/v1/admin/backups/restore"));
 export const deleteBackup = async (backupId: string) => {
   const r = await api.DELETE("/api/v1/admin/backups/{backupId}", id(backupId));

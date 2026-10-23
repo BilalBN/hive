@@ -13,6 +13,7 @@ const daily: Backup = {
   serverVersion: "0.3.0",
   people: 4,
   tracks: 1240,
+  musicFolders: ["/Volumes/Music/Hive"],
 };
 
 const status: BackupStatus = {
@@ -26,6 +27,26 @@ const status: BackupStatus = {
 };
 
 afterEach(() => vi.unstubAllGlobals());
+
+const library = (path: string) => ({
+  "GET /api/v1/admin/library/imports": {
+    body: {
+      tracks: 1240,
+      albums: 96,
+      artists: 41,
+      sizeBytes: 0,
+      hoursOfMusic: 1,
+      scanning: false,
+      queued: 0,
+      folders: [{ path, exists: true, trackCount: 1240 }],
+      uploadFolder: path,
+      ffmpeg: true,
+      queue: [],
+      needsAttention: [],
+      recentlyAdded: [],
+    },
+  },
+});
 
 describe("Backups", () => {
   it("lists backups and makes one now", async () => {
@@ -50,6 +71,7 @@ describe("Backups", () => {
     vi.stubGlobal("confirm", () => true);
     const pendingRestore = { id: daily.id, backupAt: daily.at, stagedAt: "2026-10-22T10:00:00Z" };
     mockApi({
+      ...library("/Volumes/Music/Hive"),
       "GET /api/v1/admin/backups": () => ({ body: staged ? { ...status, pendingRestore } : status }),
       [`POST /api/v1/admin/backups/${daily.id}/restore`]: () => {
         staged = true;
@@ -95,5 +117,26 @@ describe("Backups", () => {
     });
     renderAt("/backups");
     expect(await screen.findByRole("alert")).toHaveTextContent("Is the drive connected?");
+  });
+
+  it("moving to this computer: asks where each music folder is now", async () => {
+    let sent: unknown;
+    vi.stubGlobal("confirm", () => true);
+    mockApi({
+      ...library("D:\\Music"),
+      "GET /api/v1/admin/backups": { body: status },
+      [`POST /api/v1/admin/backups/${daily.id}/restore`]: (req) => {
+        void req.json().then((b) => (sent = b));
+        return { body: status };
+      },
+    });
+    renderAt("/backups");
+    const row = (await screen.findByText(/Daily · 48.0 MB/)).closest("li")!;
+    await waitFor(() => expect(within(row).getByRole("button", { name: "Restore" })).toBeEnabled());
+    fireEvent.click(within(row).getByRole("button", { name: "Restore" }));
+    const where = await within(row).findByLabelText("/Volumes/Music/Hive");
+    expect(where).toHaveValue("D:\\Music");
+    fireEvent.click(within(row).getByRole("button", { name: "Restore this backup" }));
+    await waitFor(() => expect(sent).toEqual({ folders: [{ from: "/Volumes/Music/Hive", to: "D:\\Music" }] }));
   });
 });

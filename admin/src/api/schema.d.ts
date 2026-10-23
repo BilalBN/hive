@@ -2037,6 +2037,15 @@ export interface components {
             serverVersion: string;
             people: number;
             tracks: number;
+            /** @description The music folders on the computer that made it. */
+            musicFolders: string[];
+        };
+        BackupRestore: {
+            /** @description Moving to another computer: where each music folder of the backup is now. Songs keep their likes, plays and playlists. */
+            folders?: {
+                from: string;
+                to: string;
+            }[];
         };
         BackupSettings: {
             /** @description Full path, e.g. a folder on the backup drive. */
@@ -5393,7 +5402,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["BackupRestore"];
+            };
+        };
         responses: {
             /** @description The backups, with the restore waiting. */
             200: {
