@@ -4,6 +4,18 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// UnifiedPush (M6) and flutter_secure_storage bring two builds of Google's
+// Tink crypto library; use the Android one only.
+configurations.all {
+    val tink = "com.google.crypto.tink:tink-android:1.23.0"
+    resolutionStrategy {
+        force(tink)
+        dependencySubstitution {
+            substitute(module("com.google.crypto.tink:tink")).using(module(tink))
+        }
+    }
+}
+
 android {
     namespace = "dev.hivemusic.hive"
     compileSdk = flutter.compileSdkVersion
