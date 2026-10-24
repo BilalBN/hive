@@ -1,3 +1,5 @@
+import '../remote/remote_ui.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -112,6 +114,16 @@ class NowPlayingScreen extends ConsumerWidget {
         ),
         const SizedBox(width: HiveSpace.sm),
         const LikeButton(size: 18, onArt: true),
+        const SizedBox(width: HiveSpace.xs),
+        GlassCircleButton(
+          tooltip: 'Play on another device',
+          onPressed: () => showDevicesSheet(context, ref),
+          child: const Icon(
+            HiveIcons.monitorSmartphone,
+            size: 18,
+            color: OnArt.primary,
+          ),
+        ),
         const SizedBox(width: HiveSpace.xs),
         more,
       ],

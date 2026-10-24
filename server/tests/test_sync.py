@@ -117,3 +117,96 @@ def test_signed_in_only(home) -> None:
     assert away.get("/api/v1/sync/session").status_code == 401
     with pytest.raises(WebSocketDisconnect), away.websocket_connect("/api/v1/sync/events") as ws:
         ws.receive_json()
+
+
+# ------------------------------------------------------------------ M6: remotes
+
+
+def _drain_until(ws, kind: str) -> dict:
+    while True:
+        m = ws.receive_json()
+        if m["type"] == kind:
+            return m
+
+
+def test_devices_and_a_phone_as_a_remote(home, tracks) -> None:
+    c = home.client
+    mac_url = "/api/v1/sync/events?install=mac-install-1&name=Bilal%27s%20MacBook"
+    phone_url = "/api/v1/sync/events?install=phone-install&name=Bilal%27s%20Pixel"
+    with (
+        c.websocket_connect(mac_url, headers=home.auth) as mac,
+        c.websocket_connect(phone_url, headers=home.auth) as phone,
+    ):
+        assert _drain_until(mac, "devices")  # the phone opened Hive
+        devices = c.get("/api/v1/sync/devices", headers=home.auth).json()
+        assert_matches(devices, "DeviceList")
+        names = {d["installId"]: d["deviceName"] for d in devices["items"]}
+        assert names == {"mac-install-1": "Bilal's MacBook", "phone-install": "Bilal's Pixel"}
+        assert not any(d["playing"] for d in devices["items"])
+
+        # The Mac plays; the phone hears it as a device change.
+        ids = [t["id"] for t in tracks[:3]]
+        c.put(
+            "/api/v1/sync/session",
+            json={
+                "installId": "mac-install-1",
+                "deviceName": "Bilal's MacBook",
+                "trackId": ids[0],
+                "positionMs": 1000,
+                "playing": True,
+                "queue": ids,
+                "index": 0,
+            },
+            headers=home.auth,
+        )
+        device = _drain_until(phone, "device")["device"]
+        assert device["installId"] == "mac-install-1" and device["playing"] is True
+        assert device["track"]["id"] == ids[0]
+
+        # The phone pauses the Mac, then moves playback to the Mac from its own queue.
+        r = c.post(
+            "/api/v1/sync/devices/mac-install-1/command",
+            json={"action": "pause", "fromInstall": "phone-install"},
+            headers=home.auth,
+        )
+        assert r.status_code == 200 and r.json() == {"sent": True}
+        got = _drain_until(mac, "command")
+        assert got["command"] == {"action": "pause"} and got["fromName"] == "Bilal's Pixel"
+
+        c.post(
+            "/api/v1/sync/devices/mac-install-1/command",
+            json={
+                "action": "load",
+                "fromInstall": "phone-install",
+                "queue": [ids[2], ids[1]],
+                "index": 1,
+                "positionMs": 5000,
+            },
+            headers=home.auth,
+        )
+        load = _drain_until(mac, "command")["command"]
+        assert load["action"] == "load" and load["index"] == 1 and load["positionMs"] == 5000
+        assert [t["id"] for t in load["queue"]] == [ids[2], ids[1]] and load["playing"] is True
+
+        bad = c.post(
+            "/api/v1/sync/devices/mac-install-1/command",
+            json={"action": "seek", "fromInstall": "phone-install"},
+            headers=home.auth,
+        )
+        assert bad.status_code == 422
+        assert (
+            c.post(
+                "/api/v1/sync/devices/mac-install-1/command",
+                json={"action": "dance", "fromInstall": "phone-install"},
+                headers=home.auth,
+            ).status_code
+            == 422
+        )
+    # Closed: no longer listed, and commands say so.
+    assert c.get("/api/v1/sync/devices", headers=home.auth).json() == {"items": []}
+    r = c.post(
+        "/api/v1/sync/devices/mac-install-1/command",
+        json={"action": "play", "fromInstall": "phone-install"},
+        headers=home.auth,
+    )
+    assert r.status_code == 409

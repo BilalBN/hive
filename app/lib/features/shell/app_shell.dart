@@ -1,3 +1,6 @@
+import '../../sync/remote.dart';
+import '../remote/remote_ui.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -193,6 +196,19 @@ class AppShell extends ConsumerWidget {
               ],
             ),
           ),
+          if (ref.watch(remoteProvider.select((r) => r.controlled)) != null)
+            const Padding(
+              padding: EdgeInsets.fromLTRB(
+                HiveSpace.md,
+                0,
+                HiveSpace.md,
+                HiveSpace.xs,
+              ),
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: SizedBox(width: 420, child: RemoteBar()),
+              ),
+            ),
           if (ref.watch(continuityOfferProvider) != null)
             const Padding(
               padding: EdgeInsets.fromLTRB(
@@ -235,6 +251,8 @@ class _MobileFrame extends ConsumerWidget {
     final mq = MediaQuery.of(context);
     final playing = ref.watch(playerProvider.select((s) => s.track != null));
     final offered = ref.watch(continuityOfferProvider) != null;
+    final remote =
+        ref.watch(remoteProvider.select((r) => r.controlled)) != null;
     // While typing, the keyboard takes the bottom of the screen; the tab
     // bar and mini player step aside rather than ride on top of it.
     final typing = mq.viewInsets.bottom > 0;
@@ -246,6 +264,7 @@ class _MobileFrame extends ConsumerWidget {
               _barHeight +
               (playing ? miniPlayerHeight + _gap : 0) +
               (offered ? continuityBarHeight + _gap : 0) +
+              (remote ? remoteBarHeight + _gap : 0) +
               _gap;
 
     return Scaffold(
@@ -289,6 +308,10 @@ class _MobileFrame extends ConsumerWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  if (remote) ...[
+                    const RemoteBar(),
+                    const SizedBox(height: _gap),
+                  ],
                   if (offered) ...[
                     const ContinuityBar(),
                     const SizedBox(height: _gap),

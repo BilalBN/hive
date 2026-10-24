@@ -606,6 +606,30 @@ paths:
       responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
 
   # ---------------------------------------------------------------- sync (M4)
+  /api/v1/sync/devices:
+    get:
+      tags: [sync]
+      operationId: listDevices
+      summary: The person's devices with Hive open now, and what each is playing.
+      x-milestone: M6
+      responses:
+        "200": { description: The devices., content: { application/json: { schema: { $ref: "#/components/schemas/DeviceList" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /api/v1/sync/devices/{installId}/command:
+    parameters: [{ name: installId, in: path, required: true, schema: { type: string } }]
+    post:
+      tags: [sync]
+      operationId: commandDevice
+      summary: Tell one of the person's open devices to play, pause, skip, seek, change volume, or play a queue there.
+      x-milestone: M6
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/DeviceCommand" } } }
+      responses:
+        "200": { description: Sent., content: { application/json: { schema: { $ref: "#/components/schemas/CommandSent" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "409": { description: That device isn't open any more., content: { application/problem+json: { schema: { $ref: "#/components/schemas/Problem" } } } }
+        "422": { $ref: "#/components/responses/Invalid" }
   /api/v1/sync/session:
     get:
       tags: [sync]
@@ -613,9 +637,12 @@ paths:
       summary: The person's last play session, for the continuity offer ("Continue from Bilal's MacBook").
       description: >-
         Empty when there's nothing to offer. Changes also arrive over a WebSocket at
-        /api/v1/sync/events?install=<installId> (same Authorization header): messages
-        {"type":"session","session":PlaySession} from the person's other devices, and
-        {"type":"ping"} every 30 seconds.
+        /api/v1/sync/events?install=<installId>&name=<device name> (same Authorization
+        header): messages {"type":"session","session":PlaySession} from the person's
+        other devices, {"type":"ping"} every 30 seconds, and (M6) {"type":"device",
+        "device":Device} when another device's playing changes, {"type":"devices"} when
+        one opens or closes, and {"type":"command","from":installId,"fromName":name,
+        "command":RemoteCommand} for this device to carry out.
       x-milestone: M4
       responses:
         "200": { description: "The session, if any.", content: { application/json: { schema: { $ref: "#/components/schemas/PlaySessionState" } } } }
@@ -2104,6 +2131,51 @@ components:
         playing: { type: boolean }
         queue: { type: array, maxItems: 200, items: { type: string }, description: Track ids around the current one. }
         index: { type: integer, minimum: 0 }
+        source: { $ref: "#/components/schemas/SessionSource" }
+    Device:
+      type: object
+      required: [installId, deviceName, playing]
+      properties:
+        installId: { type: string }
+        deviceName: { type: string }
+        playing: { type: boolean }
+        track: { $ref: "#/components/schemas/TrackSummary" }
+        positionMs: { type: integer, description: Where it is now, as far as home knows. }
+        updatedAt: { type: string, format: date-time }
+    DeviceList:
+      type: object
+      required: [items]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/Device" } }
+    DeviceCommand:
+      type: object
+      additionalProperties: false
+      required: [action, fromInstall]
+      properties:
+        action: { type: string, enum: [play, pause, next, previous, seek, volume, load] }
+        fromInstall: { type: string, minLength: 8, maxLength: 64, description: The device sending it. }
+        positionMs: { type: integer, minimum: 0, description: "seek; load: where to start." }
+        volume: { type: number, minimum: 0, maximum: 1 }
+        queue: { type: array, maxItems: 200, items: { type: string }, description: "load: song ids." }
+        index: { type: integer, minimum: 0 }
+        playing: { type: boolean, description: "load: start playing (default) or wait." }
+        source: { $ref: "#/components/schemas/SessionSource" }
+    CommandSent:
+      type: object
+      required: [sent]
+      properties:
+        sent: { type: boolean }
+    RemoteCommand:
+      type: object
+      description: What a device is told to do, over the sync WebSocket (M6).
+      required: [action]
+      properties:
+        action: { type: string, enum: [play, pause, next, previous, seek, volume, load] }
+        positionMs: { type: integer }
+        volume: { type: number }
+        queue: { type: array, items: { $ref: "#/components/schemas/TrackSummary" } }
+        index: { type: integer }
+        playing: { type: boolean }
         source: { $ref: "#/components/schemas/SessionSource" }
     PlaySession:
       type: object

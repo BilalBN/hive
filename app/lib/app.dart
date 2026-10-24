@@ -10,6 +10,7 @@ import 'desktop/desktop.dart';
 import 'downloads/downloads.dart';
 import 'sync/continuity.dart';
 import 'ui/preferences.dart';
+import 'features/remote/remote_ui.dart';
 import 'features/connect/connect_screen.dart';
 import 'features/downloads/downloads_screen.dart';
 import 'features/home/home_screen.dart';
@@ -90,6 +91,7 @@ GoRouter buildRouter(
   routes: [
     GoRoute(path: '/connect', builder: (_, _) => const ConnectScreen()),
     GoRoute(path: '/settings', builder: (_, _) => const SettingsScreen()),
+    GoRoute(path: '/remote', builder: (_, _) => const RemoteScreen()),
     GoRoute(
       path: '/now-playing',
       pageBuilder: (_, s) => _sheetPage(s, const NowPlayingScreen()),

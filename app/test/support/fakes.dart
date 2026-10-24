@@ -241,18 +241,30 @@ class FakeDownloadTransport implements DownloadTransport {
 class FakeSessionLink implements SessionLink {
   PlaySession? session;
   final reports = <PlaySessionUpdate>[];
-  final _changes = StreamController<PlaySession?>.broadcast();
+  final _events = StreamController<SyncEvent>.broadcast();
+
+  /// The person's other open devices (M6), and what was sent to them.
+  List<Device> open = [];
+  final sent = <(String, DeviceCommand)>[];
 
   /// Another device changed something (as the WebSocket would say).
   void push(PlaySession? s) {
     session = s;
-    _changes.add(s);
+    _events.add(SessionChanged(s));
   }
+
+  /// Anything else the WebSocket would say.
+  void say(SyncEvent e) => _events.add(e);
 
   @override
   Future<PlaySession?> fetch() async => session;
   @override
   Future<void> report(PlaySessionUpdate update) async => reports.add(update);
   @override
-  Stream<PlaySession?> changes() => _changes.stream;
+  Stream<SyncEvent> events() => _events.stream;
+  @override
+  Future<List<Device>> devices() async => open;
+  @override
+  Future<void> command(String installId, DeviceCommand command) async =>
+      sent.add((installId, command));
 }

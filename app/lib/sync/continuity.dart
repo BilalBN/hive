@@ -13,6 +13,7 @@ import '../core/api.dart';
 import '../core/app_info.dart';
 import '../core/home_connection.dart';
 import '../player/player_controller.dart';
+import 'remote.dart';
 
 /// This app on this device: stays the same across sign-ins, so a phone
 /// doesn't offer to carry on from itself.
@@ -30,14 +31,50 @@ final installIdProvider = Provider<String>((ref) {
   return id;
 });
 
-/// Talks to home about play sessions. Replaced in tests.
+/// Something the person's other devices did, heard over the sync link.
+sealed class SyncEvent {
+  const SyncEvent();
+}
+
+/// The person's last play session changed (continuity).
+class SessionChanged extends SyncEvent {
+  const SessionChanged(this.session);
+  final PlaySession? session;
+}
+
+/// Another device's playing changed (M6: remotes).
+class DeviceChanged extends SyncEvent {
+  const DeviceChanged(this.device);
+  final Device device;
+}
+
+/// A device opened or closed Hive (M6).
+class DevicesChanged extends SyncEvent {
+  const DevicesChanged();
+}
+
+/// Another of the person's devices asks this one to do something (M6).
+class CommandReceived extends SyncEvent {
+  const CommandReceived(this.fromName, this.command);
+  final String fromName;
+  final RemoteCommand command;
+}
+
+/// Talks to home about play sessions, devices and remote commands.
+/// Replaced in tests.
 abstract class SessionLink {
   Future<PlaySession?> fetch();
   Future<void> report(PlaySessionUpdate update);
 
-  /// The person's other devices' changes as they happen; ends when the
+  /// What the person's other devices do, as it happens; ends when the
   /// connection drops.
-  Stream<PlaySession?> changes();
+  Stream<SyncEvent> events();
+
+  /// The person's devices with Hive open now (this one included).
+  Future<List<Device>> devices();
+
+  /// Tell one of them to do something.
+  Future<void> command(String installId, DeviceCommand command);
 }
 
 class HomeSessionLink implements SessionLink {
@@ -53,7 +90,16 @@ class HomeSessionLink implements SessionLink {
       _ref.read(hiveApiProvider).updatePlaySession(body: update);
 
   @override
-  Stream<PlaySession?> changes() async* {
+  Future<List<Device>> devices() async =>
+      (await _ref.read(hiveApiProvider).listDevices()).items;
+
+  @override
+  Future<void> command(String installId, DeviceCommand command) => _ref
+      .read(hiveApiProvider)
+      .commandDevice(installId: installId, body: command);
+
+  @override
+  Stream<SyncEvent> events() async* {
     final config = _ref.read(homeConfigProvider);
     if (config == null || kIsWeb) return;
     final auth = _ref.read(deviceAuthProvider);
@@ -65,18 +111,38 @@ class HomeSessionLink implements SessionLink {
     final url = base.replace(
       scheme: base.scheme == 'https' ? 'wss' : 'ws',
       path: '/api/v1/sync/events',
-      queryParameters: {'install': _ref.read(installIdProvider)},
+      queryParameters: {
+        'install': _ref.read(installIdProvider),
+        'name': defaultDeviceName,
+      },
     );
     final ws = await WebSocket.connect(url.toString(), headers: headers);
     ws.pingInterval = const Duration(seconds: 45);
     await for (final raw in ws) {
       if (raw is! String) continue;
       final m = jsonDecode(raw) as Map<String, dynamic>;
-      if (m['type'] != 'session') continue;
-      final s = m['session'];
-      yield s is Map && s.isNotEmpty
-          ? PlaySession.fromJson(s.cast<String, dynamic>())
-          : null;
+      switch (m['type']) {
+        case 'session':
+          final s = m['session'];
+          yield SessionChanged(
+            s is Map && s.isNotEmpty
+                ? PlaySession.fromJson(s.cast<String, dynamic>())
+                : null,
+          );
+        case 'device':
+          yield DeviceChanged(
+            Device.fromJson((m['device'] as Map).cast<String, dynamic>()),
+          );
+        case 'devices':
+          yield const DevicesChanged();
+        case 'command':
+          yield CommandReceived(
+            (m['fromName'] as String?) ?? 'Another device',
+            RemoteCommand.fromJson(
+              (m['command'] as Map).cast<String, dynamic>(),
+            ),
+          );
+      }
     }
   }
 }
@@ -99,7 +165,7 @@ class ContinuityState {
 class ContinuityController extends Notifier<ContinuityState> {
   Timer? _heartbeat;
   Timer? _debounce;
-  StreamSubscription<PlaySession?>? _changes;
+  StreamSubscription<SyncEvent>? _changes;
   Timer? _retry;
   int _failures = 0;
   String _lastReported = '';
@@ -247,10 +313,20 @@ class ContinuityController extends Notifier<ContinuityState> {
     if (_changes != null) return;
     _retry?.cancel();
     try {
-      _changes = _link.changes().listen(
-        (s) {
+      _changes = _link.events().listen(
+        (e) {
           _failures = 0;
-          state = ContinuityState(session: s, dismissed: state.dismissed);
+          switch (e) {
+            case SessionChanged(:final session):
+              state = ContinuityState(
+                session: session,
+                dismissed: state.dismissed,
+              );
+            case CommandReceived():
+              unawaited(obey(ref, e));
+            case DeviceChanged() || DevicesChanged():
+              ref.read(remoteProvider.notifier).heard(e);
+          }
         },
         onError: (_) => _reconnect(),
         onDone: _reconnect,
