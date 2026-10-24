@@ -1,0 +1,1 @@
+First F-Droid release: everyday family use (backups, carry on from another device, Simple mode).

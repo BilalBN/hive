@@ -28,7 +28,11 @@ String get defaultDeviceName {
 }
 
 /// Phones can scan an invite's QR code with the camera.
+/// The F-Droid build: only free software inside, so no QR scanner (M6).
+const fdroidBuild = bool.fromEnvironment('HIVE_FDROID');
+
 bool get canScanQr =>
+    !fdroidBuild &&
     !kIsWeb &&
     (defaultTargetPlatform == TargetPlatform.android ||
         defaultTargetPlatform == TargetPlatform.iOS);

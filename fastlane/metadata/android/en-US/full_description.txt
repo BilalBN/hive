@@ -1,0 +1,13 @@
+<p>Hive plays your family's own music collection from a computer at home: your FLAC and MP3 files, in full quality, on every phone and computer in the family, with no subscription and nothing uploaded to anyone.</p>
+<p><b>You need a Hive server at home</b> (free, for Windows, macOS or Linux; see the project page) and Tailscale, so your devices can reach home from anywhere.</p>
+<ul>
+<li>Albums, artists, playlists and liked songs, with lyrics and covers</li>
+<li>Lossless and hi-res playback, gapless, with volume levelling</li>
+<li>Downloads that play offline for 30 days</li>
+<li>Listen: hold the phone to a speaker and Hive names the song from your collection (only sound landmarks reach home, never the recording)</li>
+<li>Carry on from another device, or use the phone as a remote</li>
+<li>Simple mode with big buttons for grandparents</li>
+<li>Malayalam, Hindi, Tamil and English music and names, side by side</li>
+</ul>
+<p>Invite-only: whoever runs Hive at home invites each person and approves each device.</p>
+<p>This F-Droid build contains only free software: joining is by typing the invite's address and code (no QR scanner, which needs Google's ML Kit), and there's no Shazam for songs that aren't at home.</p>
