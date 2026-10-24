@@ -11,6 +11,7 @@ import 'package:window_manager/window_manager.dart';
 import '../core/home_connection.dart';
 import '../player/player_controller.dart';
 import '../player/quality.dart';
+import 'notch.dart';
 
 /// Computers only: the tray / menu-bar icon, the mini player window,
 /// closing the window without stopping the music, and (Windows) the
@@ -30,6 +31,7 @@ class DesktopSettings {
     this.closeToTray = true,
     this.outputDevice = 'auto',
     this.exclusive = false,
+    this.notchControls = true,
   });
 
   /// Closing the window keeps the music playing (Hive stays in the tray /
@@ -42,14 +44,19 @@ class DesktopSettings {
   /// Exclusive mode: Hive alone uses the device, bit-perfect (Windows).
   final bool exclusive;
 
+  /// Song controls by the Mac's notch (M6).
+  final bool notchControls;
+
   DesktopSettings copyWith({
     bool? closeToTray,
     String? outputDevice,
     bool? exclusive,
+    bool? notchControls,
   }) => DesktopSettings(
     closeToTray: closeToTray ?? this.closeToTray,
     outputDevice: outputDevice ?? this.outputDevice,
     exclusive: exclusive ?? this.exclusive,
+    notchControls: notchControls ?? this.notchControls,
   );
 }
 
@@ -57,6 +64,7 @@ class DesktopSettingsNotifier extends Notifier<DesktopSettings> {
   static const _close = 'desktop.closeToTray';
   static const _device = 'output.device';
   static const _exclusive = 'output.exclusive';
+  static const _notch = 'desktop.notchControls';
 
   @override
   DesktopSettings build() {
@@ -65,6 +73,7 @@ class DesktopSettingsNotifier extends Notifier<DesktopSettings> {
       closeToTray: prefs.getBool(_close) ?? true,
       outputDevice: prefs.getString(_device) ?? 'auto',
       exclusive: prefs.getBool(_exclusive) ?? false,
+      notchControls: prefs.getBool(_notch) ?? true,
     );
   }
 
@@ -73,6 +82,7 @@ class DesktopSettingsNotifier extends Notifier<DesktopSettings> {
     await prefs.setBool(_close, next.closeToTray);
     await prefs.setString(_device, next.outputDevice);
     await prefs.setBool(_exclusive, next.exclusive);
+    await prefs.setBool(_notch, next.notchControls);
     state = next;
     await applyOutput(next);
   }
@@ -161,6 +171,7 @@ class DesktopShell with TrayListener, WindowListener {
     await _refresh();
     _ref.listen(playerProvider, (_, _) => unawaited(_refresh()));
     await applyOutput(_ref.read(desktopSettingsProvider));
+    await _ref.read(notchBridgeProvider).start();
   }
 
   PlayerController get _player => _ref.read(playerProvider.notifier);

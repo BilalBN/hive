@@ -732,6 +732,25 @@ class _ThisComputerState extends ConsumerState<_ThisComputer> {
               activeThumbColor: p.accent,
               onChanged: (v) => settings.update(s.copyWith(closeToTray: v)),
             ),
+            if (defaultTargetPlatform == TargetPlatform.macOS)
+              SwitchListTile(
+                secondary: Icon(
+                  HiveIcons.panelTop,
+                  size: 20,
+                  color: p.textSecondary,
+                ),
+                title: Text(
+                  'Song controls by the notch',
+                  style: HiveType.body.copyWith(color: p.textPrimary),
+                ),
+                subtitle: Text(
+                  'Point at the notch to see the song, pause or skip. Macs with a notch only.',
+                  style: HiveType.caption.copyWith(color: p.textSecondary),
+                ),
+                value: s.notchControls,
+                activeThumbColor: p.accent,
+                onChanged: (v) => settings.update(s.copyWith(notchControls: v)),
+              ),
             if (outputChoiceHere) ...[
               _Row(
                 icon: HiveIcons.speaker,
