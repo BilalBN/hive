@@ -62,6 +62,12 @@ ThemeData buildHiveTheme(Brightness brightness) {
     splashFactory: NoSplash.splashFactory,
     highlightColor: Colors.transparent,
     dividerColor: p.border,
+    // Sheets: a handle to drag them away, and no wider than a phone on an
+    // iPad or a computer.
+    bottomSheetTheme: const BottomSheetThemeData(
+      showDragHandle: true,
+      constraints: BoxConstraints(maxWidth: 560),
+    ),
     textSelectionTheme: TextSelectionThemeData(
       cursorColor: p.accent,
       selectionColor: p.accent.withValues(alpha: 0.3),

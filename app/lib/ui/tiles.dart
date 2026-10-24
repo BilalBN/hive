@@ -252,6 +252,11 @@ class CoverTile extends StatelessWidget {
   }
 }
 
+/// How tall a sideways shelf of [CoverTile]s of [size] is: the cover and two
+/// lines of text, which grow with the person's text size.
+double coverShelfHeight(BuildContext context, double size) =>
+    size + 8 + MediaQuery.textScalerOf(context).scale(44);
+
 /// A row for lists of albums, artists or playlists.
 class ListRow extends StatelessWidget {
   const ListRow({

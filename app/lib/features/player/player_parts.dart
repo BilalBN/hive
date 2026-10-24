@@ -91,7 +91,9 @@ class _SeekBarState extends ConsumerState<SeekBar> {
     final time = HiveType.caption.copyWith(
       color: active
           ? strong
-          : (widget.onArt ? OnArt.secondary : p.textSecondary),
+          : (widget.onArt
+                ? OnArt.primary.withValues(alpha: 0.9)
+                : p.textSecondary),
       fontFeatures: const [FontFeature.tabularFigures()],
       fontWeight: active ? FontWeight.w600 : FontWeight.w400,
     );
@@ -348,7 +350,7 @@ class _VolumeControlState extends ConsumerState<VolumeControl> {
       children: [
         IconButton(
           tooltip: _value == 0 ? 'Unmute' : 'Mute',
-          visualDensity: VisualDensity.compact,
+          visualDensity: playerDensity(context),
           icon: Icon(icon, size: 16, color: quiet),
           onPressed: () {
             if (_value == 0) {
@@ -450,6 +452,15 @@ class TransportControls extends ConsumerWidget {
 }
 
 /// A solid transport shape that dips when pressed.
+/// Small player buttons: compact with a mouse, finger-sized (48) on touch
+/// screens, an iPad on its side included.
+VisualDensity playerDensity(BuildContext context) {
+  final platform = Theme.of(context).platform;
+  return platform == TargetPlatform.iOS || platform == TargetPlatform.android
+      ? VisualDensity.standard
+      : VisualDensity.compact;
+}
+
 class GlyphButton extends StatefulWidget {
   const GlyphButton({
     super.key,
@@ -545,7 +556,7 @@ class ModeButton extends StatelessWidget {
     return IconButton(
       tooltip: tooltip,
       isSelected: on,
-      visualDensity: VisualDensity.compact,
+      visualDensity: playerDensity(context),
       onPressed: onPressed,
       icon: Column(
         mainAxisSize: MainAxisSize.min,

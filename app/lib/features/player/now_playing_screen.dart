@@ -62,7 +62,7 @@ class NowPlayingScreen extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              GestureDetector(
+              _TapLine(
                 onTap: () {
                   _close(context);
                   context.openAlbum(track.albumId);
@@ -77,7 +77,7 @@ class NowPlayingScreen extends ConsumerWidget {
                   ),
                 ),
               ),
-              GestureDetector(
+              _TapLine(
                 onTap: track.artistId == null
                     ? null
                     : () {
@@ -500,4 +500,22 @@ class _SwipeToSkipState extends ConsumerState<SwipeToSkip> {
       ),
     );
   }
+}
+
+/// A line of text that opens something, tall enough for a finger (44 points)
+/// without looking any bigger.
+class _TapLine extends StatelessWidget {
+  const _TapLine({required this.onTap, required this.child});
+  final VoidCallback? onTap;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+    behavior: HitTestBehavior.opaque,
+    onTap: onTap,
+    child: ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: 44),
+      child: Align(alignment: AlignmentDirectional.centerStart, child: child),
+    ),
+  );
 }
