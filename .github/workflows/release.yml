@@ -12,6 +12,13 @@ on:
   push:
     tags: ["v*"]
   workflow_dispatch:
+  # A pull request that changes how releases are made builds everything (no
+  # release is published), so the files can be tried first.
+  pull_request:
+    paths:
+      - .github/workflows/release.yml
+      - deploy/**
+      - tools/version.py
 
 permissions:
   contents: write
@@ -225,6 +232,7 @@ jobs:
   publish:
     name: Publish the release
     needs: [version, admin, android, windows-app, mac-app, iphone, server-windows, server-mac]
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
