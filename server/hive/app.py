@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -31,6 +32,7 @@ from hive.library.lookup.service import LookupService
 from hive.library.media_api import router as media_router
 from hive.library.recognition import Recognition
 from hive.library.scanner import Library
+from hive.library.sync_api import listeners as sync_listeners
 from hive.library.sync_api import router as sync_router
 from hive.library.uploads import router as uploads_router
 from hive.models import AuditEntry
@@ -38,6 +40,9 @@ from hive.people.admin_api import router as people_admin_router
 from hive.people.api import router as people_router
 from hive.people.service import People, Problem
 from hive.people.settings import HomeSettings
+from hive.push import Push, new_music_notice
+from hive.push_api import admin_router as push_admin_router
+from hive.push_api import router as push_router
 from hive.system import router as system_router
 from hive.watch import Watch, keep_recent_lines
 from hive.watch_api import router as watch_router
@@ -60,6 +65,11 @@ def create_app(settings: Settings | None = None, lookup_http: Http | None = None
         app.state.ticket_secret = ticket_secret(app.state.db)
         home = HomeSettings(app.state.db, settings.home_name)
         app.state.people = People(app.state.db, home)
+        # M6: notifications; open apps hear them over the sync WebSocket.
+        app.state.push = Push(app.state.db, home)
+        app.state.push.loop = asyncio.get_running_loop()
+        app.state.push.tell = lambda uid, m: sync_listeners.tell(uid, None, m)
+        app.state.people.push = app.state.push
         app.state.backups = Backups(settings, home)
         if restored:
             at = datetime.now(UTC).isoformat().replace("+00:00", "Z")
@@ -81,6 +91,7 @@ def create_app(settings: Settings | None = None, lookup_http: Http | None = None
             app.state.watch.start()
         app.state.library = Library(settings, app.state.db)
         app.state.library.start()
+        app.state.library.idle_hooks.append(lambda: new_music_notice(app))
         app.state.lookup = LookupService(
             settings,
             app.state.db,
@@ -135,6 +146,8 @@ def create_app(settings: Settings | None = None, lookup_http: Http | None = None
     app.include_router(watch_router)
     app.include_router(sync_router)
     app.include_router(editor_router)
+    app.include_router(push_router)
+    app.include_router(push_admin_router)
     app.include_router(listen_router)
     app.include_router(listen_admin_router)
     register_unbuilt_operations(app, load_contract())

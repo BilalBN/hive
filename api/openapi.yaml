@@ -33,6 +33,8 @@ tags:
     description: Song recognition and song requests.
   - name: sync
     description: Play sessions for continuity across devices.
+  - name: push
+    description: M6 notifications, with no personal details in them.
   - name: admin
     description: Hive Admin. Admin session required.
 
@@ -630,6 +632,49 @@ paths:
         "401": { $ref: "#/components/responses/Unauthorized" }
         "409": { description: That device isn't open any more., content: { application/problem+json: { schema: { $ref: "#/components/schemas/Problem" } } } }
         "422": { $ref: "#/components/responses/Invalid" }
+  /api/v1/push/settings:
+    get:
+      tags: [push]
+      operationId: getPushSettings
+      summary: Which notifications this person gets, and what devices need to take them while Hive is closed.
+      x-milestone: M6
+      responses:
+        "200": { description: The settings., content: { application/json: { schema: { $ref: "#/components/schemas/PushSettings" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    put:
+      tags: [push]
+      operationId: setPushSettings
+      summary: Turn kinds of notification off (or back on).
+      x-milestone: M6
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/PushChoices" } } }
+      responses:
+        "200": { description: The settings., content: { application/json: { schema: { $ref: "#/components/schemas/PushSettings" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "422": { $ref: "#/components/responses/Invalid" }
+  /api/v1/push/targets/{installId}:
+    parameters: [{ name: installId, in: path, required: true, schema: { type: string } }]
+    put:
+      tags: [push]
+      operationId: setPushTarget
+      summary: Where this device takes notifications while Hive is closed (UnifiedPush endpoint or Apple device token).
+      x-milestone: M6
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/PushTarget" } } }
+      responses:
+        "204": { description: Saved. }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "422": { $ref: "#/components/responses/Invalid" }
+    delete:
+      tags: [push]
+      operationId: deletePushTarget
+      summary: Stop notifications to this device while Hive is closed.
+      x-milestone: M6
+      responses:
+        "204": { description: Done. }
+        "401": { $ref: "#/components/responses/Unauthorized" }
   /api/v1/sync/session:
     get:
       tags: [sync]
@@ -642,7 +687,8 @@ paths:
         other devices, {"type":"ping"} every 30 seconds, and (M6) {"type":"device",
         "device":Device} when another device's playing changes, {"type":"devices"} when
         one opens or closes, and {"type":"command","from":installId,"fromName":name,
-        "command":RemoteCommand} for this device to carry out.
+        "command":RemoteCommand} for this device to carry out, and {"type":"notice",
+        "kind","title","body"} notifications for this person (never personal details).
       x-milestone: M4
       responses:
         "200": { description: "The session, if any.", content: { application/json: { schema: { $ref: "#/components/schemas/PlaySessionState" } } } }
@@ -1357,6 +1403,36 @@ paths:
         content: { application/json: { schema: { $ref: "#/components/schemas/SameSongKeep" } } }
       responses:
         "200": { description: The groups left., content: { application/json: { schema: { $ref: "#/components/schemas/SameSongs" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /api/v1/admin/push:
+    get:
+      tags: [admin]
+      operationId: adminGetPush
+      summary: Notifications to iPhones, iPads and Macs (the APNs key from the Apple Developer account).
+      x-milestone: M6
+      responses:
+        "200": { description: The settings (the key itself is never sent back)., content: { application/json: { schema: { $ref: "#/components/schemas/AdminPush" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    put:
+      tags: [admin]
+      operationId: adminSetPush
+      summary: Set the APNs key, team, app identifier and sandbox.
+      x-milestone: M6
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/AdminPushUpdate" } } }
+      responses:
+        "200": { description: The settings., content: { application/json: { schema: { $ref: "#/components/schemas/AdminPush" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "422": { $ref: "#/components/responses/Invalid" }
+  /api/v1/admin/push/test:
+    post:
+      tags: [admin]
+      operationId: adminTestPush
+      summary: Send a test notification to every admin's devices.
+      x-milestone: M6
+      responses:
+        "200": { description: How many admins it went to., content: { application/json: { schema: { $ref: "#/components/schemas/PushTestResult" } } } }
         "401": { $ref: "#/components/responses/Unauthorized" }
   /api/v1/admin/backups:
     get:
@@ -2119,6 +2195,60 @@ components:
             plays: { type: integer }
             playlistEntries: { type: integer }
         deleted: { type: integer, description: Files deleted. }
+    PushKind:
+      type: object
+      required: [kind, label, "on"]
+      properties:
+        kind: { type: string, enum: [new_music, request_added, join_waiting, song_request, needs_look] }
+        label: { type: string }
+        "on": { type: boolean }
+    PushSettings:
+      type: object
+      required: [webPushKey, apns, kinds]
+      properties:
+        webPushKey: { type: string, description: "Home's VAPID public key (base64url), for UnifiedPush / Web Push registration." }
+        apns: { type: boolean, description: Home can send to iPhones, iPads and Macs. }
+        kinds: { type: array, items: { $ref: "#/components/schemas/PushKind" } }
+    PushChoices:
+      type: object
+      additionalProperties: false
+      required: ["off"]
+      properties:
+        "off": { type: array, maxItems: 20, items: { type: string } }
+    PushTarget:
+      type: object
+      additionalProperties: false
+      required: [kind]
+      properties:
+        kind: { type: string, enum: [webpush, apns] }
+        endpoint: { type: string, maxLength: 2000, description: "webpush: the UnifiedPush endpoint (https)." }
+        p256dh: { type: string, maxLength: 200, description: "webpush: the device's public key (base64url)." }
+        auth: { type: string, maxLength: 100, description: "webpush: the auth secret (base64url)." }
+        token: { type: string, maxLength: 200, description: "apns: the device token (hex)." }
+    AdminPush:
+      type: object
+      required: [apnsReady, keySet, topic, sandbox]
+      properties:
+        apnsReady: { type: boolean }
+        keySet: { type: boolean }
+        teamId: { type: string }
+        keyId: { type: string }
+        topic: { type: string, description: The app's identifier (dev.hivemusic.hive). }
+        sandbox: { type: boolean, description: Development builds use Apple's sandbox. }
+    AdminPushUpdate:
+      type: object
+      additionalProperties: false
+      properties:
+        teamId: { type: string, pattern: "^([A-Z0-9]{10})?$" }
+        keyId: { type: string, pattern: "^([A-Z0-9]{10})?$" }
+        privateKey: { type: string, maxLength: 4000, description: "The .p8 file's text; empty removes it." }
+        topic: { type: string, maxLength: 200 }
+        sandbox: { type: boolean }
+    PushTestResult:
+      type: object
+      required: [sent]
+      properties:
+        sent: { type: integer }
     PlaySessionUpdate:
       type: object
       additionalProperties: false

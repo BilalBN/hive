@@ -189,6 +189,9 @@ export function mockApi(routes: Record<string, Route | ((req: Request) => Route)
     "GET /api/v1/admin/overview": { body: overview },
     "GET /api/v1/admin/library/tidy": { body: { items: [] } },
     "GET /api/v1/admin/song-requests": { body: { items: [] } },
+    "GET /api/v1/admin/push": {
+      body: { apnsReady: false, keySet: false, topic: "dev.hivemusic.hive", sandbox: false },
+    },
     "GET /api/v1/admin/library/same-songs": { body: { items: [] } },
     ...routes,
   };

@@ -172,7 +172,7 @@ def create_song_request(
     s.add(r)
     s.commit()
     people = request.app.state.people
-    people._notify_admins(mail.song_request_note(people.home.home_name))
+    people._notify_admins(mail.song_request_note(people.home.home_name), kind="song_request")
     return _request_body(r)
 
 
@@ -205,11 +205,15 @@ def admin_decide_song_request(
     r = s.get(SongRequest, songRequestId)
     if r is None:
         raise HTTPException(404, "No such song request")
+    newly_added = body.status == "added" and r.status != "added"
     r.status = body.status
     actor = who.user.name if who.user else request.app.state.settings.admin_display_name
     r.decided_at = None if body.status == "waiting" else datetime.now(UTC)
     r.decided_by = None if body.status == "waiting" else actor
     s.commit()
+    if newly_added:
+        # M6: "A song you asked for is in Hive" (never which).
+        request.app.state.push.notify("request_added", [r.user_id])
     name = s.scalar(select(User.name).where(User.id == r.user_id))
     return _request_body(r, name or "Someone")
 

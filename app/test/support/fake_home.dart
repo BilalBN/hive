@@ -1,3 +1,5 @@
+import 'package:hive/push/push.dart';
+
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -450,6 +452,7 @@ Future<List<Override>> fakeHomeOverrides({
   MemoryVault? vault,
   FakeDownloadTransport? downloads,
   FakeSessionLink? sessions,
+  FakePushDevice? push,
 }) async {
   SharedPreferences.setMockInitialValues({
     if (connected) 'home.address': 'http://100.84.12.7:8443',
@@ -483,5 +486,6 @@ Future<List<Override>> fakeHomeOverrides({
       downloads ?? FakeDownloadTransport(),
     ),
     sessionLinkProvider.overrideWithValue(sessions ?? FakeSessionLink()),
+    pushDeviceProvider.overrideWithValue(push ?? FakePushDevice()),
   ];
 }

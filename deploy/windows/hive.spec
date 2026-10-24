@@ -17,6 +17,7 @@ hidden = (
     + collect_submodules("alembic")
     + collect_submodules("watchdog")
     + collect_submodules("sqlalchemy.dialects.sqlite")
+    + collect_submodules("h2")  # httpx loads it only when talking HTTP/2 (Apple push)
 )
 datas = [
     (os.path.join(server, "hive", "migrations"), os.path.join("hive", "migrations")),

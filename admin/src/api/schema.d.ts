@@ -682,6 +682,44 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/push/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Which notifications this person gets, and what devices need to take them while Hive is closed. */
+        get: operations["getPushSettings"];
+        /** Turn kinds of notification off (or back on). */
+        put: operations["setPushSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/push/targets/{installId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                installId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /** Where this device takes notifications while Hive is closed (UnifiedPush endpoint or Apple device token). */
+        put: operations["setPushTarget"];
+        post?: never;
+        /** Stop notifications to this device while Hive is closed. */
+        delete: operations["deletePushTarget"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/sync/session": {
         parameters: {
             query?: never;
@@ -691,7 +729,7 @@ export interface paths {
         };
         /**
          * The person's last play session, for the continuity offer ("Continue from Bilal's MacBook").
-         * @description Empty when there's nothing to offer. Changes also arrive over a WebSocket at /api/v1/sync/events?install=<installId>&name=<device name> (same Authorization header): messages {"type":"session","session":PlaySession} from the person's other devices, {"type":"ping"} every 30 seconds, and (M6) {"type":"device", "device":Device} when another device's playing changes, {"type":"devices"} when one opens or closes, and {"type":"command","from":installId,"fromName":name, "command":RemoteCommand} for this device to carry out.
+         * @description Empty when there's nothing to offer. Changes also arrive over a WebSocket at /api/v1/sync/events?install=<installId>&name=<device name> (same Authorization header): messages {"type":"session","session":PlaySession} from the person's other devices, {"type":"ping"} every 30 seconds, and (M6) {"type":"device", "device":Device} when another device's playing changes, {"type":"devices"} when one opens or closes, and {"type":"command","from":installId,"fromName":name, "command":RemoteCommand} for this device to carry out, and {"type":"notice", "kind","title","body"} notifications for this person (never personal details).
          */
         get: operations["getPlaySession"];
         /** The playing device reports what it's playing (after a change, and every 15 seconds while playing). */
@@ -1571,6 +1609,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/push": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Notifications to iPhones, iPads and Macs (the APNs key from the Apple Developer account). */
+        get: operations["adminGetPush"];
+        /** Set the APNs key, team, app identifier and sandbox. */
+        put: operations["adminSetPush"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/push/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send a test notification to every admin's devices. */
+        post: operations["adminTestPush"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/backups": {
         parameters: {
             query?: never;
@@ -2225,6 +2298,55 @@ export interface components {
             };
             /** @description Files deleted. */
             deleted: number;
+        };
+        PushKind: {
+            /** @enum {string} */
+            kind: "new_music" | "request_added" | "join_waiting" | "song_request" | "needs_look";
+            label: string;
+            on: boolean;
+        };
+        PushSettings: {
+            /** @description Home's VAPID public key (base64url), for UnifiedPush / Web Push registration. */
+            webPushKey: string;
+            /** @description Home can send to iPhones */
+            apns: boolean;
+            kinds: components["schemas"]["PushKind"][];
+        };
+        PushChoices: {
+            off: string[];
+        };
+        PushTarget: {
+            /** @enum {string} */
+            kind: "webpush" | "apns";
+            /** @description webpush: the UnifiedPush endpoint (https). */
+            endpoint?: string;
+            /** @description webpush: the device's public key (base64url). */
+            p256dh?: string;
+            /** @description webpush: the auth secret (base64url). */
+            auth?: string;
+            /** @description apns: the device token (hex). */
+            token?: string;
+        };
+        AdminPush: {
+            apnsReady: boolean;
+            keySet: boolean;
+            teamId?: string;
+            keyId?: string;
+            /** @description The app's identifier (dev.hivemusic.hive). */
+            topic: string;
+            /** @description Development builds use Apple's sandbox. */
+            sandbox: boolean;
+        };
+        AdminPushUpdate: {
+            teamId?: string;
+            keyId?: string;
+            /** @description The .p8 file's text; empty removes it. */
+            privateKey?: string;
+            topic?: string;
+            sandbox?: boolean;
+        };
+        PushTestResult: {
+            sent: number;
         };
         PlaySessionUpdate: {
             /** @description This app on this device (stays the same across sign-ins). */
@@ -4305,6 +4427,100 @@ export interface operations {
             422: components["responses"]["Invalid"];
         };
     };
+    getPushSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The settings. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PushSettings"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    setPushSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PushChoices"];
+            };
+        };
+        responses: {
+            /** @description The settings. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PushSettings"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            422: components["responses"]["Invalid"];
+        };
+    };
+    setPushTarget: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                installId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PushTarget"];
+            };
+        };
+        responses: {
+            /** @description Saved. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            422: components["responses"]["Invalid"];
+        };
+    };
+    deletePushTarget: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                installId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Done. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
     getPlaySession: {
         parameters: {
             query?: never;
@@ -5809,6 +6025,74 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SameSongs"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    adminGetPush: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The settings (the key itself is never sent back). */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminPush"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    adminSetPush: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminPushUpdate"];
+            };
+        };
+        responses: {
+            /** @description The settings. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminPush"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            422: components["responses"]["Invalid"];
+        };
+    };
+    adminTestPush: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description How many admins it went to. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PushTestResult"];
                 };
             };
             401: components["responses"]["Unauthorized"];

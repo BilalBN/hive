@@ -493,11 +493,20 @@ class People:
             s.expunge(req)
             name = user.name if user is not None and status == "approved" else None
         if status == "pending":
-            self._notify_admins()
+            self._notify_admins(kind="join_waiting")
         return req, token, name
 
-    def _notify_admins(self, note: tuple[str, str] | None = None) -> None:
-        """A note to every admin that something is waiting; never who or what."""
+    def _notify_admins(
+        self, note: tuple[str, str] | None = None, kind: str = "join_waiting"
+    ) -> None:
+        """A note to every admin that something is waiting; never who or what.
+        By email when it's set up, and as a notification (M6)."""
+        push = getattr(self, "push", None)
+        if push is not None:
+            try:
+                push.notify(kind, admins=True)
+            except Exception as e:  # noqa: BLE001 - email still goes
+                log.warning("admin notification not sent: %s", type(e).__name__)
         cfg = self.home.email
         if not cfg.ready:
             return
