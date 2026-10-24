@@ -1,0 +1,41 @@
+# F-Droid metadata for Hive, ready to propose to fdroiddata
+# (https://gitlab.com/fdroid/fdroiddata: metadata/dev.hivemusic.hive.yml).
+# See docs/fdroid/README.md.
+Categories:
+  - Multimedia
+License: AGPL-3.0-only
+SourceCode: https://github.com/BilalBN/hive
+IssueTracker: https://github.com/BilalBN/hive/issues
+
+AutoName: Hive
+
+RepoType: git
+Repo: https://github.com/BilalBN/hive.git
+
+Builds:
+  - versionName: 0.4.0
+    versionCode: 4
+    commit: v0.4.0
+    subdir: app
+    output: build/app/outputs/flutter-apk/app-release.apk
+    srclibs:
+      - flutter@3.47.7
+    rm:
+      - app/ios
+      - app/macos
+      - app/windows
+    prebuild:
+      - python3 ../tools/fdroid_prepare.py
+      - export PUB_CACHE=$(pwd)/.pub-cache
+      - $$flutter$$/bin/flutter config --no-analytics
+      - $$flutter$$/bin/flutter pub get
+    scandelete:
+      - .pub-cache
+    build:
+      - export PUB_CACHE=$(pwd)/.pub-cache HIVE_NO_SHAZAM=1
+      - $$flutter$$/bin/flutter build apk --release --dart-define=HIVE_FDROID=true
+
+AutoUpdateMode: Version
+UpdateCheckMode: Tags ^v[0-9.]+$
+CurrentVersion: 0.4.0
+CurrentVersionCode: 4
