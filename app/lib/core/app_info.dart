@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 /// This app's version, as home sees it (kept equal to pubspec.yaml by a test).
-const appVersion = '0.2.0';
+const appVersion = '0.4.0';
 
 /// The platform name the API uses.
 String get platformWire {
