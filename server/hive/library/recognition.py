@@ -14,6 +14,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -145,6 +146,10 @@ class Recognition:
         if self.rebuilt_at:
             body["rebuiltAt"] = self.rebuilt_at.isoformat().replace("+00:00", "Z")
         return body
+
+    def match_landmarks(self, hashes: list[int], starts: list[int]) -> F.Match | None:
+        """M6: landmarks made on the device; no sound reaches home."""
+        return self.index.match_landmarks(np.asarray(hashes), np.asarray(starts))
 
     def match(self, clip: bytes) -> tuple[F.Match | None, float]:
         """The song a recording is of, if it's at home, and the clip's length."""

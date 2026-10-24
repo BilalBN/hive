@@ -205,3 +205,37 @@ def test_downloads_play_offline_for_30_days(listening) -> None:
     ).json()
     assert_matches(check, "DownloadCheck")
     assert check["gone"] == ["gone-song"]
+
+
+def test_landmarks_made_on_the_device_find_the_song(listening, tmp_path: Path) -> None:
+    """M6: the device sends landmarks, never the sound."""
+    import shutil
+
+    from hive.library import fingerprint as F
+
+    c, auth, songs = listening
+    ffmpeg = Path(shutil.which("ffmpeg"))
+    right = 0
+    for n, (track_id, x) in enumerate(songs.items()):
+        start = 4.0 + 3 * n
+        samples = F.decode(ffmpeg, _clip(tmp_path, x, start, n, snr=6))
+        hashes, starts = F.fingerprint(samples)
+        r = c.post(
+            "/api/v1/listen/match-landmarks",
+            json={"hashes": hashes.tolist(), "starts": starts.tolist(), "seconds": 8},
+            headers=auth,
+        )
+        assert r.status_code == 200, r.text
+        assert_matches(r.json(), "ListenResult")
+        if r.json()["matched"] and r.json()["track"]["id"] == track_id:
+            assert abs(r.json()["positionMs"] / 1000 - (start + 8)) < 1.0
+            right += 1
+    assert right >= SONGS - 1
+
+    bad = {"hashes": [1, 2], "starts": [1], "seconds": 8}
+    assert c.post("/api/v1/listen/match-landmarks", json=bad, headers=auth).status_code == 422
+    short = {"hashes": [], "starts": [], "seconds": 1}
+    assert c.post("/api/v1/listen/match-landmarks", json=short, headers=auth).status_code == 422
+    nothing = {"hashes": [], "starts": [], "seconds": 8}
+    r = c.post("/api/v1/listen/match-landmarks?last=false", json=nothing, headers=auth)
+    assert r.json() == {"matched": False, "source": "library"}

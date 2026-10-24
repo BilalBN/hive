@@ -568,6 +568,22 @@ paths:
         "413": { $ref: "#/components/responses/TooLarge" }
         "422": { $ref: "#/components/responses/Invalid" }
         "503": { $ref: "#/components/responses/Unavailable" }
+  /api/v1/listen/match-landmarks:
+    post:
+      tags: [listen]
+      operationId: matchListenLandmarks
+      summary: Recognise a song from landmarks made on the device, so the recording never leaves it.
+      x-milestone: M6
+      parameters:
+        - { name: last, in: query, required: false, schema: { type: boolean, default: true }, description: "As for /listen/match." }
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/ListenLandmarks" } } }
+      responses:
+        "200": { description: The result., content: { application/json: { schema: { $ref: "#/components/schemas/ListenResult" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "422": { $ref: "#/components/responses/Invalid" }
+        "503": { $ref: "#/components/responses/Unavailable" }
   /api/v1/listen/history:
     get:
       tags: [listen]
@@ -1969,6 +1985,15 @@ components:
         confidence: { type: number, minimum: 0, maximum: 1 }
         title: { type: string, description: "M5: what Shazam called a song that isn't at home." }
         artist: { type: string, description: "M5: who Shazam says sings it." }
+    ListenLandmarks:
+      type: object
+      additionalProperties: false
+      required: [hashes, starts, seconds]
+      description: "Landmarks as in server/hive/library/fingerprint.py: (f1>>1)<<16 | (f2>>1)<<6 | dt, at 11025 Hz with 256-sample frames."
+      properties:
+        hashes: { type: array, maxItems: 40000, items: { type: integer } }
+        starts: { type: array, maxItems: 40000, items: { type: integer }, description: The frame each landmark starts at. }
+        seconds: { type: number, minimum: 0, maximum: 60, description: How much sound they came from. }
     ListenEvent:
       type: object
       required: [id, at, source, matched]

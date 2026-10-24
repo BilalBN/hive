@@ -248,6 +248,13 @@ class FingerprintIndex:
 
     def match(self, samples: np.ndarray) -> Match | None:
         hashes, starts = fingerprint(samples)
+        return self.match_landmarks(hashes, starts)
+
+    def match_landmarks(self, hashes: np.ndarray, starts: np.ndarray) -> Match | None:
+        """The song whose landmarks line up with these (made here from a
+        recording, or on the device: M6)."""
+        hashes = np.asarray(hashes, dtype=np.int64)
+        starts = np.asarray(starts, dtype=np.int64)
         if len(hashes) < MIN_ALIGNED:
             return None
         rows: list[tuple[int, int, int]] = []

@@ -1203,6 +1203,33 @@ class ListenResult {
       };
 }
 
+/// Landmarks as in server/hive/library/fingerprint.py: (f1>>1)<<16 | (f2>>1)<<6 | dt, at 11025 Hz with 256-sample frames.
+class ListenLandmarks {
+  const ListenLandmarks({
+    required this.hashes,
+    required this.starts,
+    required this.seconds,
+  });
+
+  final List<int> hashes;
+  /// The frame each landmark starts at.
+  final List<int> starts;
+  /// How much sound they came from.
+  final double seconds;
+
+  factory ListenLandmarks.fromJson(Map<String, dynamic> json) => ListenLandmarks(
+        hashes: (json['hashes'] as List<dynamic>).map((e) => e as int).toList(),
+        starts: (json['starts'] as List<dynamic>).map((e) => e as int).toList(),
+        seconds: (json['seconds'] as num).toDouble(),
+      );
+
+  Map<String, dynamic> toJson() => {
+        'hashes': hashes.map((e) => e).toList(),
+        'starts': starts.map((e) => e).toList(),
+        'seconds': seconds,
+      };
+}
+
 class ListenEvent {
   const ListenEvent({
     required this.id,
@@ -4637,6 +4664,14 @@ class HiveApi {
   /// `POST /api/v1/listen/match` · built in M3.
   Future<ListenResult> matchClip({bool? last}) async {
     final data = await _send('POST', '/api/v1/listen/match', query: {'last': ?last});
+    return ListenResult.fromJson((data as Map).cast<String, dynamic>());
+  }
+
+  /// Recognise a song from landmarks made on the device, so the recording never leaves it.
+  ///
+  /// `POST /api/v1/listen/match-landmarks` · built in M6.
+  Future<ListenResult> matchListenLandmarks({required ListenLandmarks body, bool? last}) async {
+    final data = await _send('POST', '/api/v1/listen/match-landmarks', data: body.toJson(), query: {'last': ?last});
     return ListenResult.fromJson((data as Map).cast<String, dynamic>());
   }
 
