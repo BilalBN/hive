@@ -179,6 +179,25 @@ class Credit(Base):
     source: Mapped[str] = mapped_column(String(8), default="tags")
 
 
+class Video(Base):
+    """M6: a music video file in the music folders, matched to its song."""
+
+    __tablename__ = "videos"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    path: Mapped[str] = mapped_column(String(4096), unique=True)
+    folder: Mapped[str] = mapped_column(String(4096))
+    size: Mapped[int] = mapped_column(Integer)
+    mtime: Mapped[float] = mapped_column(Float)
+    duration_ms: Mapped[int] = mapped_column(Integer, default=0)
+    width: Mapped[int | None] = mapped_column(Integer)
+    height: Mapped[int | None] = mapped_column(Integer)
+    track_id: Mapped[str | None] = mapped_column(
+        ForeignKey("tracks.id", ondelete="SET NULL"), index=True
+    )
+    added_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
 class ImportItem(Base):
     """A file the scanner has seen: the work queue and the "needs attention" list."""
 

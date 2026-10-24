@@ -33,6 +33,9 @@ from hive.library.recognition import Recognition
 from hive.library.scanner import Library
 from hive.library.sync_api import router as sync_router
 from hive.library.uploads import router as uploads_router
+from hive.library.video_api import admin_router as video_admin_router
+from hive.library.video_api import router as video_router
+from hive.library.videos import Videos
 from hive.models import AuditEntry
 from hive.people.admin_api import router as people_admin_router
 from hive.people.api import router as people_router
@@ -81,6 +84,9 @@ def create_app(settings: Settings | None = None, lookup_http: Http | None = None
             app.state.watch.start()
         app.state.library = Library(settings, app.state.db)
         app.state.library.start()
+        # M6: music videos, matched to their songs after the library is read.
+        app.state.videos = Videos(app.state.db, app.state.library)
+        app.state.library.idle_hooks.append(app.state.videos.sync)
         app.state.lookup = LookupService(
             settings,
             app.state.db,
@@ -135,6 +141,8 @@ def create_app(settings: Settings | None = None, lookup_http: Http | None = None
     app.include_router(watch_router)
     app.include_router(sync_router)
     app.include_router(editor_router)
+    app.include_router(video_router)
+    app.include_router(video_admin_router)
     app.include_router(listen_router)
     app.include_router(listen_admin_router)
     register_unbuilt_operations(app, load_contract())

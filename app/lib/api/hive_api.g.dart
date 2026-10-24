@@ -191,6 +191,7 @@ class TrackSummary {
     this.hasLyrics,
     this.composer,
     this.lyricist,
+    this.videoId,
   });
 
   final String id;
@@ -212,6 +213,8 @@ class TrackSummary {
   final String? composer;
   /// Who wrote the words, as credited.
   final String? lyricist;
+  /// M6: the song has a music video (POST /media/tracks/{trackId}/video).
+  final String? videoId;
 
   factory TrackSummary.fromJson(Map<String, dynamic> json) => TrackSummary(
         id: json['id'] as String,
@@ -229,6 +232,7 @@ class TrackSummary {
         hasLyrics: json['hasLyrics'] == null ? null : json['hasLyrics'] as bool,
         composer: json['composer'] == null ? null : json['composer'] as String,
         lyricist: json['lyricist'] == null ? null : json['lyricist'] as String,
+        videoId: json['videoId'] == null ? null : json['videoId'] as String,
       );
 
   Map<String, dynamic> toJson() => {
@@ -247,6 +251,7 @@ class TrackSummary {
         'hasLyrics': ?hasLyrics,
         'composer': ?composer,
         'lyricist': ?lyricist,
+        'videoId': ?videoId,
       };
 }
 
@@ -1611,6 +1616,113 @@ class SameSongResult {
   Map<String, dynamic> toJson() => {
         'moved': moved,
         'deleted': deleted,
+      };
+}
+
+class VideoTicket {
+  const VideoTicket({
+    required this.url,
+    required this.expiresAt,
+    required this.mimeType,
+    required this.sizeBytes,
+    required this.durationMs,
+    this.width,
+    this.height,
+  });
+
+  /// Relative to the home address; no Authorization needed.
+  final String url;
+  final DateTime expiresAt;
+  final String mimeType;
+  final int sizeBytes;
+  final int durationMs;
+  final int? width;
+  final int? height;
+
+  factory VideoTicket.fromJson(Map<String, dynamic> json) => VideoTicket(
+        url: json['url'] as String,
+        expiresAt: DateTime.parse(json['expiresAt'] as String),
+        mimeType: json['mimeType'] as String,
+        sizeBytes: json['sizeBytes'] as int,
+        durationMs: json['durationMs'] as int,
+        width: json['width'] == null ? null : json['width'] as int,
+        height: json['height'] == null ? null : json['height'] as int,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'url': url,
+        'expiresAt': expiresAt.toUtc().toIso8601String(),
+        'mimeType': mimeType,
+        'sizeBytes': sizeBytes,
+        'durationMs': durationMs,
+        'width': ?width,
+        'height': ?height,
+      };
+}
+
+class AdminVideo {
+  const AdminVideo({
+    required this.id,
+    required this.file,
+    required this.durationMs,
+    this.width,
+    this.height,
+    this.trackId,
+    this.trackTitle,
+    this.artistName,
+  });
+
+  final String id;
+  /// Relative to its music folder.
+  final String file;
+  final int durationMs;
+  final int? width;
+  final int? height;
+  /// The song it plays with; absent when Hive couldn't match it.
+  final String? trackId;
+  final String? trackTitle;
+  final String? artistName;
+
+  factory AdminVideo.fromJson(Map<String, dynamic> json) => AdminVideo(
+        id: json['id'] as String,
+        file: json['file'] as String,
+        durationMs: json['durationMs'] as int,
+        width: json['width'] == null ? null : json['width'] as int,
+        height: json['height'] == null ? null : json['height'] as int,
+        trackId: json['trackId'] == null ? null : json['trackId'] as String,
+        trackTitle: json['trackTitle'] == null ? null : json['trackTitle'] as String,
+        artistName: json['artistName'] == null ? null : json['artistName'] as String,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'file': file,
+        'durationMs': durationMs,
+        'width': ?width,
+        'height': ?height,
+        'trackId': ?trackId,
+        'trackTitle': ?trackTitle,
+        'artistName': ?artistName,
+      };
+}
+
+class AdminVideos {
+  const AdminVideos({
+    required this.items,
+    required this.matched,
+  });
+
+  final List<AdminVideo> items;
+  final int matched;
+
+  factory AdminVideos.fromJson(Map<String, dynamic> json) => AdminVideos(
+        items: (json['items'] as List<dynamic>).map((e) => AdminVideo.fromJson((e as Map).cast<String, dynamic>())).toList(),
+        matched: json['matched'] as int,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'items': items.map((e) => e.toJson()).toList(),
+        'matched': matched,
       };
 }
 
@@ -4601,6 +4713,20 @@ class HiveApi {
   /// `GET /api/v1/media/stream/{ticket}` · built in M1.
   Uri streamAudioUri({required String ticket}) =>
       Uri.parse(_dio.options.baseUrl).resolve('/api/v1/media/stream/${Uri.encodeComponent(ticket)}');
+
+  /// A signed link to the song's music video (when it has one; see TrackSummary.videoId).
+  ///
+  /// `POST /api/v1/media/tracks/{trackId}/video` · built in M6.
+  Future<VideoTicket> createVideoTicket({required String trackId}) async {
+    final data = await _send('POST', '/api/v1/media/tracks/${Uri.encodeComponent(trackId)}/video');
+    return VideoTicket.fromJson((data as Map).cast<String, dynamic>());
+  }
+
+  /// The video file itself; supports HTTP range requests. Authorised by the ticket.
+  ///
+  /// `GET /api/v1/media/video/{ticket}` · built in M6.
+  Uri streamVideoUri({required String ticket}) =>
+      Uri.parse(_dio.options.baseUrl).resolve('/api/v1/media/video/${Uri.encodeComponent(ticket)}');
 
   /// Cover art, resized.
   ///

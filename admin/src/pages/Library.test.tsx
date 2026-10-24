@@ -261,4 +261,22 @@ describe("Library page", () => {
     await waitFor(() => expect(sent).toEqual({ keep: "a", remove: ["b"] }));
     await waitFor(() => expect(screen.queryByText("Same song twice · 1")).not.toBeInTheDocument());
   });
+
+  it("lists music videos and the ones not matched to a song", async () => {
+    mockApi({
+      "GET /api/v1/admin/library/videos": {
+        body: {
+          matched: 1,
+          items: [
+            { id: "v1", file: "Rumours/02 Dreams.mp4", durationMs: 250000, trackId: "t1", trackTitle: "Dreams" },
+            { id: "v2", file: "Videos/Holiday clip.mp4", durationMs: 30000 },
+          ],
+        },
+      },
+    });
+    renderAt("/library");
+    expect(await screen.findByText("Music videos · 1 of 2 matched")).toBeInTheDocument();
+    expect(screen.getByText("Videos/Holiday clip.mp4")).toBeInTheDocument();
+    expect(screen.queryByText("Rumours/02 Dreams.mp4")).not.toBeInTheDocument();
+  });
 });

@@ -113,6 +113,18 @@ class NowPlayingScreen extends ConsumerWidget {
         const SizedBox(width: HiveSpace.sm),
         const LikeButton(size: 18, onArt: true),
         const SizedBox(width: HiveSpace.xs),
+        if (track.videoId != null) ...[
+          GlassCircleButton(
+            tooltip: 'Watch the video',
+            onPressed: () => context.push('/video'),
+            child: const Icon(
+              HiveIcons.clapperboard,
+              size: 18,
+              color: OnArt.primary,
+            ),
+          ),
+          const SizedBox(width: HiveSpace.xs),
+        ],
         more,
       ],
     );

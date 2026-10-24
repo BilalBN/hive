@@ -481,6 +481,32 @@ paths:
         "206": { description: Partial audio bytes., content: { audio/*: { schema: { type: string, format: binary } } } }
         "403": { $ref: "#/components/responses/Forbidden" }
         "416": { description: The requested range is outside the file. }
+  /api/v1/media/tracks/{trackId}/video:
+    parameters: [{ $ref: "#/components/parameters/TrackId" }]
+    post:
+      tags: [media]
+      operationId: createVideoTicket
+      summary: A signed link to the song's music video (when it has one; see TrackSummary.videoId).
+      x-milestone: M6
+      responses:
+        "200": { description: The link., content: { application/json: { schema: { $ref: "#/components/schemas/VideoTicket" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /api/v1/media/video/{ticket}:
+    parameters:
+      - { name: ticket, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [media]
+      operationId: streamVideo
+      summary: The video file itself; supports HTTP range requests. Authorised by the ticket.
+      x-milestone: M6
+      security: []
+      responses:
+        "200": { description: Video bytes., content: { video/*: { schema: { type: string, format: binary } } } }
+        "206": { description: Partial video bytes., content: { video/*: { schema: { type: string, format: binary } } } }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "416": { description: The requested range is outside the file. }
   /api/v1/media/artwork/{artworkId}:
     parameters:
       - { name: artworkId, in: path, required: true, schema: { type: string } }
@@ -1331,6 +1357,15 @@ paths:
       responses:
         "200": { description: The groups left., content: { application/json: { schema: { $ref: "#/components/schemas/SameSongs" } } } }
         "401": { $ref: "#/components/responses/Unauthorized" }
+  /api/v1/admin/library/videos:
+    get:
+      tags: [admin]
+      operationId: adminListVideos
+      summary: Music videos in the music folders, and the song each plays with.
+      x-milestone: M6
+      responses:
+        "200": { description: The videos., content: { application/json: { schema: { $ref: "#/components/schemas/AdminVideos" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
   /api/v1/admin/backups:
     get:
       tags: [admin]
@@ -1611,6 +1646,7 @@ components:
         hasLyrics: { type: boolean }
         composer: { type: string, description: 'Who wrote the music, as credited.' }
         lyricist: { type: string, description: 'Who wrote the words, as credited.' }
+        videoId: { type: string, description: "M6: the song has a music video (POST /media/tracks/{trackId}/video)." }
     AlbumSummary:
       type: object
       required: [id, title, artistName, trackCount, tier, addedAt]
@@ -2092,6 +2128,35 @@ components:
             plays: { type: integer }
             playlistEntries: { type: integer }
         deleted: { type: integer, description: Files deleted. }
+    VideoTicket:
+      type: object
+      required: [url, expiresAt, mimeType, sizeBytes, durationMs]
+      properties:
+        url: { type: string, description: Relative to the home address; no Authorization needed. }
+        expiresAt: { type: string, format: date-time }
+        mimeType: { type: string, example: video/mp4 }
+        sizeBytes: { type: integer }
+        durationMs: { type: integer }
+        width: { type: integer }
+        height: { type: integer }
+    AdminVideo:
+      type: object
+      required: [id, file, durationMs]
+      properties:
+        id: { type: string }
+        file: { type: string, description: Relative to its music folder. }
+        durationMs: { type: integer }
+        width: { type: integer }
+        height: { type: integer }
+        trackId: { type: string, description: The song it plays with; absent when Hive couldn't match it. }
+        trackTitle: { type: string }
+        artistName: { type: string }
+    AdminVideos:
+      type: object
+      required: [items, matched]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/AdminVideo" } }
+        matched: { type: integer }
     PlaySessionUpdate:
       type: object
       additionalProperties: false
