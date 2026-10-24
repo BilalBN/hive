@@ -25,6 +25,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+      - name: App, server and Hive Admin have the same version
+        run: python3 tools/version.py check "v$(python3 tools/version.py | awk '/^server/ {print $2}')"
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
@@ -235,7 +237,7 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
           cache: true
-      # Signed with the debug key until a family release key is set up (M5).
+      # Signed with the debug key here; releases use the family key (docs/releasing.md).
       - run: flutter build apk --release
       - uses: actions/upload-artifact@v4
         with:

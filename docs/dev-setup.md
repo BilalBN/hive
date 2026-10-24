@@ -385,6 +385,8 @@ Hive** in that folder keeps the data. Your current way of running Hive
   playlists to it and deletes the other file; **They're different, keep
   both** stops suggesting them.
 
+**Releases:** how to make one, and the signing keys, are in `docs/releasing.md`.
+
 **Testing M4:** one checklist for all of it is in `docs/m4-test-checklist.md`.
 
 ## Useful commands

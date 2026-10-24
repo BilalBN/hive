@@ -1,0 +1,257 @@
+# A Hive release: everything the family installs, built from one tag and put
+# on the GitHub Releases page.
+#
+#   python3 tools/version.py set 0.4.0   # then commit and push
+#   git tag v0.4.0 && git push origin v0.4.0
+#
+# Signing uses the repository secrets in docs/releasing.md; each piece without
+# its secrets is still built, unsigned, and the release says so.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  FLUTTER_VERSION: "3.47.7"
+  NODE_VERSION: "24"
+
+jobs:
+  version:
+    name: Version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+    steps:
+      - uses: actions/checkout@v5
+      - id: v
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then python3 tools/version.py check "$GITHUB_REF_NAME"; fi
+          echo "version=$(python3 tools/version.py | awk '/^server/ {print $2}')" >> "$GITHUB_OUTPUT"
+
+  admin:
+    name: Hive Admin
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: admin/package-lock.json
+      - run: npm ci --prefix admin && npm run build --prefix admin
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hive-admin-dist
+          path: admin/dist
+
+  android:
+    name: Android app
+    needs: version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - name: Build
+        working-directory: app
+        env:
+          KEYSTORE_B64: ${{ secrets.HIVE_ANDROID_KEYSTORE_B64 }}
+          HIVE_ANDROID_KEYSTORE_PASSWORD: ${{ secrets.HIVE_ANDROID_KEYSTORE_PASSWORD }}
+          HIVE_ANDROID_KEY_ALIAS: ${{ secrets.HIVE_ANDROID_KEY_ALIAS }}
+          HIVE_ANDROID_KEY_PASSWORD: ${{ secrets.HIVE_ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "$KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/hive.jks"
+            export HIVE_ANDROID_KEYSTORE="$RUNNER_TEMP/hive.jks"
+            echo "::notice title=Android app::Signed with the family release key"
+          else
+            echo "::warning title=Android app::Signed with the debug key (no HIVE_ANDROID_KEYSTORE_B64 secret)"
+          fi
+          flutter build apk --release
+          mkdir -p ../dist-installer
+          cp build/app/outputs/flutter-apk/app-release.apk "../dist-installer/Hive-${{ needs.version.outputs.version }}.apk"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-android
+          path: dist-installer/*
+
+  windows-app:
+    name: Windows app
+    needs: version
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - name: Build
+        working-directory: app
+        run: flutter build windows --release
+      - name: Installer
+        shell: pwsh
+        run: |
+          # The Visual C++ runtime goes beside hive.exe, so PCs without it still start Hive.
+          $release = "app\build\windows\x64\runner\Release"
+          foreach ($dll in "msvcp140.dll", "vcruntime140.dll", "vcruntime140_1.dll") {
+            Copy-Item "$env:WINDIR\System32\$dll" $release -ErrorAction SilentlyContinue
+          }
+          $iscc = (Get-Command iscc -ErrorAction SilentlyContinue).Source
+          if (-not $iscc) { $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" }
+          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress | Out-Null }
+          & $iscc /Q "/DMyAppVersion=${{ needs.version.outputs.version }}" deploy\windows\hive-app.iss
+          if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed" }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-windows-app
+          path: dist-installer/*
+
+  mac-app:
+    name: Mac app
+    needs: version
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - name: Build
+        working-directory: app
+        run: flutter build macos --release
+      - name: Sign and notarise
+        env:
+          HIVE_MAC_CERT_P12: ${{ secrets.HIVE_MAC_CERT_P12 }}
+          HIVE_MAC_CERT_PASSWORD: ${{ secrets.HIVE_MAC_CERT_PASSWORD }}
+          HIVE_MAC_PROFILE: ${{ secrets.HIVE_MAC_PROFILE }}
+          HIVE_APPLE_ID: ${{ secrets.HIVE_APPLE_ID }}
+          HIVE_APPLE_APP_PASSWORD: ${{ secrets.HIVE_APPLE_APP_PASSWORD }}
+          HIVE_APPLE_TEAM_ID: ${{ secrets.HIVE_APPLE_TEAM_ID }}
+        run: deploy/macos/sign_app.sh app/build/macos/Build/Products/Release/Hive.app
+      - name: Disk image
+        run: |
+          mkdir -p dmg dist-installer
+          ditto app/build/macos/Build/Products/Release/Hive.app dmg/Hive.app
+          ln -s /Applications dmg/Applications
+          hdiutil create -volname Hive -srcfolder dmg -ov -format UDZO "dist-installer/Hive-${{ needs.version.outputs.version }}-mac.dmg"
+          bash tools/macos_smoke.sh dist-installer/Hive-*-mac.dmg
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-mac-app
+          path: dist-installer/*
+
+  iphone:
+    name: iPhone app
+    needs: version
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - name: Build (and TestFlight, when set up)
+        env:
+          HIVE_IOS_CERT_P12: ${{ secrets.HIVE_IOS_CERT_P12 }}
+          HIVE_IOS_CERT_PASSWORD: ${{ secrets.HIVE_IOS_CERT_PASSWORD }}
+          HIVE_IOS_PROFILE: ${{ secrets.HIVE_IOS_PROFILE }}
+          HIVE_APPLE_TEAM_ID: ${{ secrets.HIVE_APPLE_TEAM_ID }}
+          HIVE_ASC_KEY_ID: ${{ secrets.HIVE_ASC_KEY_ID }}
+          HIVE_ASC_ISSUER_ID: ${{ secrets.HIVE_ASC_ISSUER_ID }}
+          HIVE_ASC_KEY: ${{ secrets.HIVE_ASC_KEY }}
+        run: deploy/ios/build_ipa.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-iphone
+          path: dist-installer/*
+          if-no-files-found: ignore
+
+  server-windows:
+    name: Windows server installer
+    needs: [version, admin]
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - uses: AnimMouse/setup-ffmpeg@v1
+      - uses: actions/download-artifact@v5
+        with:
+          name: hive-admin-dist
+          path: admin/dist
+      - shell: pwsh
+        run: deploy/windows/build.ps1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-server-windows
+          path: dist-installer/*
+
+  server-mac:
+    name: Mac server package
+    needs: [version, admin]
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - uses: AnimMouse/setup-ffmpeg@v1
+      - uses: actions/download-artifact@v5
+        with:
+          name: hive-admin-dist
+          path: admin/dist
+      - run: deploy/macos/build.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-server-mac
+          path: dist-installer/*
+
+  publish:
+    name: Publish the release
+    needs: [version, admin, android, windows-app, mac-app, iphone, server-windows, server-mac]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v5
+        with:
+          pattern: release-*
+          path: assets
+          merge-multiple: true
+      - name: Hive Admin as a zip (for running the server from the code)
+        uses: actions/download-artifact@v5
+        with:
+          name: hive-admin-dist
+          path: admin-dist
+      - name: Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          (cd admin-dist && zip -qr "../assets/hive-admin-$VERSION.zip" .)
+          (cd assets && sha256sum * > SHA256SUMS.txt)
+          ls -l assets
+          notes="docs/releases/$VERSION.md"
+          [ -f "$notes" ] || { echo "Hive $VERSION" > "$RUNNER_TEMP/notes.md"; notes="$RUNNER_TEMP/notes.md"; }
+          tag="v$VERSION"
+          if [[ "$GITHUB_REF" != refs/tags/* ]]; then
+            # Run by hand: a draft, so nothing reaches the family until it's published.
+            gh release create "$tag" assets/* --draft --target "$GITHUB_SHA" --title "Hive $VERSION" --notes-file "$notes"
+          else
+            gh release create "$tag" assets/* --title "Hive $VERSION" --notes-file "$notes" --verify-tag
+          fi
