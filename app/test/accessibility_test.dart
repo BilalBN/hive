@@ -104,7 +104,12 @@ void main() {
   });
 
   testWidgets('Simple mode: phone and large text', (tester) async {
-    await pumpAt(tester, phone, textScale: 1.6, prefs: {'app.simpleMode': true});
+    await pumpAt(
+      tester,
+      phone,
+      textScale: 1.6,
+      prefs: {'app.simpleMode': true},
+    );
     expect(tester.takeException(), isNull);
     await meetsAll(tester, 'simple home');
     reportProblems();
