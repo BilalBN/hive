@@ -9,6 +9,7 @@ import 'package:record/record.dart';
 import '../api/hive_api.g.dart';
 import '../auth/device_auth.dart';
 import '../core/api.dart';
+import 'landmarks.dart';
 
 /// Listen keeps the microphone on and checks as it goes: the first check
 /// after [firstCheck], then every [checkEvery], each with the most recent
@@ -52,8 +53,8 @@ class MicRecorder implements ClipRecorder {
     ),
   );
 
-  // Nothing is written to the device: the sound stays in memory and goes
-  // home a few seconds at a time.
+  // Nothing is written to the device: the sound stays in memory, and only
+  // landmarks made from it go home (M6).
   @override
   Future<void> stop() => _rec.cancel();
 }
@@ -101,6 +102,32 @@ final clipMatcherProvider = Provider<ClipMatcher>((ref) {
     final config = ref.read(homeConfigProvider);
     if (config == null) throw StateError('Not connected to a home yet');
     final dio = dioForHome(config, auth: ref.read(deviceAuthProvider));
+    // M6: landmarks made here, so the recording never leaves this device.
+    final pcm = Uint8List.sublistView(clip, 44);
+    try {
+      final marks = await compute(landmarksOfPcm, (pcm, listenRate));
+      final r = await dio.post<dynamic>(
+        '/api/v1/listen/match-landmarks',
+        queryParameters: {'last': last},
+        data: ListenLandmarks(
+          hashes: marks.hashes,
+          starts: marks.starts,
+          seconds: pcm.length / (2 * listenRate),
+        ).toJson(),
+        options: Options(receiveTimeout: const Duration(seconds: 30)),
+      );
+      return ListenResult.fromJson((r.data as Map).cast<String, dynamic>());
+    } on DioException catch (e) {
+      // An older home without it: send the sound as before.
+      if (e.response?.statusCode != 404 && e.response?.statusCode != 501) {
+        final body = e.response?.data;
+        throw HiveApiException(
+          e.response?.statusCode,
+          body is Map ? Problem.fromJson(body.cast<String, dynamic>()) : null,
+          e,
+        );
+      }
+    }
     try {
       final r = await dio.post<dynamic>(
         '/api/v1/listen/match',

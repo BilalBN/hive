@@ -594,6 +594,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/listen/match-landmarks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Recognise a song from landmarks made on the device, so the recording never leaves it. */
+        post: operations["matchListenLandmarks"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/listen/history": {
         parameters: {
             query?: never;
@@ -2077,6 +2094,14 @@ export interface components {
             title?: string;
             /** @description M5: who Shazam says sings it. */
             artist?: string;
+        };
+        /** @description Landmarks as in server/hive/library/fingerprint.py: (f1>>1)<<16 | (f2>>1)<<6 | dt, at 11025 Hz with 256-sample frames. */
+        ListenLandmarks: {
+            hashes: number[];
+            /** @description The frame each landmark starts at. */
+            starts: number[];
+            /** @description How much sound they came from. */
+            seconds: number;
         };
         ListenEvent: {
             id: number;
@@ -4092,6 +4117,36 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             413: components["responses"]["TooLarge"];
+            422: components["responses"]["Invalid"];
+            503: components["responses"]["Unavailable"];
+        };
+    };
+    matchListenLandmarks: {
+        parameters: {
+            query?: {
+                /** @description As for /listen/match. */
+                last?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ListenLandmarks"];
+            };
+        };
+        responses: {
+            /** @description The result. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListenResult"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
             422: components["responses"]["Invalid"];
             503: components["responses"]["Unavailable"];
         };

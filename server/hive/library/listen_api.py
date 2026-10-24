@@ -94,6 +94,35 @@ async def match_clip(
         raise HTTPException(422, "Hive couldn't read that recording") from e
     if seconds < MIN_CLIP_SECONDS:
         raise HTTPException(422, "That recording is too short; listen for a few seconds")
+    return _result(s, caller, match, seconds, last)
+
+
+class LandmarksBody(Strict):
+    """M6: what Listen heard, as landmarks made on the device."""
+
+    hashes: list[int] = Field(max_length=40_000)
+    starts: list[int] = Field(max_length=40_000)
+    seconds: float = Field(ge=0, le=60)
+
+
+@router.post("/listen/match-landmarks")
+async def match_landmarks(
+    body: LandmarksBody, request: Request, caller: CallerDep, s: SessionDep, last: bool = True
+) -> dict[str, Any]:
+    """Like /listen/match, but the device sends landmarks instead of sound,
+    so the recording never leaves it."""
+    if len(body.hashes) != len(body.starts):
+        raise HTTPException(422, "Each landmark needs its start")
+    if body.seconds < MIN_CLIP_SECONDS:
+        raise HTTPException(422, "That recording is too short; listen for a few seconds")
+    if any(h < 0 or h >= 1 << 24 for h in body.hashes) or any(t < 0 for t in body.starts):
+        raise HTTPException(422, "Those aren't Hive landmarks")
+    recognition = request.app.state.recognition
+    match = await run_in_threadpool(recognition.match_landmarks, body.hashes, body.starts)
+    return _result(s, caller, match, body.seconds, last)
+
+
+def _result(s: Session, caller, match, seconds: float, last: bool) -> dict[str, Any]:
     track = s.get(Track, match.track_id) if match else None
     if track is None and not last:
         return {"matched": False, "source": "library"}
