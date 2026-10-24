@@ -1614,6 +1614,136 @@ class SameSongResult {
       };
 }
 
+class ListenOptions {
+  const ListenOptions({
+    required this.shazam,
+    required this.shazamAndroid,
+  });
+
+  /// The admin turned Shazam on for songs that aren't at home.
+  final bool shazam;
+  /// Android can use it too (home has the ShazamKit key).
+  final bool shazamAndroid;
+
+  factory ListenOptions.fromJson(Map<String, dynamic> json) => ListenOptions(
+        shazam: json['shazam'] as bool,
+        shazamAndroid: json['shazamAndroid'] as bool,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'shazam': shazam,
+        'shazamAndroid': shazamAndroid,
+      };
+}
+
+class ShazamFound {
+  const ShazamFound({
+    required this.title,
+    this.artist,
+    this.listenEventId,
+  });
+
+  final String title;
+  final String? artist;
+  /// The attempt home couldn't name.
+  final int? listenEventId;
+
+  factory ShazamFound.fromJson(Map<String, dynamic> json) => ShazamFound(
+        title: json['title'] as String,
+        artist: json['artist'] == null ? null : json['artist'] as String,
+        listenEventId: json['listenEventId'] == null ? null : json['listenEventId'] as int,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'title': title,
+        'artist': ?artist,
+        'listenEventId': ?listenEventId,
+      };
+}
+
+class ShazamToken {
+  const ShazamToken({
+    required this.token,
+    required this.expiresAt,
+  });
+
+  final String token;
+  final DateTime expiresAt;
+
+  factory ShazamToken.fromJson(Map<String, dynamic> json) => ShazamToken(
+        token: json['token'] as String,
+        expiresAt: DateTime.parse(json['expiresAt'] as String),
+      );
+
+  Map<String, dynamic> toJson() => {
+        'token': token,
+        'expiresAt': expiresAt.toUtc().toIso8601String(),
+      };
+}
+
+class ShazamSettings {
+  const ShazamSettings({
+    required this.enabled,
+    this.teamId,
+    this.keyId,
+    required this.keySet,
+    required this.androidReady,
+  });
+
+  final bool enabled;
+  final String? teamId;
+  final String? keyId;
+  /// The ShazamKit key is saved at home.
+  final bool keySet;
+  /// On, with team, key ID and key: Android phones can use Shazam.
+  final bool androidReady;
+
+  factory ShazamSettings.fromJson(Map<String, dynamic> json) => ShazamSettings(
+        enabled: json['enabled'] as bool,
+        teamId: json['teamId'] == null ? null : json['teamId'] as String,
+        keyId: json['keyId'] == null ? null : json['keyId'] as String,
+        keySet: json['keySet'] as bool,
+        androidReady: json['androidReady'] as bool,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'enabled': enabled,
+        'teamId': ?teamId,
+        'keyId': ?keyId,
+        'keySet': keySet,
+        'androidReady': androidReady,
+      };
+}
+
+class ShazamSettingsUpdate {
+  const ShazamSettingsUpdate({
+    this.enabled,
+    this.teamId,
+    this.keyId,
+    this.privateKey,
+  });
+
+  final bool? enabled;
+  final String? teamId;
+  final String? keyId;
+  /// The .p8 file's text; empty removes it.
+  final String? privateKey;
+
+  factory ShazamSettingsUpdate.fromJson(Map<String, dynamic> json) => ShazamSettingsUpdate(
+        enabled: json['enabled'] == null ? null : json['enabled'] as bool,
+        teamId: json['teamId'] == null ? null : json['teamId'] as String,
+        keyId: json['keyId'] == null ? null : json['keyId'] as String,
+        privateKey: json['privateKey'] == null ? null : json['privateKey'] as String,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'enabled': ?enabled,
+        'teamId': ?teamId,
+        'keyId': ?keyId,
+        'privateKey': ?privateKey,
+      };
+}
+
 class PlaySessionUpdate {
   const PlaySessionUpdate({
     required this.installId,
@@ -4648,12 +4778,12 @@ class HiveApi {
     return ListenHistory.fromJson((data as Map).cast<String, dynamic>());
   }
 
-  /// Save a recognition made on the device by Shazam, so history covers both sources.
+  /// Save what Shazam named on the device, so history and "Ask to add it" cover it.
   ///
   /// `POST /api/v1/listen/history` · built in M5.
-  Future<Map<String, dynamic>> recordListenResult({required Map<String, dynamic> body}) async {
-    final data = await _send('POST', '/api/v1/listen/history', data: body);
-    return (data as Map).cast<String, dynamic>();
+  Future<ListenResult> recordListenResult({required ShazamFound body}) async {
+    final data = await _send('POST', '/api/v1/listen/history', data: body.toJson());
+    return ListenResult.fromJson((data as Map).cast<String, dynamic>());
   }
 
   /// Ask the admin to add a song (from Listen or from a search with no results).
@@ -4664,12 +4794,20 @@ class HiveApi {
     return SongRequest.fromJson((data as Map).cast<String, dynamic>());
   }
 
-  /// Short-lived Apple developer token for ShazamKit on Android.
+  /// Short-lived Apple developer token for ShazamKit on Android (an hour).
   ///
   /// `POST /api/v1/listen/shazam-token` · built in M5.
-  Future<Map<String, dynamic>> createShazamToken() async {
+  Future<ShazamToken> createShazamToken() async {
     final data = await _send('POST', '/api/v1/listen/shazam-token');
-    return (data as Map).cast<String, dynamic>();
+    return ShazamToken.fromJson((data as Map).cast<String, dynamic>());
+  }
+
+  /// What Listen may use besides home's own recognition.
+  ///
+  /// `GET /api/v1/listen/options` · built in M5.
+  Future<ListenOptions> getListenOptions() async {
+    final data = await _send('GET', '/api/v1/listen/options');
+    return ListenOptions.fromJson((data as Map).cast<String, dynamic>());
   }
 
   /// The person's last play session, for the continuity offer ("Continue from Bilal's MacBook").

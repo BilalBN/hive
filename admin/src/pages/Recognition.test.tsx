@@ -90,4 +90,40 @@ describe("Songs people asked for", () => {
     expect(within(panel).getByText("Done lately")).toBeInTheDocument();
     expect(within(panel).getByText("Added")).toBeInTheDocument();
   });
+
+  it("turns Shazam on and saves the ShazamKit key for Android", async () => {
+    const sent: unknown[] = [];
+    let current = { enabled: false, keySet: false, androidReady: false };
+    mockApi({
+      "GET /api/v1/admin/recognition": { body: status },
+      "GET /api/v1/admin/recognition/shazam": () => ({ body: current }),
+      "PUT /api/v1/admin/recognition/shazam": (req) => {
+        void req
+          .clone()
+          .json()
+          .then((b) => sent.push(b));
+        current = { enabled: true, keySet: sent.length > 0, androidReady: sent.length > 0 };
+        return { body: { ...current, teamId: "ABCDE12345", keyId: "XYZ9876543" } };
+      },
+    });
+    renderAt("/recognition");
+    const toggle = await screen.findByRole("switch", { name: "Shazam" });
+    expect(toggle).not.toBeChecked();
+    expect(screen.getByText(/not set yet/)).toBeInTheDocument();
+    fireEvent.click(toggle);
+    await waitFor(() => expect(sent).toEqual([{ enabled: true }]));
+
+    fireEvent.change(screen.getByLabelText("Team ID"), { target: { value: "abcde12345" } });
+    fireEvent.change(screen.getByLabelText("Key ID"), { target: { value: "KEY1234567" } });
+    fireEvent.change(screen.getByLabelText(/Key \(the .p8/), { target: { value: "-----BEGIN PRIVATE KEY-----x" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() =>
+      expect(sent[1]).toEqual({
+        teamId: "ABCDE12345",
+        keyId: "KEY1234567",
+        privateKey: "-----BEGIN PRIVATE KEY-----x",
+      }),
+    );
+    expect(await screen.findByText(/set, Android can use Shazam/)).toBeInTheDocument();
+  });
 });

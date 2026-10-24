@@ -9,6 +9,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/api/hive_api.g.dart';
 import 'package:hive/app.dart';
 import 'package:hive/listen/listen.dart';
+import 'package:hive/listen/shazam.dart';
 
 import 'app_test.dart' show health;
 import 'support/fake_home.dart';
@@ -59,12 +60,30 @@ class Checks {
 
 const miss = ListenResult(matched: false, source: 'library');
 
+/// Shazam on the device: knows [hit] (or nothing).
+class FakeShazam implements ShazamLink {
+  FakeShazam({this.hit, this.here = true});
+  final ShazamHit? hit;
+  final bool here;
+  int asked = 0;
+
+  @override
+  Future<bool> available() async => here;
+
+  @override
+  Future<ShazamHit?> match(Uint8List pcm, {required int rate}) async {
+    asked++;
+    return hit;
+  }
+}
+
 Future<void> pumpListen(
   WidgetTester tester, {
   required ClipMatcher matcher,
   FakeRecorder? recorder,
   FakeHomeAdapter? adapter,
-  bool shazam = false,
+  bool shazamOn = false,
+  ShazamLink? shazam,
 }) async {
   tester.view.physicalSize = const Size(390, 844);
   tester.view.devicePixelRatio = 1;
@@ -72,6 +91,8 @@ Future<void> pumpListen(
   final fake = adapter ?? FakeHomeAdapter();
   fake.extra['GET /api/v1/listen/history'] ??= (o) =>
       const ListenHistory(items: []).toJson();
+  fake.extra['GET /api/v1/listen/options'] ??= (o) =>
+      ListenOptions(shazam: shazamOn, shazamAndroid: shazamOn).toJson();
   final overrides = await fakeHomeOverrides(
     check: (_) async => health("Arun's home"),
     adapter: fake,
@@ -82,7 +103,7 @@ Future<void> pumpListen(
         ...overrides,
         clipRecorderProvider.overrideWithValue(recorder ?? FakeRecorder()),
         clipMatcherProvider.overrideWithValue(matcher),
-        shazamProvider.overrideWithValue(shazam),
+        shazamLinkProvider.overrideWithValue(shazam ?? FakeShazam()),
       ],
       child: const HiveApp(),
     ),
@@ -188,36 +209,57 @@ void main() {
     expect(find.text('Road trip'), findsWidgets);
   });
 
-  testWidgets('Identified by Shazam stays off until M5', (tester) async {
-    const shazam = ListenResult(
-      id: 9,
-      matched: true,
-      source: 'shazam',
-      title: 'Pesamale',
-      artist: 'Koshal',
-    );
-    await pumpListen(tester, matcher: (clip, {required last}) async => shazam);
-    await listenUntilDone(tester);
-    expect(find.text('Not in your music yet'), findsOneWidget);
-    expect(find.textContaining('Identified by Shazam'), findsNothing);
-  });
-
-  testWidgets('with the switch on, a song Shazam knows is asked for by name', (
-    tester,
-  ) async {
-    const shazam = ListenResult(
-      id: 9,
-      matched: true,
-      source: 'shazam',
-      title: 'Pesamale',
-      artist: 'Koshal',
+  testWidgets('Shazam stays off until the admin turns it on', (tester) async {
+    final shazam = FakeShazam(
+      hit: const ShazamHit(title: 'Pesamale', artist: 'Koshal'),
     );
     await pumpListen(
       tester,
-      matcher: (clip, {required last}) async => shazam,
-      shazam: true,
+      matcher: (clip, {required last}) async => last
+          ? const ListenResult(id: 4, matched: false, source: 'library')
+          : miss,
+      shazam: shazam,
     );
     await listenUntilDone(tester);
+    expect(find.text('Not in your music yet'), findsOneWidget);
+    expect(find.textContaining('Identified by Shazam'), findsNothing);
+    expect(shazam.asked, 0);
+  });
+
+  testWidgets('a song not at home is asked of Shazam and asked for by name', (
+    tester,
+  ) async {
+    final adapter = FakeHomeAdapter();
+    Map<String, dynamic>? saved;
+    adapter.extra['POST /api/v1/listen/history'] = (o) {
+      saved = (o.data as Map).cast<String, dynamic>();
+      return const ListenResult(
+        id: 4,
+        matched: true,
+        source: 'shazam',
+        title: 'Pesamale',
+        artist: 'Koshal',
+      ).toJson();
+    };
+    final shazam = FakeShazam(
+      hit: const ShazamHit(title: 'Pesamale', artist: 'Koshal'),
+    );
+    await pumpListen(
+      tester,
+      matcher: (clip, {required last}) async => last
+          ? const ListenResult(id: 4, matched: false, source: 'library')
+          : miss,
+      adapter: adapter,
+      shazamOn: true,
+      shazam: shazam,
+    );
+    await listenUntilDone(tester);
+    expect(shazam.asked, 1);
+    expect(saved, {
+      'title': 'Pesamale',
+      'artist': 'Koshal',
+      'listenEventId': 4,
+    });
     expect(find.text('Pesamale'), findsOneWidget);
     expect(find.textContaining('Identified by Shazam'), findsOneWidget);
     await tester.tap(find.text('Ask to add it'));
@@ -229,6 +271,23 @@ void main() {
           .text,
       'Koshal',
     );
+  });
+
+  testWidgets("when Shazam doesn't know it either, it's not found", (
+    tester,
+  ) async {
+    final shazam = FakeShazam();
+    await pumpListen(
+      tester,
+      matcher: (clip, {required last}) async => last
+          ? const ListenResult(id: 4, matched: false, source: 'library')
+          : miss,
+      shazamOn: true,
+      shazam: shazam,
+    );
+    await listenUntilDone(tester);
+    expect(shazam.asked, 1);
+    expect(find.text('Not in your music yet'), findsOneWidget);
   });
 
   testWidgets('it checks as it listens and stops as soon as it knows', (

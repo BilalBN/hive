@@ -4,10 +4,18 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// Shazam (M5) needs Apple's ShazamKit library, which can't be in the
+// repository: with libs/shazamkit-android-release.aar the Shazam code is
+// built, without it a version that says Shazam isn't here (see libs/README.md).
+val shazamKit = file("libs/shazamkit-android-release.aar")
+val withShazam = shazamKit.exists() && System.getenv("HIVE_NO_SHAZAM") == null
+
 android {
     namespace = "dev.hivemusic.hive"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
+
+    sourceSets["main"].java.srcDir(if (withShazam) "src/shazam/kotlin" else "src/noshazam/kotlin")
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -46,4 +54,11 @@ kotlin {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    if (withShazam) {
+        implementation(files(shazamKit))
+        implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
+    }
 }

@@ -25,3 +25,14 @@ export const decideSongRequest = async (songRequestId: string, status: SongReque
 
 export const fetchRecognition = async () => take(await api.GET("/api/v1/admin/recognition"));
 export const rebuildRecognition = async () => take(await api.POST("/api/v1/admin/recognition/rebuild"));
+
+// ---------------------------------------------------------------- M5: Shazam
+
+export type ShazamSettings = S["ShazamSettings"];
+export type ShazamSettingsUpdate = S["ShazamSettingsUpdate"];
+export const shazamQuery = {
+  queryKey: ["shazam"],
+  queryFn: async () => take(await api.GET("/api/v1/admin/recognition/shazam")),
+};
+export const saveShazam = async (body: ShazamSettingsUpdate) =>
+  take(await api.PUT("/api/v1/admin/recognition/shazam", { body }));

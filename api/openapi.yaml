@@ -580,10 +580,18 @@ paths:
     post:
       tags: [listen]
       operationId: recordListenResult
-      summary: Save a recognition made on the device by Shazam, so history covers both sources.
+      summary: Save what Shazam named on the device, so history and "Ask to add it" cover it.
+      description: Given listenEventId (the attempt home couldn't name), that history entry becomes Shazam's.
       x-milestone: M5
-      requestBody: { $ref: "#/components/requestBodies/Pending" }
-      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/ShazamFound" } } }
+      responses:
+        "200": { description: The recognition., content: { application/json: { schema: { $ref: "#/components/schemas/ListenResult" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { description: Shazam is off for this home (or not ready for Android)., content: { application/problem+json: { schema: { $ref: "#/components/schemas/Problem" } } } }
+        "422": { $ref: "#/components/responses/Invalid" }
   /api/v1/listen/requests:
     post:
       tags: [listen]
@@ -601,9 +609,21 @@ paths:
     post:
       tags: [listen]
       operationId: createShazamToken
-      summary: Short-lived Apple developer token for ShazamKit on Android.
+      summary: Short-lived Apple developer token for ShazamKit on Android (an hour).
       x-milestone: M5
-      responses: { "200": { $ref: "#/components/responses/Pending" }, "501": { $ref: "#/components/responses/NotImplemented" } }
+      responses:
+        "200": { description: The token., content: { application/json: { schema: { $ref: "#/components/schemas/ShazamToken" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "409": { description: Shazam is off for this home (or not ready for Android)., content: { application/problem+json: { schema: { $ref: "#/components/schemas/Problem" } } } }
+  /api/v1/listen/options:
+    get:
+      tags: [listen]
+      operationId: getListenOptions
+      summary: What Listen may use besides home's own recognition.
+      x-milestone: M5
+      responses:
+        "200": { description: The options., content: { application/json: { schema: { $ref: "#/components/schemas/ListenOptions" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
 
   # ---------------------------------------------------------------- sync (M4)
   /api/v1/sync/session:
@@ -1331,6 +1351,27 @@ paths:
       responses:
         "200": { description: The groups left., content: { application/json: { schema: { $ref: "#/components/schemas/SameSongs" } } } }
         "401": { $ref: "#/components/responses/Unauthorized" }
+  /api/v1/admin/recognition/shazam:
+    get:
+      tags: [admin]
+      operationId: adminGetShazam
+      summary: Shazam for songs that aren't at home, and the ShazamKit key for Android.
+      x-milestone: M5
+      responses:
+        "200": { description: The settings (the key itself is never sent back)., content: { application/json: { schema: { $ref: "#/components/schemas/ShazamSettings" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    put:
+      tags: [admin]
+      operationId: adminSetShazam
+      summary: Turn Shazam on or off, or set the ShazamKit key.
+      x-milestone: M5
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/ShazamSettingsUpdate" } } }
+      responses:
+        "200": { description: The settings., content: { application/json: { schema: { $ref: "#/components/schemas/ShazamSettings" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "422": { $ref: "#/components/responses/Invalid" }
   /api/v1/admin/backups:
     get:
       tags: [admin]
@@ -2092,6 +2133,43 @@ components:
             plays: { type: integer }
             playlistEntries: { type: integer }
         deleted: { type: integer, description: Files deleted. }
+    ListenOptions:
+      type: object
+      required: [shazam, shazamAndroid]
+      properties:
+        shazam: { type: boolean, description: The admin turned Shazam on for songs that aren't at home. }
+        shazamAndroid: { type: boolean, description: "Android can use it too (home has the ShazamKit key)." }
+    ShazamFound:
+      type: object
+      additionalProperties: false
+      required: [title]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 512 }
+        artist: { type: string, maxLength: 512 }
+        listenEventId: { type: integer, description: The attempt home couldn't name. }
+    ShazamToken:
+      type: object
+      required: [token, expiresAt]
+      properties:
+        token: { type: string }
+        expiresAt: { type: string, format: date-time }
+    ShazamSettings:
+      type: object
+      required: [enabled, keySet, androidReady]
+      properties:
+        enabled: { type: boolean }
+        teamId: { type: string }
+        keyId: { type: string }
+        keySet: { type: boolean, description: The ShazamKit key is saved at home. }
+        androidReady: { type: boolean, description: "On, with team, key ID and key: Android phones can use Shazam." }
+    ShazamSettingsUpdate:
+      type: object
+      additionalProperties: false
+      properties:
+        enabled: { type: boolean }
+        teamId: { type: string, pattern: "^([A-Z0-9]{10})?$" }
+        keyId: { type: string, pattern: "^([A-Z0-9]{10})?$" }
+        privateKey: { type: string, maxLength: 4000, description: "The .p8 file's text; empty removes it." }
     PlaySessionUpdate:
       type: object
       additionalProperties: false
