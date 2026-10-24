@@ -1,3 +1,5 @@
+import '../../push/push.dart';
+import '../../ui/track_actions.dart' show showToast;
 import '../../sync/remote.dart';
 import '../remote/remote_ui.dart';
 
@@ -49,6 +51,11 @@ class AppShell extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final wide = MediaQuery.sizeOf(context).width >= desktopBreakpoint;
     final bindings = _shortcuts(ref);
+    // M6: notifications while Hive is open show as a note at the bottom.
+    ref.listen(noticeProvider, (_, n) {
+      if (n != null) showToast(context, '${n.title}. ${n.body}');
+    });
+    ref.watch(pushProvider.select((_) => 0)); // keeps notifications set up
     return Focus(
       onKeyEvent: (node, event) {
         if (event is! KeyDownEvent && event is! KeyRepeatEvent) {

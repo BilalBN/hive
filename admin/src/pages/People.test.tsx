@@ -273,3 +273,38 @@ describe("Settings", () => {
     });
   });
 });
+
+describe("Notifications", () => {
+  it("saves the APNs key and sends a test", async () => {
+    let saved: unknown;
+    mockApi({
+      "GET /api/v1/admin/settings": { body: settings },
+      "PUT /api/v1/admin/push": (req) => {
+        void req.json().then((b) => (saved = b));
+        return {
+          body: {
+            apnsReady: true,
+            keySet: true,
+            topic: "dev.hivemusic.hive",
+            sandbox: false,
+            teamId: "ABCDE12345",
+            keyId: "KEY1234567",
+          },
+        };
+      },
+      "POST /api/v1/admin/push/test": { body: { sent: 1 } },
+    });
+    renderAt("/settings");
+    expect(await screen.findByRole("heading", { name: "Notifications" })).toBeInTheDocument();
+    expect(screen.getByText(/not set yet/)).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Team ID"), { target: { value: "abcde12345" } });
+    fireEvent.change(screen.getByLabelText("Key ID"), { target: { value: "KEY1234567" } });
+    fireEvent.change(screen.getByLabelText(/APNs key/), { target: { value: "-----BEGIN PRIVATE KEY-----x" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save the key" }));
+    await waitFor(() =>
+      expect(saved).toEqual({ teamId: "ABCDE12345", keyId: "KEY1234567", privateKey: "-----BEGIN PRIVATE KEY-----x" }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Send a test notification" }));
+    expect(await screen.findByText(/Sent to the admins' devices/)).toBeInTheDocument();
+  });
+});

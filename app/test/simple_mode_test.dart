@@ -62,12 +62,21 @@ void main() {
     await tester.tap(find.byKey(const Key('open-settings')));
     await tester.pumpAndSettle();
     final simple = find.widgetWithText(SwitchListTile, 'Simple mode');
-    await tester.ensureVisible(simple);
+    await tester.scrollUntilVisible(
+      simple,
+      200,
+      scrollable: find.byType(Scrollable).last,
+    );
     await tester.pumpAndSettle();
     await tester.tap(simple);
     await tester.pumpAndSettle();
     expect(c.read(simpleModeProvider), isTrue);
 
+    await tester.scrollUntilVisible(
+      find.text('Appearance'),
+      200,
+      scrollable: find.byType(Scrollable).last,
+    );
     await tester.tap(find.text('Appearance'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Dark'));

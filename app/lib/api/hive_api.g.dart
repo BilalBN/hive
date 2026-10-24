@@ -1614,6 +1614,195 @@ class SameSongResult {
       };
 }
 
+class PushKind {
+  const PushKind({
+    required this.kind,
+    required this.label,
+    required this.on,
+  });
+
+  final String kind;
+  final String label;
+  final bool on;
+
+  factory PushKind.fromJson(Map<String, dynamic> json) => PushKind(
+        kind: json['kind'] as String,
+        label: json['label'] as String,
+        on: json['on'] as bool,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'kind': kind,
+        'label': label,
+        'on': on,
+      };
+}
+
+class PushSettings {
+  const PushSettings({
+    required this.webPushKey,
+    required this.apns,
+    required this.kinds,
+  });
+
+  /// Home's VAPID public key (base64url), for UnifiedPush / Web Push registration.
+  final String webPushKey;
+  /// Home can send to iPhones
+  final bool apns;
+  final List<PushKind> kinds;
+
+  factory PushSettings.fromJson(Map<String, dynamic> json) => PushSettings(
+        webPushKey: json['webPushKey'] as String,
+        apns: json['apns'] as bool,
+        kinds: (json['kinds'] as List<dynamic>).map((e) => PushKind.fromJson((e as Map).cast<String, dynamic>())).toList(),
+      );
+
+  Map<String, dynamic> toJson() => {
+        'webPushKey': webPushKey,
+        'apns': apns,
+        'kinds': kinds.map((e) => e.toJson()).toList(),
+      };
+}
+
+class PushChoices {
+  const PushChoices({
+    required this.off,
+  });
+
+  final List<String> off;
+
+  factory PushChoices.fromJson(Map<String, dynamic> json) => PushChoices(
+        off: (json['off'] as List<dynamic>).map((e) => e as String).toList(),
+      );
+
+  Map<String, dynamic> toJson() => {
+        'off': off.map((e) => e).toList(),
+      };
+}
+
+class PushTarget {
+  const PushTarget({
+    required this.kind,
+    this.endpoint,
+    this.p256dh,
+    this.auth,
+    this.token,
+  });
+
+  final String kind;
+  /// webpush: the UnifiedPush endpoint (https).
+  final String? endpoint;
+  /// webpush: the device's public key (base64url).
+  final String? p256dh;
+  /// webpush: the auth secret (base64url).
+  final String? auth;
+  /// apns: the device token (hex).
+  final String? token;
+
+  factory PushTarget.fromJson(Map<String, dynamic> json) => PushTarget(
+        kind: json['kind'] as String,
+        endpoint: json['endpoint'] == null ? null : json['endpoint'] as String,
+        p256dh: json['p256dh'] == null ? null : json['p256dh'] as String,
+        auth: json['auth'] == null ? null : json['auth'] as String,
+        token: json['token'] == null ? null : json['token'] as String,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'kind': kind,
+        'endpoint': ?endpoint,
+        'p256dh': ?p256dh,
+        'auth': ?auth,
+        'token': ?token,
+      };
+}
+
+class AdminPush {
+  const AdminPush({
+    required this.apnsReady,
+    required this.keySet,
+    this.teamId,
+    this.keyId,
+    required this.topic,
+    required this.sandbox,
+  });
+
+  final bool apnsReady;
+  final bool keySet;
+  final String? teamId;
+  final String? keyId;
+  /// The app's identifier (dev.hivemusic.hive).
+  final String topic;
+  /// Development builds use Apple's sandbox.
+  final bool sandbox;
+
+  factory AdminPush.fromJson(Map<String, dynamic> json) => AdminPush(
+        apnsReady: json['apnsReady'] as bool,
+        keySet: json['keySet'] as bool,
+        teamId: json['teamId'] == null ? null : json['teamId'] as String,
+        keyId: json['keyId'] == null ? null : json['keyId'] as String,
+        topic: json['topic'] as String,
+        sandbox: json['sandbox'] as bool,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'apnsReady': apnsReady,
+        'keySet': keySet,
+        'teamId': ?teamId,
+        'keyId': ?keyId,
+        'topic': topic,
+        'sandbox': sandbox,
+      };
+}
+
+class AdminPushUpdate {
+  const AdminPushUpdate({
+    this.teamId,
+    this.keyId,
+    this.privateKey,
+    this.topic,
+    this.sandbox,
+  });
+
+  final String? teamId;
+  final String? keyId;
+  /// The .p8 file's text; empty removes it.
+  final String? privateKey;
+  final String? topic;
+  final bool? sandbox;
+
+  factory AdminPushUpdate.fromJson(Map<String, dynamic> json) => AdminPushUpdate(
+        teamId: json['teamId'] == null ? null : json['teamId'] as String,
+        keyId: json['keyId'] == null ? null : json['keyId'] as String,
+        privateKey: json['privateKey'] == null ? null : json['privateKey'] as String,
+        topic: json['topic'] == null ? null : json['topic'] as String,
+        sandbox: json['sandbox'] == null ? null : json['sandbox'] as bool,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'teamId': ?teamId,
+        'keyId': ?keyId,
+        'privateKey': ?privateKey,
+        'topic': ?topic,
+        'sandbox': ?sandbox,
+      };
+}
+
+class PushTestResult {
+  const PushTestResult({
+    required this.sent,
+  });
+
+  final int sent;
+
+  factory PushTestResult.fromJson(Map<String, dynamic> json) => PushTestResult(
+        sent: json['sent'] as int,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'sent': sent,
+      };
+}
+
 class PlaySessionUpdate {
   const PlaySessionUpdate({
     required this.installId,
@@ -4844,6 +5033,36 @@ class HiveApi {
   Future<CommandSent> commandDevice({required String installId, required DeviceCommand body}) async {
     final data = await _send('POST', '/api/v1/sync/devices/${Uri.encodeComponent(installId)}/command', data: body.toJson());
     return CommandSent.fromJson((data as Map).cast<String, dynamic>());
+  }
+
+  /// Which notifications this person gets, and what devices need to take them while Hive is closed.
+  ///
+  /// `GET /api/v1/push/settings` · built in M6.
+  Future<PushSettings> getPushSettings() async {
+    final data = await _send('GET', '/api/v1/push/settings');
+    return PushSettings.fromJson((data as Map).cast<String, dynamic>());
+  }
+
+  /// Turn kinds of notification off (or back on).
+  ///
+  /// `PUT /api/v1/push/settings` · built in M6.
+  Future<PushSettings> setPushSettings({required PushChoices body}) async {
+    final data = await _send('PUT', '/api/v1/push/settings', data: body.toJson());
+    return PushSettings.fromJson((data as Map).cast<String, dynamic>());
+  }
+
+  /// Where this device takes notifications while Hive is closed (UnifiedPush endpoint or Apple device token).
+  ///
+  /// `PUT /api/v1/push/targets/{installId}` · built in M6.
+  Future<void> setPushTarget({required String installId, required PushTarget body}) async {
+    await _send('PUT', '/api/v1/push/targets/${Uri.encodeComponent(installId)}', data: body.toJson());
+  }
+
+  /// Stop notifications to this device while Hive is closed.
+  ///
+  /// `DELETE /api/v1/push/targets/{installId}` · built in M6.
+  Future<void> deletePushTarget({required String installId}) async {
+    await _send('DELETE', '/api/v1/push/targets/${Uri.encodeComponent(installId)}');
   }
 
   /// The person's last play session, for the continuity offer ("Continue from Bilal's MacBook").

@@ -29,7 +29,7 @@ def test_system_health_and_alerts(server: TestClient, monkeypatch) -> None:
     assert any("nearly full" in a["text"] for a in alerts)
     notes = []
     monkeypatch.setattr(
-        server.app.state.people, "_notify_admins", lambda note=None: notes.append(note)
+        server.app.state.people, "_notify_admins", lambda note=None, kind=None: notes.append(note)
     )
     watch = server.app.state.watch
     assert watch.check() and len(notes) == 1

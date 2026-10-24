@@ -306,7 +306,9 @@ class Watch:
             last = home.get(key)
             if last and datetime.fromisoformat(last) > now - ALERT_EVERY:
                 continue
-            self.app.state.people._notify_admins(mail.health_note(home.home_name, p["text"]))
+            self.app.state.people._notify_admins(
+                mail.health_note(home.home_name, p["text"]), kind="needs_look"
+            )
             home.set(key, now.isoformat())
             sent.append(p["key"])
         if sent:

@@ -4,6 +4,18 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// UnifiedPush (M6) and flutter_secure_storage bring two builds of Google's
+// Tink crypto library; use the Android one only.
+configurations.all {
+    val tink = "com.google.crypto.tink:tink-android:1.23.0"
+    resolutionStrategy {
+        force(tink)
+        dependencySubstitution {
+            substitute(module("com.google.crypto.tink:tink")).using(module(tink))
+        }
+    }
+}
+
 android {
     namespace = "dev.hivemusic.hive"
     compileSdk = flutter.compileSdkVersion
@@ -12,6 +24,8 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+        // flutter_local_notifications (M6) uses newer Java date APIs.
+        isCoreLibraryDesugaringEnabled = true
     }
 
     defaultConfig {
@@ -46,4 +60,8 @@ kotlin {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
 }

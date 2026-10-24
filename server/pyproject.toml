@@ -19,6 +19,7 @@ dependencies = [
   "httpx>=0.27",  # online lookup (MusicBrainz, Cover Art Archive, Wikidata, AcoustID)
   "cryptography>=42",  # M2: checks each device's Ed25519 signature
   "numpy>=1.26",  # M3: Listen's song fingerprints
+  "h2>=4.1",  # M6: Apple's push service speaks HTTP/2
 ]
 
 [project.optional-dependencies]

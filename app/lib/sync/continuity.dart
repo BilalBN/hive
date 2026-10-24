@@ -13,6 +13,7 @@ import '../core/api.dart';
 import '../core/app_info.dart';
 import '../core/home_connection.dart';
 import '../player/player_controller.dart';
+import '../push/push.dart';
 import 'remote.dart';
 
 /// This app on this device: stays the same across sign-ins, so a phone
@@ -58,6 +59,14 @@ class CommandReceived extends SyncEvent {
   const CommandReceived(this.fromName, this.command);
   final String fromName;
   final RemoteCommand command;
+}
+
+/// A notification for this person while Hive is open (M6).
+class NoticeReceived extends SyncEvent {
+  const NoticeReceived(this.kind, this.title, this.body);
+  final String kind;
+  final String title;
+  final String body;
 }
 
 /// Talks to home about play sessions, devices and remote commands.
@@ -135,6 +144,12 @@ class HomeSessionLink implements SessionLink {
           );
         case 'devices':
           yield const DevicesChanged();
+        case 'notice':
+          yield NoticeReceived(
+            m['kind'] as String? ?? '',
+            m['title'] as String? ?? 'Hive',
+            m['body'] as String? ?? '',
+          );
         case 'command':
           yield CommandReceived(
             (m['fromName'] as String?) ?? 'Another device',
@@ -324,6 +339,9 @@ class ContinuityController extends Notifier<ContinuityState> {
               );
             case CommandReceived():
               unawaited(obey(ref, e));
+            case NoticeReceived():
+              ref.read(noticeProvider.notifier).show(e);
+              unawaited(showNoticeIfHidden(ref, e));
             case DeviceChanged() || DevicesChanged():
               ref.read(remoteProvider.notifier).heard(e);
           }

@@ -1,3 +1,5 @@
+import 'package:hive/push/push.dart';
+
 import 'dart:async';
 
 import 'package:hive/api/hive_api.g.dart';
@@ -267,4 +269,45 @@ class FakeSessionLink implements SessionLink {
   @override
   Future<void> command(String installId, DeviceCommand command) async =>
       sent.add((installId, command));
+}
+
+/// The device's notification plumbing (M6), without plugins.
+class FakePushDevice implements PushDevice {
+  FakePushDevice({
+    this.android = false,
+    this.apple = false,
+    this.distributor = true,
+    this.token,
+  });
+  @override
+  final bool android;
+  @override
+  final bool apple;
+  bool distributor;
+  String? token;
+  final registered = <String>[];
+  final shown = <String>[];
+
+  void Function(String url, String? pubKey, String? auth)? onEndpoint;
+  void Function(Map<String, dynamic> message)? onMessage;
+
+  @override
+  Future<void> listen({
+    required void Function(String url, String? pubKey, String? auth) onEndpoint,
+    required void Function(Map<String, dynamic> message) onMessage,
+  }) async {
+    this.onEndpoint = onEndpoint;
+    this.onMessage = onMessage;
+  }
+
+  @override
+  Future<bool> hasDistributor() async => android && distributor;
+  @override
+  Future<void> registerUnifiedPush(String vapid) async => registered.add(vapid);
+  @override
+  Future<void> unregisterUnifiedPush() async => registered.add('unregistered');
+  @override
+  Future<String?> registerApple() async => token;
+  @override
+  Future<void> showLocal(String title, String body) async => shown.add(title);
 }

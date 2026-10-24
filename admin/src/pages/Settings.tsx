@@ -13,6 +13,7 @@ import {
   testEmail,
   updateSettings,
 } from "../api/people";
+import { PushPanel } from "../components/PushPanel";
 import { QueryError } from "../components/QueryError";
 import { sessionQuery } from "../components/SignIn";
 import { Qr } from "./Invite";
@@ -430,7 +431,7 @@ export function SettingsPage() {
     <section className="page">
       <header className="page__header">
         <h1 className="page__title">Settings</h1>
-        <p className="page__summary">Names, limits, email and how you sign in.</p>
+        <p className="page__summary">Names, limits, email, notifications and how you sign in.</p>
       </header>
       {error && <QueryError error={error} retry={() => refetch()} busy={isFetching} />}
       {data && (
@@ -439,6 +440,7 @@ export function SettingsPage() {
           <Home s={data} />
           <Email s={data} />
           <SignInSecurity />
+          <PushPanel />
         </div>
       )}
     </section>

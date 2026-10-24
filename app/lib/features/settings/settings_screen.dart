@@ -1,3 +1,5 @@
+import '../../push/push.dart';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -183,6 +185,9 @@ class SettingsScreen extends ConsumerWidget {
                 style: HiveType.caption.copyWith(color: p.textSecondary),
               ),
             ),
+            const SizedBox(height: HiveSpace.lg),
+            _Heading('Notifications'),
+            const _Notifications(),
             const SizedBox(height: HiveSpace.lg),
             _Heading('This device'),
             const _ThisDevice(),
@@ -792,6 +797,81 @@ class _ThisComputerState extends ConsumerState<_ThisComputer> {
               style: HiveType.caption.copyWith(color: p.textSecondary),
             ),
           ),
+      ],
+    );
+  }
+}
+
+/// M6: which notifications this person gets (never personal details), and
+/// whether this device takes them while Hive is closed.
+class _Notifications extends ConsumerWidget {
+  const _Notifications();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final p = HiveTheme.of(context);
+    final push = ref.watch(pushProvider);
+    final c = ref.read(pushProvider.notifier);
+    final kinds = push.settings?.kinds ?? const <PushKind>[];
+    final closed = switch (push.closed) {
+      ClosedDelivery.none => null,
+      ClosedDelivery.needsDistributor => 'Needs a UnifiedPush app such as ntfy (from F-Droid or Google Play); open Hive again after installing it.',
+      ClosedDelivery.off => 'Off on this device.',
+      ClosedDelivery.on => 'On: they arrive like any other notification.',
+    };
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _Group(
+          children: [
+            if (kinds.isEmpty)
+              Padding(
+                padding: const EdgeInsets.all(HiveSpace.md),
+                child: Text(
+                  'Shown when home is reachable.',
+                  style: HiveType.callout.copyWith(color: p.textSecondary),
+                ),
+              ),
+            for (final k in kinds)
+              SwitchListTile(
+                title: Text(
+                  k.label,
+                  style: HiveType.body.copyWith(color: p.textPrimary),
+                ),
+                value: k.on,
+                activeThumbColor: p.accent,
+                onChanged: (v) => c.setKind(k.kind, v),
+              ),
+            if (closed != null)
+              SwitchListTile(
+                title: Text(
+                  'When Hive is closed',
+                  style: HiveType.body.copyWith(color: p.textPrimary),
+                ),
+                subtitle: Text(
+                  closed,
+                  style: HiveType.caption.copyWith(color: p.textSecondary),
+                ),
+                value: push.closed == ClosedDelivery.on,
+                activeThumbColor: p.accent,
+                onChanged: push.closed == ClosedDelivery.needsDistributor
+                    ? null
+                    : c.setWhenClosed,
+              ),
+          ],
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            HiveSpace.md,
+            HiveSpace.xs,
+            HiveSpace.md,
+            0,
+          ),
+          child: Text(
+            "Notifications never say who or what (no names, songs or emails); open Hive to see.",
+            style: HiveType.caption.copyWith(color: p.textSecondary),
+          ),
+        ),
       ],
     );
   }
