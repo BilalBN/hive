@@ -16,6 +16,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 PUBSPEC = ROOT / "app" / "pubspec.yaml"
 SERVER = ROOT / "server" / "hive" / "__init__.py"
+APP_INFO = ROOT / "app" / "lib" / "core" / "app_info.dart"
 ADMIN = ROOT / "admin" / "package.json"
 ADMIN_LOCK = ROOT / "admin" / "package-lock.json"
 SEMVER = re.compile(r"^\d+\.\d+\.\d+$")
@@ -25,7 +26,8 @@ def current() -> dict[str, str]:
     app = re.search(r"^version:\s*(\S+)", PUBSPEC.read_text(), re.M).group(1)
     server = re.search(r'__version__\s*=\s*"([^"]+)"', SERVER.read_text()).group(1)
     admin = json.loads(ADMIN.read_text())["version"]
-    return {"app": app, "server": server, "admin": admin}
+    info = re.search(r"const appVersion = '([^']+)'", APP_INFO.read_text()).group(1)
+    return {"app": app, "app_info": info, "server": server, "admin": admin}
 
 
 def set_version(new: str) -> None:
@@ -34,6 +36,9 @@ def set_version(new: str) -> None:
     text = PUBSPEC.read_text()
     build = int(re.search(r"^version:\s*\S+\+(\d+)", text, re.M).group(1)) + 1
     PUBSPEC.write_text(re.sub(r"^version:\s*\S+", f"version: {new}+{build}", text, count=1, flags=re.M))
+    APP_INFO.write_text(
+        re.sub(r"const appVersion = '[^']+'", f"const appVersion = '{new}'", APP_INFO.read_text())
+    )
     SERVER.write_text(re.sub(r'__version__\s*=\s*"[^"]+"', f'__version__ = "{new}"', SERVER.read_text()))
     for path in (ADMIN, ADMIN_LOCK):
         if not path.exists():
