@@ -1,0 +1,35 @@
+name: Something isn't working
+description: A bug in the server, Hive Admin or an app
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: How to make it happen
+      placeholder: "1. Open … 2. Tap … 3. See …"
+  - type: input
+    id: version
+    attributes:
+      label: Versions
+      description: Hive Admin → System health shows the server's; the app's is in Settings → About Hive.
+      placeholder: "server 0.4.0, Android app 0.4.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where
+      multiple: true
+      options: [Server, Hive Admin, Android app, iPhone/iPad app, Windows app, Mac app, Docker, Installer]
+  - type: textarea
+    id: logs
+    attributes:
+      label: Hive's log (optional)
+      description: Hive Admin → Logs. Check there's nothing private in it before pasting.
+      render: text

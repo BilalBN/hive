@@ -13,8 +13,11 @@ export function SetupPage() {
   const session = useQuery(sessionQuery);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [code, setCode] = useState("");
+  const away = !!session.data && !session.data.onHomeComputer;
   const setup = useMutation({
-    mutationFn: () => setUpAdmin({ name: name.trim(), email: email.trim() }),
+    mutationFn: () =>
+      setUpAdmin({ name: name.trim(), email: email.trim(), ...(away ? { setupCode: code.trim() } : {}) }),
     onSuccess: (s) => {
       client.setQueryData(sessionQuery.queryKey, s);
       client.invalidateQueries({ queryKey: ["overview"] });
@@ -51,41 +54,54 @@ export function SetupPage() {
         <h1 className="page__title">Set up the first admin</h1>
         <p className="page__summary">You. Your email is where sign-in codes and "someone is waiting" notes go.</p>
       </header>
-      {s && !s.onHomeComputer ? (
-        <p className="note note--warning">Do this on the home computer itself.</p>
-      ) : (
-        <form className="panel form" onSubmit={submit}>
+      <form className="panel form" onSubmit={submit}>
+        {away && (
           <label className="field">
-            <span>Your name</span>
-            <input className="input" required maxLength={80} value={name} onChange={(e) => setName(e.target.value)} />
-          </label>
-          <label className="field">
-            <span>Your email</span>
+            <span>Setup code</span>
             <input
-              className="input"
-              type="email"
-              autoComplete="email"
+              className="input mono"
               required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              maxLength={20}
+              placeholder="ABCD-1234"
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
             />
+            <span className="field__hint">
+              You&apos;re not on the home computer, so type the setup code Hive printed when it started (its log, or{" "}
+              <span className="mono">docker logs hive</span>).
+            </span>
           </label>
-          <p className="note">
-            Afterwards the temporary key stops working: apps ask people to join with an invite instead. Likes, plays and
-            playlists made so far become yours.
-          </p>
-          {setup.error && <p className="note note--error">{setup.error.message}</p>}
-          <div className="actions">
-            <button
-              className="button button--primary"
-              type="submit"
-              disabled={!name.trim() || !email.trim() || setup.isPending}
-            >
-              {setup.isPending ? "Setting up…" : "Set up"}
-            </button>
-          </div>
-        </form>
-      )}
+        )}
+        <label className="field">
+          <span>Your name</span>
+          <input className="input" required maxLength={80} value={name} onChange={(e) => setName(e.target.value)} />
+        </label>
+        <label className="field">
+          <span>Your email</span>
+          <input
+            className="input"
+            type="email"
+            autoComplete="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+        </label>
+        <p className="note">
+          Afterwards the temporary key stops working: apps ask people to join with an invite instead. Likes, plays and
+          playlists made so far become yours.
+        </p>
+        {setup.error && <p className="note note--error">{setup.error.message}</p>}
+        <div className="actions">
+          <button
+            className="button button--primary"
+            type="submit"
+            disabled={!name.trim() || !email.trim() || setup.isPending}
+          >
+            {setup.isPending ? "Setting up…" : "Set up"}
+          </button>
+        </div>
+      </form>
     </section>
   );
 }

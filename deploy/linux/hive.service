@@ -1,0 +1,23 @@
+# Hive as a system service on Linux (systemd). See docs/self-hosting.md.
+#   sudo cp deploy/linux/hive.service /etc/systemd/system/
+#   sudo systemctl enable --now hive
+[Unit]
+Description=Hive music server
+After=network-online.target tailscaled.service
+Wants=network-online.target
+# Waiting for Tailscale after a reboot: keep trying.
+StartLimitIntervalSec=0
+
+[Service]
+User=hive
+Group=hive
+Environment=HIVE_DATA_DIR=/var/lib/hive
+ExecStart=/opt/hive/venv/bin/hive serve
+Restart=on-failure
+RestartSec=20
+NoNewPrivileges=true
+ProtectSystem=full
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

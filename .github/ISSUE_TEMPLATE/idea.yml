@@ -1,0 +1,14 @@
+name: An idea
+description: Something that would make Hive better for your family
+labels: [idea]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What would you like to do that Hive doesn't let you?
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: How you imagine it

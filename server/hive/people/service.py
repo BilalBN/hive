@@ -770,6 +770,25 @@ class People:
             "emailSent": sent or admin is None,
         }
 
+    def _admin_session(self, s: Session, user_id: str) -> str:
+        cookie = X.new_token(32)
+        s.add(
+            AdminSession(
+                id=self.hash(cookie),
+                user_id=user_id,
+                expires_at=now() + timedelta(hours=ADMIN_SESSION_HOURS),
+            )
+        )
+        return cookie
+
+    def admin_session_for(self, user_id: str) -> str:
+        """A Hive Admin session for [user_id] (the first admin, set up with
+        the setup code from another computer)."""
+        with Session(self.db.engine) as s:
+            cookie = self._admin_session(s, user_id)
+            s.commit()
+            return cookie
+
     def verify_admin(self, code_id: str, code: str, authenticator: str | None) -> str:
         """A session cookie value."""
         with self.lock, Session(self.db.engine) as s:
@@ -809,14 +828,7 @@ class People:
                     code="authenticatorNeeded",
                 )
             user.totp_last_step = step
-            cookie = X.new_token(32)
-            s.add(
-                AdminSession(
-                    id=self.hash(cookie),
-                    user_id=user.id,
-                    expires_at=now() + timedelta(hours=ADMIN_SESSION_HOURS),
-                )
-            )
+            cookie = self._admin_session(s, user.id)
             self.audit(
                 s,
                 "admin.signin",
