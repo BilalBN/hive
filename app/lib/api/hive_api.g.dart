@@ -3324,19 +3324,24 @@ class AdminSetup {
   const AdminSetup({
     required this.name,
     required this.email,
+    this.setupCode,
   });
 
   final String name;
   final String email;
+  /// From Hive's log, to set up from another computer (a server without a screen, or Docker).
+  final String? setupCode;
 
   factory AdminSetup.fromJson(Map<String, dynamic> json) => AdminSetup(
         name: json['name'] as String,
         email: json['email'] as String,
+        setupCode: json['setupCode'] == null ? null : json['setupCode'] as String,
       );
 
   Map<String, dynamic> toJson() => {
         'name': name,
         'email': email,
+        'setupCode': ?setupCode,
       };
 }
 

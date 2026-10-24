@@ -1,0 +1,12 @@
+**/node_modules
+**/.venv
+**/__pycache__
+**/build
+**/dist
+app/
+data/
+.e2e-data/
+docs/
+fastlane/
+design/
+.git

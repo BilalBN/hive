@@ -577,3 +577,24 @@ def test_invites_carry_the_private_network_address(
     server.patch("/api/v1/admin/settings", json={"address": "http://hive-pc:8443"})
     r = server.post("http://127.0.0.1:8443/api/v1/admin/invites", json={})
     assert "a=http%3A%2F%2Fhive-pc%3A8443" in r.json()["joinLink"]
+
+
+def test_first_admin_from_another_computer_with_the_setup_code(server: TestClient, caplog) -> None:
+    """A server without a screen (or in Docker): the setup code from Hive's log."""
+    other = away(server)
+    code = server.app.state.setup_code
+    assert code and len(code) == 9 and code[4] == "-"
+    body = {"name": "Bilal", "email": "bilal@example.com"}
+    assert other.post("/api/v1/admin/setup", json=body).status_code == 403
+    wrong = other.post("/api/v1/admin/setup", json={**body, "setupCode": "0000-0000"})
+    assert wrong.status_code == 403 and wrong.json()["code"] == "setupCodeNeeded"
+
+    r = other.post(
+        "/api/v1/admin/setup", json={**body, "setupCode": code.lower().replace("-", " ")}
+    )
+    assert r.status_code == 200, r.text
+    assert r.json()["signedIn"] and not r.json()["onHomeComputer"]
+    assert "hive_admin" in r.headers.get("set-cookie", "").lower() or r.cookies
+    # Signed in from there, and the code is used up.
+    assert other.get("/api/v1/admin/session").json()["signedIn"] is True
+    assert server.app.state.setup_code is None

@@ -2706,6 +2706,8 @@ export interface components {
             name: string;
             /** Format: email */
             email: string;
+            /** @description From Hive's log, to set up from another computer (a server without a screen, or Docker). */
+            setupCode?: string;
         };
         AdminEmailStart: {
             /** Format: email */

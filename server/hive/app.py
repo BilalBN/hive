@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import secrets
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
@@ -103,7 +104,13 @@ def create_app(settings: Settings | None = None, lookup_http: Http | None = None
             log.info(
                 "development key for the apps (until an admin is set up): %s", app.state.dev_key
             )
-            log.info("set up the first admin in Hive Admin on this computer")
+            raw = secrets.token_hex(4).upper()
+            app.state.setup_code = f"{raw[:4]}-{raw[4:]}"
+            log.info(
+                "set up the first admin in Hive Admin on this computer, or from another one "
+                "with the setup code %s",
+                app.state.setup_code,
+            )
         yield
         app.state.lookup.stop()
         app.state.recognition.stop()

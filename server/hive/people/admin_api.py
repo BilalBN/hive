@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import secrets
 from typing import Any, Literal
 
 from fastapi import APIRouter, Query, Request, Response
@@ -27,6 +28,9 @@ class Strict(BaseModel):
 class SetupBody(Strict):
     name: str = Field(min_length=1, max_length=80)
     email: str = Field(max_length=254, pattern=EMAIL)
+    # From the server's log, for setting up from another computer (a server
+    # without a screen, or in Docker).
+    setupCode: str | None = Field(None, max_length=20)  # noqa: N815
 
 
 class AdminEmailBody(Strict):
@@ -138,11 +142,40 @@ def sign_out(request: Request, response: Response) -> Response:
 
 
 @router.post("/setup")
-def setup(body: SetupBody, request: Request) -> dict[str, Any]:
-    if not is_home_computer(request):
-        raise Problem(403, "Home computer only", "Set up Hive Admin on the home computer itself.")
-    user = _people(request).setup_admin(body.name, body.email)
-    return session_body(request, user, True)
+def setup(body: SetupBody, request: Request) -> Any:
+    home = is_home_computer(request)
+
+    def plain(code: str | None) -> str:
+        return "".join(ch for ch in (code or "").upper() if ch.isalnum())
+
+    expected = plain(getattr(request.app.state, "setup_code", None))
+    given = plain(body.setupCode)
+    if not home and not (expected and given and secrets.compare_digest(given, expected)):
+        raise Problem(
+            403,
+            "Home computer only",
+            "Set up Hive Admin on the home computer itself, or type the setup code "
+            "from Hive's log.",
+            code="setupCodeNeeded",
+        )
+    people = _people(request)
+    user = people.setup_admin(body.name, body.email)
+    request.app.state.setup_code = None
+    if home:
+        return session_body(request, user, True)
+    from fastapi.responses import JSONResponse
+
+    out = JSONResponse(session_body(request, user, False))
+    out.set_cookie(
+        ADMIN_COOKIE,
+        people.admin_session_for(user.id),
+        max_age=ADMIN_SESSION_HOURS * 3600,
+        httponly=True,
+        samesite="strict",
+        secure=request.url.scheme == "https",
+        path="/",
+    )
+    return out
 
 
 @router.post("/session/email")

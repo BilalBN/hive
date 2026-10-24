@@ -2636,6 +2636,7 @@ components:
       properties:
         name: { type: string, minLength: 1, maxLength: 80 }
         email: { type: string, format: email, maxLength: 254 }
+        setupCode: { type: string, maxLength: 20, description: "From Hive's log, to set up from another computer (a server without a screen, or Docker)." }
     AdminEmailStart:
       type: object
       required: [email]
