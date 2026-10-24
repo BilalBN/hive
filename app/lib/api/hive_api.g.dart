@@ -1661,6 +1661,164 @@ class PlaySessionUpdate {
       };
 }
 
+class Device {
+  const Device({
+    required this.installId,
+    required this.deviceName,
+    required this.playing,
+    this.track,
+    this.positionMs,
+    this.updatedAt,
+  });
+
+  final String installId;
+  final String deviceName;
+  final bool playing;
+  final TrackSummary? track;
+  /// Where it is now
+  final int? positionMs;
+  final DateTime? updatedAt;
+
+  factory Device.fromJson(Map<String, dynamic> json) => Device(
+        installId: json['installId'] as String,
+        deviceName: json['deviceName'] as String,
+        playing: json['playing'] as bool,
+        track: json['track'] == null ? null : TrackSummary.fromJson((json['track'] as Map).cast<String, dynamic>()),
+        positionMs: json['positionMs'] == null ? null : json['positionMs'] as int,
+        updatedAt: json['updatedAt'] == null ? null : DateTime.parse(json['updatedAt'] as String),
+      );
+
+  Map<String, dynamic> toJson() => {
+        'installId': installId,
+        'deviceName': deviceName,
+        'playing': playing,
+        'track': ?track?.toJson(),
+        'positionMs': ?positionMs,
+        'updatedAt': ?updatedAt?.toUtc().toIso8601String(),
+      };
+}
+
+class DeviceList {
+  const DeviceList({
+    required this.items,
+  });
+
+  final List<Device> items;
+
+  factory DeviceList.fromJson(Map<String, dynamic> json) => DeviceList(
+        items: (json['items'] as List<dynamic>).map((e) => Device.fromJson((e as Map).cast<String, dynamic>())).toList(),
+      );
+
+  Map<String, dynamic> toJson() => {
+        'items': items.map((e) => e.toJson()).toList(),
+      };
+}
+
+class DeviceCommand {
+  const DeviceCommand({
+    required this.action,
+    required this.fromInstall,
+    this.positionMs,
+    this.volume,
+    this.queue,
+    this.index,
+    this.playing,
+    this.source,
+  });
+
+  final String action;
+  /// The device sending it.
+  final String fromInstall;
+  /// seek; load: where to start.
+  final int? positionMs;
+  final double? volume;
+  /// load: song ids.
+  final List<String>? queue;
+  final int? index;
+  /// load: start playing (default) or wait.
+  final bool? playing;
+  final SessionSource? source;
+
+  factory DeviceCommand.fromJson(Map<String, dynamic> json) => DeviceCommand(
+        action: json['action'] as String,
+        fromInstall: json['fromInstall'] as String,
+        positionMs: json['positionMs'] == null ? null : json['positionMs'] as int,
+        volume: json['volume'] == null ? null : (json['volume'] as num).toDouble(),
+        queue: json['queue'] == null ? null : (json['queue'] as List<dynamic>).map((e) => e as String).toList(),
+        index: json['index'] == null ? null : json['index'] as int,
+        playing: json['playing'] == null ? null : json['playing'] as bool,
+        source: json['source'] == null ? null : SessionSource.fromJson((json['source'] as Map).cast<String, dynamic>()),
+      );
+
+  Map<String, dynamic> toJson() => {
+        'action': action,
+        'fromInstall': fromInstall,
+        'positionMs': ?positionMs,
+        'volume': ?volume,
+        'queue': ?queue?.map((e) => e).toList(),
+        'index': ?index,
+        'playing': ?playing,
+        'source': ?source?.toJson(),
+      };
+}
+
+class CommandSent {
+  const CommandSent({
+    required this.sent,
+  });
+
+  final bool sent;
+
+  factory CommandSent.fromJson(Map<String, dynamic> json) => CommandSent(
+        sent: json['sent'] as bool,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'sent': sent,
+      };
+}
+
+/// What a device is told to do, over the sync WebSocket (M6).
+class RemoteCommand {
+  const RemoteCommand({
+    required this.action,
+    this.positionMs,
+    this.volume,
+    this.queue,
+    this.index,
+    this.playing,
+    this.source,
+  });
+
+  final String action;
+  final int? positionMs;
+  final double? volume;
+  final List<TrackSummary>? queue;
+  final int? index;
+  final bool? playing;
+  final SessionSource? source;
+
+  factory RemoteCommand.fromJson(Map<String, dynamic> json) => RemoteCommand(
+        action: json['action'] as String,
+        positionMs: json['positionMs'] == null ? null : json['positionMs'] as int,
+        volume: json['volume'] == null ? null : (json['volume'] as num).toDouble(),
+        queue: json['queue'] == null ? null : (json['queue'] as List<dynamic>).map((e) => TrackSummary.fromJson((e as Map).cast<String, dynamic>())).toList(),
+        index: json['index'] == null ? null : json['index'] as int,
+        playing: json['playing'] == null ? null : json['playing'] as bool,
+        source: json['source'] == null ? null : SessionSource.fromJson((json['source'] as Map).cast<String, dynamic>()),
+      );
+
+  Map<String, dynamic> toJson() => {
+        'action': action,
+        'positionMs': ?positionMs,
+        'volume': ?volume,
+        'queue': ?queue?.map((e) => e.toJson()).toList(),
+        'index': ?index,
+        'playing': ?playing,
+        'source': ?source?.toJson(),
+      };
+}
+
 class PlaySession {
   const PlaySession({
     required this.installId,
@@ -4670,6 +4828,22 @@ class HiveApi {
   Future<Map<String, dynamic>> createShazamToken() async {
     final data = await _send('POST', '/api/v1/listen/shazam-token');
     return (data as Map).cast<String, dynamic>();
+  }
+
+  /// The person's devices with Hive open now, and what each is playing.
+  ///
+  /// `GET /api/v1/sync/devices` · built in M6.
+  Future<DeviceList> listDevices() async {
+    final data = await _send('GET', '/api/v1/sync/devices');
+    return DeviceList.fromJson((data as Map).cast<String, dynamic>());
+  }
+
+  /// Tell one of the person's open devices to play, pause, skip, seek, change volume, or play a queue there.
+  ///
+  /// `POST /api/v1/sync/devices/{installId}/command` · built in M6.
+  Future<CommandSent> commandDevice({required String installId, required DeviceCommand body}) async {
+    final data = await _send('POST', '/api/v1/sync/devices/${Uri.encodeComponent(installId)}/command', data: body.toJson());
+    return CommandSent.fromJson((data as Map).cast<String, dynamic>());
   }
 
   /// The person's last play session, for the continuity offer ("Continue from Bilal's MacBook").

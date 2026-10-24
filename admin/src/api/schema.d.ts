@@ -646,6 +646,42 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/sync/devices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The person's devices with Hive open now, and what each is playing. */
+        get: operations["listDevices"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sync/devices/{installId}/command": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                installId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Tell one of the person's open devices to play, pause, skip, seek, change volume, or play a queue there. */
+        post: operations["commandDevice"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/sync/session": {
         parameters: {
             query?: never;
@@ -655,7 +691,7 @@ export interface paths {
         };
         /**
          * The person's last play session, for the continuity offer ("Continue from Bilal's MacBook").
-         * @description Empty when there's nothing to offer. Changes also arrive over a WebSocket at /api/v1/sync/events?install=<installId> (same Authorization header): messages {"type":"session","session":PlaySession} from the person's other devices, and {"type":"ping"} every 30 seconds.
+         * @description Empty when there's nothing to offer. Changes also arrive over a WebSocket at /api/v1/sync/events?install=<installId>&name=<device name> (same Authorization header): messages {"type":"session","session":PlaySession} from the person's other devices, {"type":"ping"} every 30 seconds, and (M6) {"type":"device", "device":Device} when another device's playing changes, {"type":"devices"} when one opens or closes, and {"type":"command","from":installId,"fromName":name, "command":RemoteCommand} for this device to carry out.
          */
         get: operations["getPlaySession"];
         /** The playing device reports what it's playing (after a change, and every 15 seconds while playing). */
@@ -2201,6 +2237,48 @@ export interface components {
             /** @description Track ids around the current one. */
             queue?: string[];
             index?: number;
+            source?: components["schemas"]["SessionSource"];
+        };
+        Device: {
+            installId: string;
+            deviceName: string;
+            playing: boolean;
+            track?: components["schemas"]["TrackSummary"];
+            /** @description Where it is now */
+            positionMs?: number;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        DeviceList: {
+            items: components["schemas"]["Device"][];
+        };
+        DeviceCommand: {
+            /** @enum {string} */
+            action: "play" | "pause" | "next" | "previous" | "seek" | "volume" | "load";
+            /** @description The device sending it. */
+            fromInstall: string;
+            /** @description seek; load: where to start. */
+            positionMs?: number;
+            volume?: number;
+            /** @description load: song ids. */
+            queue?: string[];
+            index?: number;
+            /** @description load: start playing (default) or wait. */
+            playing?: boolean;
+            source?: components["schemas"]["SessionSource"];
+        };
+        CommandSent: {
+            sent: boolean;
+        };
+        /** @description What a device is told to do, over the sync WebSocket (M6). */
+        RemoteCommand: {
+            /** @enum {string} */
+            action: "play" | "pause" | "next" | "previous" | "seek" | "volume" | "load";
+            positionMs?: number;
+            volume?: number;
+            queue?: components["schemas"]["TrackSummary"][];
+            index?: number;
+            playing?: boolean;
             source?: components["schemas"]["SessionSource"];
         };
         PlaySession: {
@@ -4167,6 +4245,64 @@ export interface operations {
         responses: {
             200: components["responses"]["Pending"];
             501: components["responses"]["NotImplemented"];
+        };
+    };
+    listDevices: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The devices. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeviceList"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    commandDevice: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                installId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeviceCommand"];
+            };
+        };
+        responses: {
+            /** @description Sent. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommandSent"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            /** @description That device isn't open any more. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: components["responses"]["Invalid"];
         };
     };
     getPlaySession: {

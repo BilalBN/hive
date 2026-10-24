@@ -4,8 +4,13 @@ MacBook"). One session per person, kept with the server's settings so it
 survives a restart. Changes reach the person's other open devices over a
 WebSocket at /api/v1/sync/events; they also ask when they open.
 
-Only the person's own devices see it. Moving playback between devices and
-using a phone as a remote come later (M6)."""
+Only the person's own devices see it.
+
+M6: moving playback between devices and using a phone as a remote. Each open
+app says which device it is when it connects; GET /devices lists the
+person's devices that are open now and what each is playing, and a command
+(play, pause, next, previous, seek, volume, or load a queue to play there)
+reaches one of them over its WebSocket."""
 
 from __future__ import annotations
 
@@ -53,16 +58,39 @@ class SessionBody(BaseModel):
 
 
 class Listeners:
-    """Open WebSockets by person: (install id, socket)."""
+    """Open WebSockets by person: (install id, socket), each device's name,
+    and what each last said it was playing (M6)."""
 
     def __init__(self) -> None:
         self.by_user: dict[str, set[tuple[str, WebSocket]]] = {}
+        self.names: dict[tuple[str, str], str] = {}
+        self.states: dict[tuple[str, str], dict[str, Any]] = {}
 
-    def add(self, user_id: str, install: str, ws: WebSocket) -> None:
+    def add(self, user_id: str, install: str, ws: WebSocket, name: str = "") -> None:
         self.by_user.setdefault(user_id, set()).add((install, ws))
+        if name:
+            self.names[(user_id, install)] = name[:80]
 
     def remove(self, user_id: str, install: str, ws: WebSocket) -> None:
         self.by_user.get(user_id, set()).discard((install, ws))
+
+    def online(self, user_id: str) -> list[str]:
+        seen: list[str] = []
+        for install, _ in self.by_user.get(user_id, ()):
+            if install and install not in seen:
+                seen.append(install)
+        return sorted(seen)
+
+    async def send_to(self, user_id: str, install: str, message: dict[str, Any]) -> bool:
+        text = json.dumps(message)
+        sent = False
+        for i, ws in list(self.by_user.get(user_id, ())):
+            if i != install:
+                continue
+            with contextlib.suppress(Exception):
+                await ws.send_text(text)
+                sent = True
+        return sent
 
     async def tell(self, user_id: str, except_install: str, message: dict[str, Any]) -> None:
         text = json.dumps(message)
@@ -143,11 +171,101 @@ async def update_play_session(
     request.app.state.people.home.set(_key(caller.user_id), json.dumps(stored))
     out = session_body(s, caller, stored)
     await listeners.tell(caller.user_id, body.installId, {"type": "session", "session": out})
+    # M6: what this device is playing, for remotes.
+    now = body.model_dump()
+    now["updatedAt"] = iso(datetime.now(UTC))
+    listeners.states[(caller.user_id, body.installId)] = now
+    listeners.names[(caller.user_id, body.installId)] = body.deviceName
+    device = _device(s, caller, body.installId)
+    await listeners.tell(caller.user_id, body.installId, {"type": "device", "device": device})
     return {"session": out} if out else {}
 
 
+# ------------------------------------------------------------------ M6: devices and remotes
+
+
+def _device(s, caller: Caller, install: str) -> dict[str, Any]:
+    name = listeners.names.get((caller.user_id, install)) or "Another device"
+    body: dict[str, Any] = {"installId": install, "deviceName": name, "playing": False}
+    state = listeners.states.get((caller.user_id, install))
+    if state and state.get("trackId"):
+        track = s.get(Track, state["trackId"])
+        if track is not None:
+            updated = datetime.fromisoformat(state["updatedAt"].replace("Z", "+00:00"))
+            position = state["positionMs"]
+            if state["playing"]:
+                position += int((datetime.now(UTC) - updated).total_seconds() * 1000)
+            body.update(
+                playing=bool(state["playing"]),
+                track=track_summaries(s, caller, [track])[0],
+                positionMs=min(position, track.duration_ms),
+                updatedAt=state["updatedAt"],
+            )
+    return body
+
+
+@router.get("/devices")
+def list_devices(caller: CallerDep, s: SessionDep) -> dict[str, Any]:
+    """The person's devices with Hive open now, and what each is playing."""
+    return {"items": [_device(s, caller, i) for i in listeners.online(caller.user_id)]}
+
+
+class CommandBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    action: str = Field(pattern="^(play|pause|next|previous|seek|volume|load)$")
+    fromInstall: str = Field(min_length=8, max_length=64)  # noqa: N815
+    positionMs: int | None = Field(None, ge=0)  # noqa: N815
+    volume: float | None = Field(None, ge=0, le=1)
+    queue: list[str] | None = Field(None, max_length=MAX_QUEUE)
+    index: int | None = Field(None, ge=0)
+    playing: bool | None = None
+    source: Source | None = None
+
+
+@router.post("/devices/{installId}/command")
+async def command_device(
+    installId: str,  # noqa: N803
+    body: CommandBody,
+    caller: CallerDep,
+    s: SessionDep,
+) -> dict[str, Any]:
+    """Tell one of the person's open devices to do something. "load" plays a
+    queue there (moving playback there from another device)."""
+    if installId not in listeners.online(caller.user_id):
+        raise Problem(409, "That device isn't open any more")
+    if body.action == "seek" and body.positionMs is None:
+        raise Problem(422, "Say where to seek to")
+    if body.action == "volume" and body.volume is None:
+        raise Problem(422, "Say how loud")
+    command: dict[str, Any] = {"action": body.action}
+    if body.action == "load":
+        if not body.queue:
+            raise Problem(422, "Say what to play")
+        found = {t.id: t for t in s.scalars(select(Track).where(Track.id.in_(set(body.queue))))}
+        tracks = [found[i] for i in body.queue if i in found]
+        if not tracks:
+            raise Problem(422, "Those songs aren't at home any more")
+        command["queue"] = track_summaries(s, caller, tracks)
+        command["index"] = min(body.index or 0, len(tracks) - 1)
+        command["playing"] = True if body.playing is None else body.playing
+        if body.source:
+            command["source"] = body.source.model_dump()
+    for key in ("positionMs", "volume"):
+        if getattr(body, key) is not None:
+            command[key] = getattr(body, key)
+    message = {
+        "type": "command",
+        "from": body.fromInstall,
+        "fromName": listeners.names.get((caller.user_id, body.fromInstall)) or "Another device",
+        "command": command,
+    }
+    if not await listeners.send_to(caller.user_id, installId, message):
+        raise Problem(409, "That device isn't open any more")
+    return {"sent": True}
+
+
 @router.websocket("/events")
-async def sync_events(ws: WebSocket, install: str = "") -> None:
+async def sync_events(ws: WebSocket, install: str = "", name: str = "") -> None:
     """The person's other devices playing: a message on every change.
     Sign in as for any call (the Authorization header)."""
     try:
@@ -156,7 +274,8 @@ async def sync_events(ws: WebSocket, install: str = "") -> None:
         await ws.close(code=4401)
         return
     await ws.accept()
-    listeners.add(caller.user_id, install, ws)
+    listeners.add(caller.user_id, install, ws, name)
+    await listeners.tell(caller.user_id, install, {"type": "devices"})
     try:
         while True:
             # Nothing to receive; a ping now and then keeps the connection open.
@@ -168,3 +287,6 @@ async def sync_events(ws: WebSocket, install: str = "") -> None:
         pass
     finally:
         listeners.remove(caller.user_id, install, ws)
+        if install not in listeners.online(caller.user_id):
+            listeners.states.pop((caller.user_id, install), None)
+            await listeners.tell(caller.user_id, install, {"type": "devices"})
