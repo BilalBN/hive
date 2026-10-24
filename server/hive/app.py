@@ -31,6 +31,8 @@ from hive.library.lookup.service import LookupService
 from hive.library.media_api import router as media_router
 from hive.library.recognition import Recognition
 from hive.library.scanner import Library
+from hive.library.shazam_api import admin_router as shazam_admin_router
+from hive.library.shazam_api import router as shazam_router
 from hive.library.sync_api import router as sync_router
 from hive.library.uploads import router as uploads_router
 from hive.models import AuditEntry
@@ -135,6 +137,8 @@ def create_app(settings: Settings | None = None, lookup_http: Http | None = None
     app.include_router(watch_router)
     app.include_router(sync_router)
     app.include_router(editor_router)
+    app.include_router(shazam_router)
+    app.include_router(shazam_admin_router)
     app.include_router(listen_router)
     app.include_router(listen_admin_router)
     register_unbuilt_operations(app, load_contract())

@@ -9,6 +9,7 @@ import 'package:record/record.dart';
 import '../api/hive_api.g.dart';
 import '../auth/device_auth.dart';
 import '../core/api.dart';
+import 'shazam.dart';
 
 /// Listen keeps the microphone on and checks as it goes: the first check
 /// after [firstCheck], then every [checkEvery], each with the most recent
@@ -124,10 +125,6 @@ final clipMatcherProvider = Provider<ClipMatcher>((ref) {
   };
 });
 
-/// "Identified by Shazam": songs that aren't at home named by Shazam. The
-/// path is built and tested, but stays off until M5 turns it on.
-final shazamProvider = Provider<bool>((ref) => false);
-
 enum ListenPhase { idle, listening, found, notFound, micDenied, failed }
 
 @immutable
@@ -137,6 +134,7 @@ class ListenState {
     this.heard = Duration.zero,
     this.result,
     this.error,
+    this.askingShazam = false,
   });
 
   final ListenPhase phase;
@@ -145,6 +143,9 @@ class ListenState {
   final Duration heard;
   final ListenResult? result;
   final String? error;
+
+  /// Home didn't know it; Shazam is being asked (M5).
+  final bool askingShazam;
 
   bool get busy => phase == ListenPhase.listening;
 }
@@ -244,11 +245,7 @@ class ListenController extends Notifier<ListenState> {
         last: last,
       );
       if (run != _run) return;
-      final named =
-          result.track != null ||
-          (ref.read(shazamProvider) &&
-              result.source == 'shazam' &&
-              result.title != null);
+      final named = result.track != null;
       final short = pcm.length < listenRate * 2 * 6;
       final which = result.track?.id ?? result.title;
       if (result.matched && named && short && !last && which != _unconfirmed) {
@@ -264,7 +261,12 @@ class ListenController extends Notifier<ListenState> {
         state = ListenState(phase: ListenPhase.found, result: result);
         ref.invalidate(listenHistoryProvider);
       } else if (last) {
-        state = ListenState(phase: ListenPhase.notFound, result: result);
+        // Not at home: Shazam, when the admin turned it on (M5).
+        final shazam = await _askShazam(run, pcm, result.id);
+        if (run != _run) return;
+        state = shazam != null
+            ? ListenState(phase: ListenPhase.found, result: shazam)
+            : ListenState(phase: ListenPhase.notFound, result: result);
         ref.invalidate(listenHistoryProvider);
       }
     } catch (e) {
@@ -274,6 +276,35 @@ class ListenController extends Notifier<ListenState> {
       state = ListenState(phase: ListenPhase.failed, error: describeError(e));
     } finally {
       _asking = false;
+    }
+  }
+
+  /// What Shazam calls the song, kept in the history at home; null when
+  /// Shazam is off here, doesn't know it, or can't be reached.
+  Future<ListenResult?> _askShazam(int run, Uint8List pcm, int? eventId) async {
+    try {
+      if (!await ref.read(shazamReadyProvider.future)) return null;
+      if (run != _run) return null;
+      state = ListenState(
+        phase: ListenPhase.listening,
+        heard: state.heard,
+        askingShazam: true,
+      );
+      final hit = await ref
+          .read(shazamLinkProvider)
+          .match(pcm, rate: listenRate);
+      if (hit == null || run != _run) return null;
+      return await ref
+          .read(hiveApiProvider)
+          .recordListenResult(
+            body: ShazamFound(
+              title: hit.title,
+              artist: hit.artist,
+              listenEventId: eventId,
+            ),
+          );
+    } catch (_) {
+      return null; // as if Shazam didn't know it
     }
   }
 

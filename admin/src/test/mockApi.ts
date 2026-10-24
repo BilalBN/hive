@@ -189,6 +189,7 @@ export function mockApi(routes: Record<string, Route | ((req: Request) => Route)
     "GET /api/v1/admin/overview": { body: overview },
     "GET /api/v1/admin/library/tidy": { body: { items: [] } },
     "GET /api/v1/admin/song-requests": { body: { items: [] } },
+    "GET /api/v1/admin/recognition/shazam": { body: { enabled: false, keySet: false, androidReady: false } },
     "GET /api/v1/admin/library/same-songs": { body: { items: [] } },
     ...routes,
   };

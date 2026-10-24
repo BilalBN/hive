@@ -60,3 +60,4 @@ pytest-report.xml
 /dist/
 /build/
 /dist-installer/
+app/android/app/libs/*.aar

@@ -134,6 +134,10 @@ class _Listener extends ConsumerWidget {
     final p = HiveTheme.of(context);
     final c = ref.read(listenProvider.notifier);
     final (title, text) = switch (state.phase) {
+      ListenPhase.listening when state.askingShazam => (
+        'Asking Shazam…',
+        "It isn't in your music at home. Shazam gets a fingerprint of the sound, never the sound.",
+      ),
       ListenPhase.listening => (
         'Listening…',
         state.heard < const Duration(seconds: 12)

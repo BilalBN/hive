@@ -604,7 +604,10 @@ export interface paths {
         /** The person's recognitions, labelled by source (library or Shazam). */
         get: operations["listListenHistory"];
         put?: never;
-        /** Save a recognition made on the device by Shazam, so history covers both sources. */
+        /**
+         * Save what Shazam named on the device, so history and "Ask to add it" cover it.
+         * @description Given listenEventId (the attempt home couldn't name), that history entry becomes Shazam's.
+         */
         post: operations["recordListenResult"];
         delete?: never;
         options?: never;
@@ -638,8 +641,25 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Short-lived Apple developer token for ShazamKit on Android. */
+        /** Short-lived Apple developer token for ShazamKit on Android (an hour). */
         post: operations["createShazamToken"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/listen/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What Listen may use besides home's own recognition. */
+        get: operations["getListenOptions"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1535,6 +1555,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/recognition/shazam": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Shazam for songs that aren't at home, and the ShazamKit key for Android. */
+        get: operations["adminGetShazam"];
+        /** Turn Shazam on or off, or set the ShazamKit key. */
+        put: operations["adminSetShazam"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/backups": {
         parameters: {
             query?: never;
@@ -2189,6 +2227,39 @@ export interface components {
             };
             /** @description Files deleted. */
             deleted: number;
+        };
+        ListenOptions: {
+            /** @description The admin turned Shazam on for songs that aren't at home. */
+            shazam: boolean;
+            /** @description Android can use it too (home has the ShazamKit key). */
+            shazamAndroid: boolean;
+        };
+        ShazamFound: {
+            title: string;
+            artist?: string;
+            /** @description The attempt home couldn't name. */
+            listenEventId?: number;
+        };
+        ShazamToken: {
+            token: string;
+            /** Format: date-time */
+            expiresAt: string;
+        };
+        ShazamSettings: {
+            enabled: boolean;
+            teamId?: string;
+            keyId?: string;
+            /** @description The ShazamKit key is saved at home. */
+            keySet: boolean;
+            /** @description On, with team, key ID and key: Android phones can use Shazam. */
+            androidReady: boolean;
+        };
+        ShazamSettingsUpdate: {
+            enabled?: boolean;
+            teamId?: string;
+            keyId?: string;
+            /** @description The .p8 file's text; empty removes it. */
+            privateKey?: string;
         };
         PlaySessionUpdate: {
             /** @description This app on this device (stays the same across sign-ins). */
@@ -4124,10 +4195,33 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: components["requestBodies"]["Pending"];
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ShazamFound"];
+            };
+        };
         responses: {
-            200: components["responses"]["Pending"];
-            501: components["responses"]["NotImplemented"];
+            /** @description The recognition. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListenResult"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            /** @description Shazam is off for this home (or not ready for Android). */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: components["responses"]["Invalid"];
         };
     };
     createSongRequest: {
@@ -4165,8 +4259,46 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            200: components["responses"]["Pending"];
-            501: components["responses"]["NotImplemented"];
+            /** @description The token. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShazamToken"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            /** @description Shazam is off for this home (or not ready for Android). */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    getListenOptions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The options. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListenOptions"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
         };
     };
     getPlaySession: {
@@ -5676,6 +5808,53 @@ export interface operations {
                 };
             };
             401: components["responses"]["Unauthorized"];
+        };
+    };
+    adminGetShazam: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The settings (the key itself is never sent back). */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShazamSettings"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    adminSetShazam: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ShazamSettingsUpdate"];
+            };
+        };
+        responses: {
+            /** @description The settings. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShazamSettings"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            422: components["responses"]["Invalid"];
         };
     };
     adminListBackups: {

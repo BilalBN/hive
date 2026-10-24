@@ -5,6 +5,7 @@ import { CircleAlert, Music4, RotateCcw } from "lucide-react";
 import { fetchRecognition, rebuildRecognition, type RecognitionStatus } from "../api/listen";
 import { ago } from "../api/people";
 import { QueryError } from "../components/QueryError";
+import { ShazamPanel } from "../components/ShazamPanel";
 
 const REQUESTS_PATH: string = "/requests";
 const number = new Intl.NumberFormat();
@@ -98,6 +99,7 @@ export function RecognitionPage() {
               </p>
             </article>
           </div>
+          <ShazamPanel />
           <section className="panel" aria-labelledby="rebuild-h">
             <h2 id="rebuild-h" className="panel__title">
               <Music4 size={18} aria-hidden /> Start the fingerprints over

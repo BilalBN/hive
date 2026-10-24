@@ -451,3 +451,29 @@ jobs:
           name: hive-macos
           path: app/Hive-macOS.dmg
           retention-days: 30
+
+  build-ios:
+    name: Build iPhone (unsigned)
+    needs: app
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v5
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      # Compiles the iPhone app (Swift included) without signing; signed
+      # builds come from the release workflow once the Apple account is set up.
+      - name: flutter build ios
+        shell: bash
+        run: |
+          set -o pipefail
+          flutter build ios --release --no-codesign 2>&1 | tee build.log || {
+            grep -iE "error|failed" build.log | tail -30 | while IFS= read -r line; do echo "::error title=iPhone build::${line:0:400}"; done
+            exit 1
+          }
+
