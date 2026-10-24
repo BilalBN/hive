@@ -27,6 +27,8 @@ dependencies:
   path_provider: ^2.1.6
   tray_manager: ^0.5.0
   window_manager: ^0.5.2
+  video_player: ^2.14.1
+  video_player_win: ^3.3.1
 
 # shared_preferences_android 2.5.0 (17 Oct 2026) moved to JNI and fails in
 # release builds with NoSuchMethodError on getAll, so the app can't start.

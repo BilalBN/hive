@@ -497,6 +497,44 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/media/tracks/{trackId}/video": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                trackId: components["parameters"]["TrackId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** A signed link to the song's music video (when it has one; see TrackSummary.videoId). */
+        post: operations["createVideoTicket"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/media/video/{ticket}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ticket: string;
+            };
+            cookie?: never;
+        };
+        /** The video file itself; supports HTTP range requests. Authorised by the ticket. */
+        get: operations["streamVideo"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/media/artwork/{artworkId}": {
         parameters: {
             query?: never;
@@ -1535,6 +1573,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/library/videos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Music videos in the music folders, and the song each plays with. */
+        get: operations["adminListVideos"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/backups": {
         parameters: {
             query?: never;
@@ -1786,6 +1841,8 @@ export interface components {
             composer?: string;
             /** @description Who wrote the words, as credited. */
             lyricist?: string;
+            /** @description M6: the song has a music video (POST /media/tracks/{trackId}/video). */
+            videoId?: string;
         };
         AlbumSummary: {
             id: string;
@@ -2189,6 +2246,34 @@ export interface components {
             };
             /** @description Files deleted. */
             deleted: number;
+        };
+        VideoTicket: {
+            /** @description Relative to the home address; no Authorization needed. */
+            url: string;
+            /** Format: date-time */
+            expiresAt: string;
+            /** @example video/mp4 */
+            mimeType: string;
+            sizeBytes: number;
+            durationMs: number;
+            width?: number;
+            height?: number;
+        };
+        AdminVideo: {
+            id: string;
+            /** @description Relative to its music folder. */
+            file: string;
+            durationMs: number;
+            width?: number;
+            height?: number;
+            /** @description The song it plays with; absent when Hive couldn't match it. */
+            trackId?: string;
+            trackTitle?: string;
+            artistName?: string;
+        };
+        AdminVideos: {
+            items: components["schemas"]["AdminVideo"][];
+            matched: number;
         };
         PlaySessionUpdate: {
             /** @description This app on this device (stays the same across sign-ins). */
@@ -3960,6 +4045,70 @@ export interface operations {
             };
         };
     };
+    createVideoTicket: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                trackId: components["parameters"]["TrackId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The link. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VideoTicket"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    streamVideo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ticket: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Video bytes. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "video/*": string;
+                };
+            };
+            /** @description Partial video bytes. */
+            206: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "video/*": string;
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            /** @description The requested range is outside the file. */
+            416: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     getArtwork: {
         parameters: {
             query?: {
@@ -5673,6 +5822,27 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SameSongs"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    adminListVideos: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The videos. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminVideos"];
                 };
             };
             401: components["responses"]["Unauthorized"];

@@ -14,6 +14,7 @@ import { Artwork } from "../components/Artwork";
 import { LookupPanel } from "../components/LookupPanel";
 import { SameSongs } from "../components/SameSongs";
 import { TidyPanel } from "../components/TidyPanel";
+import { VideosPanel } from "../components/VideosPanel";
 import { QueryError } from "../components/QueryError";
 import { formatBytes } from "../upload/queue";
 
@@ -296,6 +297,8 @@ export function LibraryPage() {
           </section>
 
           {data.duplicates && data.duplicates.length > 0 && <Duplicates items={data.duplicates} />}
+
+          <VideosPanel />
 
           <SameSongs />
 

@@ -86,6 +86,11 @@ class Library:
         self._not_before: dict[int, float] = {}
         self._busy = 0
         self._busy_lock = threading.Lock()
+        # Run once the queue empties after a scan or after files were read
+        # (M6: music videos are matched to their songs then).
+        self.idle_hooks: list = []
+        self._idle_pending = False
+        self._idle_lock = threading.Lock()
         self.scanning = False
         self._scan_lock = threading.Lock()
         self.last_scan_at: datetime | None = None
@@ -341,6 +346,7 @@ class Library:
         finally:
             self.scanning = False
             self.last_scan_at = _now()
+            self._idle_pending = True
         return queued
 
     @property
@@ -386,6 +392,7 @@ class Library:
         while not self._stop.is_set():
             item = self._claim()
             if item is None:
+                self._run_idle_hooks()
                 self._wake.wait(timeout=1.0)
                 self._wake.clear()
                 continue
@@ -399,6 +406,20 @@ class Library:
             finally:
                 with self._busy_lock:
                     self._busy -= 1
+                self._idle_pending = True
+
+    def _run_idle_hooks(self) -> None:
+        if not self._idle_pending or self.busy or self.scanning:
+            return
+        with self._idle_lock:
+            if not self._idle_pending:
+                return
+            self._idle_pending = False
+            for hook in self.idle_hooks:
+                try:
+                    hook()
+                except Exception:  # noqa: BLE001 - a hook must not stop the worker
+                    log.exception("after reading the library")
 
     def _finish(self, item_id: int, status: str, problem: str | None = None, **values) -> None:
         with self._write_lock, Session(self.db.engine) as s:

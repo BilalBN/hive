@@ -14,7 +14,7 @@ from sqlalchemy import Integer, and_, case, func, select
 from sqlalchemy.orm import Session
 
 from hive.auth import Caller
-from hive.models import Album, Artist, Like, Playlist, PlaylistItem, Track
+from hive.models import Album, Artist, Like, Playlist, PlaylistItem, Track, Video
 
 
 def iso(dt: datetime | None) -> str | None:
@@ -95,6 +95,12 @@ def track_summaries(s: Session, caller: Caller, tracks: Sequence[Track]) -> list
     album_ids = {t.album_id for t in tracks}
     titles = dict(s.execute(select(Album.id, Album.title).where(Album.id.in_(album_ids))).all())
     liked = liked_ids(s, caller, (t.id for t in tracks))
+    ids = [t.id for t in tracks]
+    videos = (
+        dict(s.execute(select(Video.track_id, Video.id).where(Video.track_id.in_(ids))).all())
+        if ids
+        else {}
+    )
     return [
         _clean(
             {
@@ -113,6 +119,7 @@ def track_summaries(s: Session, caller: Caller, tracks: Sequence[Track]) -> list
                 "hasLyrics": t.has_lyrics,
                 "composer": t.composer,
                 "lyricist": t.lyricist,
+                "videoId": videos.get(t.id),
             }
         )
         for t in tracks
