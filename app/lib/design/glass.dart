@@ -93,15 +93,25 @@ class GlassCircleButton extends StatelessWidget {
         button: true,
         label: tooltip,
         excludeSemantics: true,
-        child: Material(
-          color: color ?? Colors.white.withValues(alpha: 0.14),
-          shape: const CircleBorder(),
-          child: InkWell(
-            customBorder: const CircleBorder(),
-            onTap: onPressed,
-            child: SizedBox.square(
-              dimension: size,
-              child: Center(child: child),
+        // A finger-sized (44 point) target around the smaller circle.
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onPressed,
+          child: SizedBox.square(
+            dimension: size < 44 ? 44 : size,
+            child: Center(
+              child: Material(
+                color: color ?? Colors.white.withValues(alpha: 0.14),
+                shape: const CircleBorder(),
+                child: InkWell(
+                  customBorder: const CircleBorder(),
+                  onTap: onPressed,
+                  child: SizedBox.square(
+                    dimension: size,
+                    child: Center(child: child),
+                  ),
+                ),
+              ),
             ),
           ),
         ),

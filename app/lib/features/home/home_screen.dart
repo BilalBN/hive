@@ -98,8 +98,8 @@ class HomeScreen extends ConsumerWidget {
                           onTap: () => context.push('/settings'),
                           radius: 28,
                           child: Container(
-                            width: 40,
-                            height: 40,
+                            width: 44,
+                            height: 44,
                             decoration: BoxDecoration(
                               color: p.raised,
                               shape: BoxShape.circle,
@@ -384,7 +384,7 @@ class _SongRow extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return SizedBox(
-      height: size + 52,
+      height: coverShelfHeight(context, size),
       child: ScrollConfiguration(
         behavior: const DragScrollBehavior(),
         child: ListView.separated(
@@ -427,7 +427,7 @@ class _ArtistRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: size + 52,
+      height: coverShelfHeight(context, size),
       child: ScrollConfiguration(
         behavior: const DragScrollBehavior(),
         child: ListView.separated(
@@ -472,7 +472,7 @@ class _AlbumRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: size + 52,
+      height: coverShelfHeight(context, size),
       child: ScrollConfiguration(
         behavior: const DragScrollBehavior(),
         child: ListView.separated(
@@ -506,7 +506,7 @@ class _PlaylistRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: size + 52,
+      height: coverShelfHeight(context, size),
       child: ScrollConfiguration(
         behavior: const DragScrollBehavior(),
         child: ListView.separated(

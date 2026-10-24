@@ -469,24 +469,44 @@ class _Row extends StatelessWidget {
             Icon(icon, size: 20, color: p.textSecondary),
             const SizedBox(width: HiveSpace.md),
             Expanded(
-              child: Row(
-                children: [
-                  Text(
-                    title,
-                    style: HiveType.body.copyWith(color: p.textPrimary),
-                  ),
-                  const SizedBox(width: HiveSpace.sm),
-                  Expanded(
-                    child: Text(
-                      value,
-                      textAlign: TextAlign.end,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: HiveType.callout.copyWith(color: p.textSecondary),
+              // Large text sizes: the value goes under the name (as iOS
+              // does), so neither is cut short.
+              child: MediaQuery.textScalerOf(context).scale(1) > 1.3
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          style: HiveType.body.copyWith(color: p.textPrimary),
+                        ),
+                        Text(
+                          value,
+                          style: HiveType.callout.copyWith(
+                            color: p.textSecondary,
+                          ),
+                        ),
+                      ],
+                    )
+                  : Row(
+                      children: [
+                        Text(
+                          title,
+                          style: HiveType.body.copyWith(color: p.textPrimary),
+                        ),
+                        const SizedBox(width: HiveSpace.sm),
+                        Expanded(
+                          child: Text(
+                            value,
+                            textAlign: TextAlign.end,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: HiveType.callout.copyWith(
+                              color: p.textSecondary,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                ],
-              ),
             ),
             if (onTap != null) ...[
               const SizedBox(width: HiveSpace.xs),

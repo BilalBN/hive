@@ -91,53 +91,61 @@ class SimpleHome extends ConsumerWidget {
               style: HiveType.title2.copyWith(color: p.textPrimary),
             ),
             const SizedBox(height: HiveSpace.sm),
-            GridView.count(
-              crossAxisCount: 2,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              mainAxisSpacing: HiveSpace.sm,
-              crossAxisSpacing: HiveSpace.sm,
-              childAspectRatio: 0.82,
-              children: [
-                for (final t in tiles)
-                  Semantics(
-                    button: true,
-                    label: 'Play ${t.title}',
-                    excludeSemantics: true,
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(HiveRadius.card),
-                      onTap: () => playTile(t),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          AspectRatio(
-                            aspectRatio: 1,
-                            child: (t.artworkIds?.length ?? 0) > 1
-                                ? Mosaic(
-                                    artworkIds: t.artworkIds!,
-                                    title: t.title,
-                                  )
-                                : Artwork(
-                                    artworkId: t.artworkIds?.firstOrNull,
-                                    title: t.title,
-                                    radius: 14,
-                                  ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            t.title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: HiveType.headline.copyWith(
-                              color: p.textPrimary,
-                              fontSize: 19,
+            LayoutBuilder(
+              builder: (context, box) => GridView(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  mainAxisSpacing: HiveSpace.sm,
+                  crossAxisSpacing: HiveSpace.sm,
+                  // The cover, then its name at the person's text size.
+                  mainAxisExtent:
+                      (box.maxWidth - HiveSpace.sm) / 2 +
+                      6 +
+                      MediaQuery.textScalerOf(context).scale(28),
+                ),
+                children: [
+                  for (final t in tiles)
+                    Semantics(
+                      button: true,
+                      label: 'Play ${t.title}',
+                      excludeSemantics: true,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(HiveRadius.card),
+                        onTap: () => playTile(t),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            AspectRatio(
+                              aspectRatio: 1,
+                              child: (t.artworkIds?.length ?? 0) > 1
+                                  ? Mosaic(
+                                      artworkIds: t.artworkIds!,
+                                      title: t.title,
+                                    )
+                                  : Artwork(
+                                      artworkId: t.artworkIds?.firstOrNull,
+                                      title: t.title,
+                                      radius: 14,
+                                    ),
                             ),
-                          ),
-                        ],
+                            const SizedBox(height: 6),
+                            Text(
+                              t.title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: HiveType.headline.copyWith(
+                                color: p.textPrimary,
+                                fontSize: 19,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
           ],
           if (home.libraryEmpty)

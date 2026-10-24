@@ -56,9 +56,9 @@ class ArtBackdrop extends StatelessWidget {
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: [
-                Colors.black.withValues(alpha: 0.18),
-                Colors.black.withValues(alpha: 0.42),
-                Colors.black.withValues(alpha: 0.62),
+                Colors.black.withValues(alpha: 0.32),
+                Colors.black.withValues(alpha: 0.52),
+                Colors.black.withValues(alpha: 0.68),
               ],
               stops: const [0, 0.55, 1],
             ),
@@ -73,7 +73,7 @@ class ArtBackdrop extends StatelessWidget {
 /// Colours for text and controls on [ArtBackdrop]: white at a few strengths.
 abstract final class OnArt {
   static const primary = Colors.white;
-  static final secondary = Colors.white.withValues(alpha: 0.66);
+  static final secondary = Colors.white.withValues(alpha: 0.8);
   static final tertiary = Colors.white.withValues(alpha: 0.42);
   static final track = Colors.white.withValues(alpha: 0.22);
   static final fill = Colors.white.withValues(alpha: 0.14);

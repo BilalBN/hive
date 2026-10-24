@@ -297,24 +297,29 @@ class _MobileFrame extends ConsumerWidget {
                     const MiniPlayer(),
                     const SizedBox(height: _gap),
                   ],
-                  Glass(
-                    borderRadius: BorderRadius.circular(_barHeight / 2),
-                    shadow: true,
-                    child: SizedBox(
-                      height: _barHeight,
-                      child: Padding(
-                        padding: const EdgeInsets.all(5),
-                        child: Row(
-                          children: [
-                            for (var i = 0; i < _tabs.length; i++)
-                              Expanded(
-                                child: _TabButton(
-                                  tab: _tabs[i],
-                                  selected: i == selected,
-                                  onTap: () => onSelect(i),
+                  // Tab labels stay readable but don't outgrow the bar at
+                  // the largest text sizes (as iOS's own tab bars do).
+                  MediaQuery.withClampedTextScaling(
+                    maxScaleFactor: 1.15,
+                    child: Glass(
+                      borderRadius: BorderRadius.circular(_barHeight / 2),
+                      shadow: true,
+                      child: SizedBox(
+                        height: _barHeight,
+                        child: Padding(
+                          padding: const EdgeInsets.all(5),
+                          child: Row(
+                            children: [
+                              for (var i = 0; i < _tabs.length; i++)
+                                Expanded(
+                                  child: _TabButton(
+                                    tab: _tabs[i],
+                                    selected: i == selected,
+                                    onTap: () => onSelect(i),
+                                  ),
                                 ),
-                              ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -344,6 +349,9 @@ class _TabButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = HiveTheme.of(context);
     final color = selected ? p.accentText : p.textSecondary;
+    // The label in full-strength text: accent-coloured text on the accent
+    // tint is too faint to read at this size.
+    final labelColor = selected ? p.textPrimary : p.textSecondary;
     return Semantics(
       button: true,
       selected: selected,
@@ -369,7 +377,7 @@ class _TabButton extends StatelessWidget {
               Text(
                 tab.label,
                 style: HiveType.caption.copyWith(
-                  color: color,
+                  color: labelColor,
                   fontSize: 10.5,
                   fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
                 ),

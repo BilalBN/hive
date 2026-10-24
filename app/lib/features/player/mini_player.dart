@@ -35,97 +35,103 @@ class MiniPlayer extends ConsumerWidget {
         : (position.inMilliseconds / total.inMilliseconds).clamp(0.0, 1.0);
     const radius = BorderRadius.all(Radius.circular(20));
 
-    return Glass(
-      borderRadius: radius,
-      shadow: true,
-      opacity: 0.78,
-      child: Material(
-        type: MaterialType.transparency,
-        child: InkWell(
-          borderRadius: radius,
-          onTap: context.openNowPlaying,
-          child: SizedBox(
-            height: miniPlayerHeight,
-            child: Stack(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(8, 8, 4, 8),
-                  child: Row(
-                    children: [
-                      Artwork(
-                        artworkId: track.artworkId,
-                        title: track.albumTitle,
-                        size: 44,
-                        pixels: 96,
-                        radius: 10,
+    // A fixed height: its text grows a little with large text sizes, and
+    // Now playing shows it in full.
+    return MediaQuery.withClampedTextScaling(
+      maxScaleFactor: 1.2,
+      child: Glass(
+        borderRadius: radius,
+        shadow: true,
+        opacity: 0.78,
+        child: Material(
+          type: MaterialType.transparency,
+          child: Semantics(
+            button: true,
+            label:
+                'Now playing: ${track.title}, ${track.artistName}. Open Now playing',
+            child: InkWell(
+              borderRadius: radius,
+              onTap: context.openNowPlaying,
+              child: SizedBox(
+                height: miniPlayerHeight,
+                child: Stack(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(8, 8, 4, 8),
+                      child: Row(
+                        children: [
+                          Artwork(
+                            artworkId: track.artworkId,
+                            title: track.albumTitle,
+                            size: 44,
+                            pixels: 96,
+                            radius: 10,
+                          ),
+                          const SizedBox(width: HiveSpace.sm),
+                          Expanded(
+                            child: ExcludeSemantics(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    track.title,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: HiveType.callout.copyWith(
+                                      color: p.textPrimary,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  Text(
+                                    error ?? track.artistName,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: HiveType.caption.copyWith(
+                                      color: error != null
+                                          ? p.danger
+                                          : p.textSecondary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const PlayPauseButton(size: 22),
+                          GlyphButton(
+                            tooltip: 'Next',
+                            glyph: Glyph.next,
+                            size: 22,
+                            color: p.textPrimary,
+                            onPressed: () =>
+                                ref.read(playerProvider.notifier).next(),
+                          ),
+                          const SizedBox(width: 2),
+                        ],
                       ),
-                      const SizedBox(width: HiveSpace.sm),
-                      Expanded(
-                        child: Semantics(
-                          label:
-                              'Now playing: ${track.title}, ${track.artistName}. Open Now playing',
-                          excludeSemantics: true,
-                          button: true,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                track.title,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: HiveType.callout.copyWith(
-                                  color: p.textPrimary,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              Text(
-                                error ?? track.artistName,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: HiveType.caption.copyWith(
-                                  color: error != null
-                                      ? p.danger
-                                      : p.textSecondary,
-                                ),
-                              ),
-                            ],
+                    ),
+                    // How far into the song, as a hairline along the bottom edge.
+                    Positioned(
+                      left: 20,
+                      right: 20,
+                      bottom: 0,
+                      height: 2,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(1),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: FractionallySizedBox(
+                            widthFactor: progress,
+                            child: ColoredBox(
+                              color: p.accent.withValues(alpha: 0.9),
+                            ),
                           ),
                         ),
                       ),
-                      const PlayPauseButton(size: 22),
-                      GlyphButton(
-                        tooltip: 'Next',
-                        glyph: Glyph.next,
-                        size: 22,
-                        color: p.textPrimary,
-                        onPressed: () =>
-                            ref.read(playerProvider.notifier).next(),
-                      ),
-                      const SizedBox(width: 2),
-                    ],
-                  ),
-                ),
-                // How far into the song, as a hairline along the bottom edge.
-                Positioned(
-                  left: 20,
-                  right: 20,
-                  bottom: 0,
-                  height: 2,
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(1),
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: FractionallySizedBox(
-                        widthFactor: progress,
-                        child: ColoredBox(
-                          color: p.accent.withValues(alpha: 0.9),
-                        ),
-                      ),
                     ),
-                  ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ),
@@ -149,7 +155,7 @@ class PlayerBar extends ConsumerWidget {
       final on = panel == which;
       return IconButton(
         tooltip: label,
-        visualDensity: VisualDensity.compact,
+        visualDensity: playerDensity(context),
         isSelected: on,
         style: IconButton.styleFrom(
           backgroundColor: on ? p.accent.withValues(alpha: 0.16) : null,
@@ -220,6 +226,9 @@ class _NowPlayingPanel extends ConsumerWidget {
     final track = ref.watch(playerProvider.select((s) => s.track));
     final error = ref.watch(playerProvider.select((s) => s.error));
     final dark = Theme.of(context).brightness == Brightness.dark;
+    // With a mouse the title and artist open the album and artist; on a
+    // touch screen they're too small to tap, so the cover opens Now playing.
+    final mouse = playerDensity(context) == VisualDensity.compact;
     final box = BoxDecoration(
       color: dark ? p.raised.withValues(alpha: 0.6) : p.raised,
       borderRadius: BorderRadius.circular(12),
@@ -305,7 +314,9 @@ class _NowPlayingPanel extends ConsumerWidget {
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 InkWell(
-                                  onTap: () => context.openAlbum(track.albumId),
+                                  onTap: mouse
+                                      ? () => context.openAlbum(track.albumId)
+                                      : null,
                                   child: Text(
                                     track.title,
                                     maxLines: 1,
@@ -318,7 +329,7 @@ class _NowPlayingPanel extends ConsumerWidget {
                                   ),
                                 ),
                                 InkWell(
-                                  onTap: track.artistId == null
+                                  onTap: track.artistId == null || !mouse
                                       ? null
                                       : () =>
                                             context.openArtist(track.artistId!),
@@ -336,10 +347,13 @@ class _NowPlayingPanel extends ConsumerWidget {
                               ],
                             ),
                           ),
-                          const SizedBox(
-                            width: 30,
-                            child: LikeButton(size: 15),
-                          ),
+                          // Too small for a finger: on touch screens Like is
+                          // on Now playing.
+                          if (mouse)
+                            const SizedBox(
+                              width: 30,
+                              child: LikeButton(size: 15),
+                            ),
                         ],
                       ),
                     ),
